@@ -16,6 +16,8 @@ public class RestRoutes {
     protected static final String HEALTH_PATH = "/health";
     protected static final String REQUEST_PATH = "/request";
     protected static final String PORTMAP_PATH = "/portmap";
+    protected static final String TRAFFIC_PATH = "/traffic";
+
 
     public RestRoutes(Context context) {
         this.context = context;
@@ -24,7 +26,7 @@ public class RestRoutes {
     public Restlet getRoutes() {
         Router router = new Router(context);
         router.attach(PathBuilder(HEALTH_PATH), HealthStatus.class);
-    //    router.attach(PathBuilder(REQUEST_PATH), ControllerRequestHandler.class);
+        router.attach(PathBuilder(TRAFFIC_PATH), TrafficHandler.class);
         router.attach(PathBuilder(REQUEST_PATH), RequestHandler.class);
         router.attach(PathBuilder(PORTMAP_PATH), RequestHandler.class);
 

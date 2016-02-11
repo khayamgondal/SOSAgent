@@ -4,5 +4,5 @@ import java.util.List;
 
 public interface IStatListener {
 
-    void notifyStats(List<Long> writtenThroughputBytes);
+    void notifyStats(long lastWriteThroughput, long lastReadThroughput);
 }

@@ -60,10 +60,9 @@ public class Buffer {
         if (callBackHandler != null) {
             orderedPacketInitiator = new OrderedPacketInitiator();
             try {
-                orderedPacketInitiator.addListener((AgentClient)callBackHandler);
-            }
-            catch (ClassCastException e) {
-                orderedPacketInitiator.addListener((AgentToHost)callBackHandler);
+                orderedPacketInitiator.addListener((AgentClient) callBackHandler);
+            } catch (ClassCastException e) {
+                orderedPacketInitiator.addListener((AgentToHost) callBackHandler);
             }
         }
     }
@@ -73,7 +72,7 @@ public class Buffer {
     }
 
     private int offSet(int seq) {
-       // log.info("buffer size {}", bufferSize);
+        // log.info("buffer size {}", bufferSize);
         return seq % bufferSize;
     }
 
@@ -82,7 +81,7 @@ public class Buffer {
             int bufferIndex = offSet(expecting);
 
             if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
-               // log.info("Sending {}", bufferIndex);
+                // log.info("Sending {}", bufferIndex);
                 bufCount--;
                 sendData(packetHolder.get(bufferIndex));
                 status.put(bufferIndex, false);
@@ -93,9 +92,10 @@ public class Buffer {
             } else break;
         }
     }
+
     //TODO: Recheck the logic here.
     private void processPacket(ByteBuf data) {
-        { //sendData(data);
+        try {
             if (expecting == MAX_SEQ) expecting = 0;
             log.debug("Waiting for {}", expecting);
 
@@ -113,11 +113,27 @@ public class Buffer {
                 sendBuffer();
 
             } else putInBuffer(currentSeqNo, data);
-
         }
+        catch (IndexOutOfBoundsException exception) {
+            // When client is done sending, agent on the otherside will send an empty bytebuf once that bytebuf is sent, it will close the channel.
+            //      reason for sending this empty bytebuf is so we can findout once agent have successfully sent all the packets.
+            //     But on the receiving agent side, it is not expecting empty packets and tries to use first 4 bytes as seq no. and due to an empty packet it
+            // throws indexoutofbound exception. So i am just catching that exception here and not doing anything.
+        }
+
     }
+
     public synchronized void incomingPacket(ByteBuf data) {
         //processPacket(data);
+        sendWithoutBuffering(data);
+        //dropData(data);
+    }
+
+    public void dropData(ByteBuf data) {
+        data.release();
+    }
+
+    private void sendWithoutBuffering(ByteBuf data) {
         sendData(data);
     }
 
@@ -125,7 +141,7 @@ public class Buffer {
         int bufferIndex = offSet(seqNo);
 
         if (status.get(bufferIndex) == null || !status.get(bufferIndex)) { //for now just override previous buf loc
-            bufCount ++;
+            bufCount++;
             packetHolder.put(bufferIndex, data);
             status.put(bufferIndex, true);
             log.debug("Putting seq no. {} in buffer on index {}", seqNo, bufferIndex);

@@ -22,11 +22,14 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
    /* public AgentTrafficShaping(ScheduledExecutorService executor, long checkInterval) {
        super(executor, checkInterval);
     }*/
-    public AgentTrafficShaping(IStatListener statListener, ScheduledExecutorService executor, long checkInterval) {
+    public AgentTrafficShaping(ScheduledExecutorService executor, long checkInterval) {
         super(executor, checkInterval);
-        this.statListener = statListener;
+       // this.statListener = statListener;
     }
 
+    public void setStatListener(IStatListener statListener) {
+        this.statListener = statListener;
+    }
 
     /**
      * Override to compute average of bandwidth between all channels
@@ -41,8 +44,18 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
         if (maxReadNonZero == 0) {
             maxReadNonZero = 1;
         }
-      //  log.info("Counterrrrrrr {}", this.channelTrafficCounters().size());
+        if (statListener != null) {
+            for (TrafficCounter tc : this.channelTrafficCounters()) {
+           //     log.info("Written {}", tc.lastWriteThroughput() * 8 / 1024 / 1024);
+            //    log.info("Read {}", tc.lastReadThroughput() * 8 / 1024 / 1024);
+                statListener.notifyStats(tc.lastWriteThroughput(), tc.lastReadThroughput());
+            }
+        }
+
         for (TrafficCounter tc : this.channelTrafficCounters()) {
+         //   log.info("Written {}", tc.lastWriteThroughput() * 8 /1024 /1024);
+          //  log.info("Read {}", tc.lastReadThroughput() * 8 /1024 /1024);
+
             long cumulativeWritten = tc.cumulativeWrittenBytes();
             if (cumulativeWritten > maxWrittenNonZero) {
                 cumulativeWritten = maxWrittenNonZero;
@@ -56,12 +69,18 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
             cumulativeReadBytes.add((maxReadNonZero - cumulativeRead) * 100 / maxReadNonZero);
             throughputReadBytes.add(tc.lastReadThroughput() >> 10);
         }
+
       /*  log.info(this.toString() + " QueuesSize: " + queuesSize()
                 + "\nWrittenBytesPercentage: " + cumulativeWrittenBytes
                 + "\nWrittenThroughputBytes: " + throughputWrittenBytes
                 + "\nReadBytesPercentage:    " + cumulativeReadBytes
                 + "\nReadThroughputBytes:    " + throughputReadBytes);*/
-      if (statListener != null) statListener.notifyStats(throughputWrittenBytes);
+      //  if (throughputWrittenBytes.size() > 0) {
+      //      log.info("SIZE {}", throughputWrittenBytes.size());
+      //      long dd = throughputWrittenBytes.get(0) * 8 / 1024 ;
+        //    log.info("Legacy {}", dd);
+      //  }
+       // if (statListener != null) statListener.notifyStats(throughputWrittenBytes);
      // else log.error("Stat listener is null ");
         cumulativeWrittenBytes.clear();
         cumulativeReadBytes.clear();

@@ -52,7 +52,8 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     //    ChannelFuture cf = hostClient.getMyChannel().write(bytes);
         //TODO: lookinto read/write index
        /* ChannelFuture cf = */
-       ChannelFuture cf = hostClient.getMyChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4 ));
+        hostClient.getMyChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4));
+
 
       /*    cf.addListener(new ChannelFutureListener() {
              @Override

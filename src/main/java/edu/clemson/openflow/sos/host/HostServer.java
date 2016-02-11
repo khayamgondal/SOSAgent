@@ -10,6 +10,7 @@ import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
 import edu.clemson.openflow.sos.shaping.IStatListener;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -28,7 +29,7 @@ import java.util.List;
  * Listens for connections from client on port 9877
  */
 
-public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, RequestListener, IStatListener {
+public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, RequestListener {
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
 
     private static final int DATA_PORT = 9877;
@@ -52,10 +53,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     }
 
-    @Override
-    public void notifyStats(List<Long> writtenThroughputBytes) {
-        totalWritten(writtenThroughputBytes.get(0));
-    }
 
     public class HostServerHandler extends ChannelInboundHandlerAdapter {
 
@@ -83,7 +80,9 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 seqGen = new SeqGen();
 
                 agentClient = new AgentClient(request);
-                agentClient.setStatListener(HostServer.this);
+
+               // agentClient.setStatListener(HostServer.this);
+
                 agentClient.bootStrapSockets();
                 agentClient.setWriteBackChannel(ctx.channel());
 
@@ -114,7 +113,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             //    log.info("Read limit {}", hts.getReadLimit());
 
             if (request != null && seqGen != null) {
-                agentClient.incomingPacket(seqGen.incomingPacket1((byte[]) msg));
+                ByteBuf seqed = seqGen.incomingPacket1((byte[]) msg);
+                agentClient.incomingPacket(seqed);
                 // long et = System.currentTimeMillis();
                 // log.info("Sen time {}", et - dt);
 
@@ -129,9 +129,19 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         }
     }
 
+
+    /*
+        @param perChannel per channel write rate in Mbps
+        @return read limit in bytes per second
+     */
+    private long channelToGlobalReadLimit(int perChannel) {
+        return perChannel * request.getRequest().getNumParallelSockets() * 1024 *1024 / 8;
+    }
+
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
-        hostTrafficShaping = new HostTrafficShaping(group, 0, 300000000, 1000);
+        hostTrafficShaping = new HostTrafficShaping(group, 0, 0, 1000);//800000000
+
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(group)

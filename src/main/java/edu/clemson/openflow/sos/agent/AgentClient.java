@@ -225,7 +225,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         currentChannelNo++;
     }
 
-    private void writeToAgentChannel(Channel currentChannel, byte[] data) {
+   /* private void writeToAgentChannel(Channel currentChannel, byte[] data) {
         // log.debug("packet content is {}", new String(data));
         ChannelFuture cf = currentChannel.write(data);
         wCount++;
@@ -245,14 +245,14 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                 ReferenceCountUtil.release(data);
             }
         });
-      /*  if (!cf.isSuccess()) {
-            log.error("Sending packet failed .. due to {}", cf.cause());
-        }*/
-    }
+      //  if (!cf.isSuccess()) {
+       //     log.error("Sending packet failed .. due to {}", cf.cause());
+      //  }
+    }*/
 
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
-        // log.debug("packet content is {}", new String(data));
-        ChannelFuture cf = currentChannel.write(data);
+        currentChannel.writeAndFlush(data);
+        /*ChannelFuture cf = currentChannel.write(data);
         wCount++;
         if (wCount >= request.getRequest().getBufferSize() * request.getRequest().getNumParallelSockets()) {
             for (Channel channel : channels)
@@ -264,21 +264,22 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                log.info("Ref count {}", data.refCnt());
+               // log.info("Ref count {}", data.refCnt());
                 if (cf.isSuccess()) totalBytes += data.capacity();
                 else log.error("Failed to write packet to channel {}", cf.cause());
             }
         });
-      /*  if (!cf.isSuccess()) {
-            log.error("Sending packet failed .. due to {}", cf.cause());
-        }*/
+      //  if (!cf.isSuccess()) {
+      //      log.error("Sending packet failed .. due to {}", cf.cause());
+      //  }
 
-
+*/
     }
 
     private Bootstrap bootStrap(EventLoopGroup group, String agentServerIP) {
         try {
-            ats = new AgentTrafficShaping(statListener, eventLoopGroup, 10000);
+            ats = new AgentTrafficShaping( eventLoopGroup, 1000);
+            ats.setStatListener(statListener);
 
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)
@@ -286,9 +287,9 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
+                                    .addLast("agent-traffic-shapping", ats)
                                     .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agentClient", new AgentClientHandler())
-                                    .addLast("agent-traffic-shapping", ats)
                                     .addLast("4blength", new LengthFieldPrepender(4))
                             //  .addLast("bytesEncoder", new ByteArrayEncoder())
                             ;
