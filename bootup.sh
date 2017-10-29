@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
-#This script will start controller and mininet topology. Run this on vagrant VM
+    #!/usr/bin/env bash
+#This script will start controller and mininet topology.
+# Run this on vagrant VM
 #author Khayam Anjam kanjam@g.clemson.edu
 
 if [ "$(id -u)" != "0" ]; then

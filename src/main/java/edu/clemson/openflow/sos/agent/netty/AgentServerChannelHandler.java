@@ -25,12 +25,17 @@ public class AgentServerChannelHandler extends ChannelInboundHandlerAdapter {
                 socketAddress.getPort());
 
         RequestManager requestManager = RequestManager.INSTANCE;
-        this.request = requestManager.getRequest(socketAddress.getHostName(), socketAddress.getPort());
-
-        //Start up the HostClient which will sent packets to Server.
-        HostClient hostClient = new HostClient(request.getServerIP(), request.getServerPort(), ctx.channel()); // we are passing our channel to HostClient so It can write back the response messages
-        hostClient.start();
-        this.remoteChannel = hostClient.getChannel();
+        request = requestManager.getRequest(socketAddress.getHostName(),
+                socketAddress.getPort(), false);
+        if (request == null)
+            log.warn("No request found for {} .. not gonna forward it",
+                    socketAddress.getHostName());
+        else {
+            //Start up the HostClient which will sent packets to Server.
+            HostClient hostClient = new HostClient(request.getServerIP(), request.getServerPort(), ctx.channel()); // we are passing our channel to HostClient so It can write back the response messages
+            hostClient.start();
+            this.remoteChannel = hostClient.getChannel();
+        }
 
     }
 
@@ -39,7 +44,7 @@ public class AgentServerChannelHandler extends ChannelInboundHandlerAdapter {
 
 
         if (remoteChannel != null) { // write to the opened channel
-            log.debug("received packet from agent {}, destinted for server {}", request.getClientAgentIP(), request.getServerIP());
+            log.debug("received packet from agent {}, destined for server {}", request.getClientAgentIP(), request.getServerIP());
             //byte[] m = (byte[] ) msg;
             //log.info(new String(m));
             remoteChannel.writeAndFlush(msg);

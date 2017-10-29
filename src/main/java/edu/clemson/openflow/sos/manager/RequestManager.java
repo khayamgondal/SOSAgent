@@ -17,13 +17,33 @@ public enum RequestManager {
         return incomingRequests;
     }
 
-    public RequestParser getRequest(String IP, int port) throws RequestNotFoundException {
+    private boolean isClientAgentRequest(String IP, int port) {
         for (RequestParser request : incomingRequests) {
             if ((request.getClientIP().equals(IP) &&
-                    request.getClientPort() == port)  ||
-                    request.getClientAgentIP().equals(IP))
+                    request.getClientPort() == port))
+                return true;
+        }
+        return false;
+    }
+
+    private RequestParser getClientAgentRequest(String IP, int port) {
+        for (RequestParser request : incomingRequests) {
+            if ((request.getClientIP().equals(IP) &&
+                    request.getClientPort() == port))
                 return request;
         }
-        throw new RequestNotFoundException();
+        return null;
+    }
+
+    private RequestParser getServerAgentRequest(String clientAgentIP) {
+        for (RequestParser request : incomingRequests) {
+            if (request.getClientAgentIP().equals(clientAgentIP)) return request;
+        }
+        return null;
+    }
+    public RequestParser getRequest(String IP, int port, boolean isClientAgent)
+            throws RequestNotFoundException {
+        if (isClientAgent) return getClientAgentRequest(IP, port);
+        else return  getServerAgentRequest(IP);
     }
 }

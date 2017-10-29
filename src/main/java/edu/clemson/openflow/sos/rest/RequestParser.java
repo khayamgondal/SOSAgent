@@ -23,6 +23,8 @@ public class RequestParser {
     private String serverIP;
     private int serverPort;
 
+    public RequestParser() {
+    }
 
     public RequestParser(@JsonProperty("is-client-agent") boolean isClientAgent,
                          @JsonProperty("transfer-id") String transferID,

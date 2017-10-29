@@ -36,7 +36,8 @@ public class HostServerChannelHandler extends ChannelInboundHandlerAdapter {
                 socketAddress.getPort());
 
         RequestManager requestManager = RequestManager.INSTANCE;
-        this.request = requestManager.getRequest(socketAddress.getHostName(), socketAddress.getPort());
+        this.request = requestManager.getRequest(socketAddress.getHostName(),
+                socketAddress.getPort(), true);
 
         AgentClient agentClient = new AgentClient(request.getServerAgentIP(), ctx.channel()); // Also send my channel to AgentClient so It can write back on our behalf
         agentClient.start();
