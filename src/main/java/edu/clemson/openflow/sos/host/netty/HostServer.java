@@ -1,8 +1,11 @@
 package edu.clemson.openflow.sos.host.netty;
 
+import edu.clemson.openflow.sos.agent.HostStatusListener;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.manager.SocketManager;
+import edu.clemson.openflow.sos.rest.RequestParser;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -19,6 +22,7 @@ import java.net.InetSocketAddress;
 public class HostServer implements ISocketServer {
     private static final Logger log = LoggerFactory.getLogger(SocketManager.class);
     private static final int DATA_PORT = 9877;
+    private Channel myChannel;
 
     private boolean startSocket(int port) {
         NioEventLoopGroup group = new NioEventLoopGroup();
@@ -31,6 +35,7 @@ public class HostServer implements ISocketServer {
                     );
 
             ChannelFuture f = b.bind().sync();
+            myChannel = f.channel();
             log.info("Started host-side socket server at Port {}", port);
             return true;
             // Need to do socket closing handling. close all the remaining open sockets

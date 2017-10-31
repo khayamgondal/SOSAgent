@@ -1,6 +1,9 @@
 package edu.clemson.openflow.sos.host.netty;
 
+import edu.clemson.openflow.sos.agent.HostStatusInitiater;
+import edu.clemson.openflow.sos.agent.HostStatusListener;
 import edu.clemson.openflow.sos.agent.netty.AgentClient;
+import edu.clemson.openflow.sos.agent.netty.AgentClientChannelHandler;
 import edu.clemson.openflow.sos.manager.RequestManager;
 import edu.clemson.openflow.sos.rest.RequestParser;
 import io.netty.buffer.ByteBuf;
@@ -22,11 +25,18 @@ import java.net.InetSocketAddress;
  *  * TODO: Before connecting to client, compare its IP address with the one we are getting in requestParser Obj
 
  */
-public class HostServerChannelHandler extends ChannelInboundHandlerAdapter {
+public class HostServerChannelHandler extends ChannelInboundHandlerAdapter implements HostStatusListener {
     private static final Logger log = LoggerFactory.getLogger(HostServerChannelHandler.class);
     private RequestParser request;
 
-    private Channel remoteChannel; // remote channel to write to
+    //private Channel remoteChannel; // remote channel to write to
+    private HostStatusInitiater hostStatusInitiater;
+    private AgentClient agentClient;
+    private Channel myChannel;
+
+    public HostServerChannelHandler() {
+
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -39,22 +49,37 @@ public class HostServerChannelHandler extends ChannelInboundHandlerAdapter {
         this.request = requestManager.getRequest(socketAddress.getHostName(),
                 socketAddress.getPort(), true);
 
-        AgentClient agentClient = new AgentClient(request.getServerAgentIP(), ctx.channel()); // Also send my channel to AgentClient so It can write back on our behalf
-        agentClient.start();
-        this.remoteChannel = agentClient.getRemoteChannel(); //Also get the remote channel so we can write to it
+        //agentClient = new AgentClient(request.getServerAgentIP(), ctx.channel());
+        //agentClient.start();
+        myChannel = ctx.channel();
+
+        hostStatusInitiater = new HostStatusInitiater();
+        agentClient = new AgentClient(); // notify agent about new connected client
+        hostStatusInitiater.addListener(agentClient);
+
+        if (request != null) {
+            hostStatusInitiater.hostConnected(request);
+        }
+        else log.error("Couldn't find the request {} in request pool. Not notifying agent", request.toString());
+
+        //AgentClient agentClient = new AgentClient(request.getServerAgentIP(), ctx.channel()); // Also send my channel to AgentClient so It can write back on our behalf
+        //agentClient.start();
+        //this.remoteChannel = agentClient.getRemoteChannel(); //Also get the remote channel so we can write to it
 
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        log.debug("got new packet from client {}", request.getClientAgentIP());
-
-        if (remoteChannel != null) {
-            remoteChannel.writeAndFlush(msg);
-            }
-            else {
-            log.error("Couldn't connect to remote agent {}", request.getServerAgentIP());
+        if (request != null) {
+            hostStatusInitiater.packetArrived(request.getClientIP(), request.getClientPort(), msg); //notify handlers
         }
+        else log.error("Couldn't find the request {} in request pool. Not forwarding packet", request.toString());
+        //if (remoteChannel != null) {
+        //    remoteChannel.writeAndFlush(msg);
+        //    }
+        //    else {
+        //    log.error("Couldn't connect to remote agent {}", request.getServerAgentIP());
+        //}
         ReferenceCountUtil.release(msg);
     }
 
@@ -69,7 +94,21 @@ public class HostServerChannelHandler extends ChannelInboundHandlerAdapter {
         ctx.flush();
     }
 
-    private void sendReplyBack() {
+
+    @Override
+    public void hostConnected(RequestParser request) {
+
+    }
+
+    @Override
+    public void packetArrived(String hostIP, int hostPort, Object msg) {
+        log.debug("Received new packet from agent sending to host");
+        if (myChannel == null) log.error("Current context is null, wont be sending packet back to host");
+        else myChannel.writeAndFlush(msg);
+    }
+
+    @Override
+    public void hostDisconnected(String hostIP, int hostPort) {
 
     }
 }
