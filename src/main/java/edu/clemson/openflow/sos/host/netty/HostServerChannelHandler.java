@@ -30,7 +30,7 @@ public class HostServerChannelHandler extends ChannelInboundHandlerAdapter imple
     private RequestParser request;
 
     //private Channel remoteChannel; // remote channel to write to
-    private HostStatusInitiater hostStatusInitiater;
+    private HostStatusInitiater hostStatusInitiater, callBackhostStatusInitiater;
     private AgentClient agentClient;
     private Channel myChannel;
 
@@ -49,31 +49,29 @@ public class HostServerChannelHandler extends ChannelInboundHandlerAdapter imple
         this.request = requestManager.getRequest(socketAddress.getHostName(),
                 socketAddress.getPort(), true);
 
-        //agentClient = new AgentClient(request.getServerAgentIP(), ctx.channel());
-        //agentClient.start();
         myChannel = ctx.channel();
 
-        hostStatusInitiater = new HostStatusInitiater();
-        agentClient = new AgentClient(); // notify agent about new connected client
-        hostStatusInitiater.addListener(agentClient);
 
         if (request != null) {
-            hostStatusInitiater.hostConnected(request);
+            hostStatusInitiater = new HostStatusInitiater();
+            callBackhostStatusInitiater = new HostStatusInitiater();
+            agentClient = new AgentClient();
+            agentClient.start(request.getServerAgentIP());
+            hostStatusInitiater.addListener(agentClient);
+            hostStatusInitiater.hostConnected(request, callBackhostStatusInitiater); //also pass the call back handler so It can respond back
         }
-        else log.error("Couldn't find the request {} in request pool. Not notifying agent", request.toString());
-
-        //AgentClient agentClient = new AgentClient(request.getServerAgentIP(), ctx.channel()); // Also send my channel to AgentClient so It can write back on our behalf
-        //agentClient.start();
-        //this.remoteChannel = agentClient.getRemoteChannel(); //Also get the remote channel so we can write to it
+        else log.error("Couldn't find the request {} in request pool. Not notifying agent",
+                request.toString());
 
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (request != null) {
-            hostStatusInitiater.packetArrived(request.getClientIP(), request.getClientPort(), msg); //notify handlers
+            hostStatusInitiater.packetArrived(msg); //notify handlers
         }
-        else log.error("Couldn't find the request {} in request pool. Not forwarding packet", request.toString());
+        else log.error("Couldn't find the request {} in request pool. " +
+                "Not forwarding packet", request.toString());
         //if (remoteChannel != null) {
         //    remoteChannel.writeAndFlush(msg);
         //    }
@@ -96,12 +94,12 @@ public class HostServerChannelHandler extends ChannelInboundHandlerAdapter imple
 
 
     @Override
-    public void hostConnected(RequestParser request) {
+    public void hostConnected(RequestParser request, HostStatusInitiater hostStatusInitiater) {
 
     }
 
     @Override
-    public void packetArrived(String hostIP, int hostPort, Object msg) {
+    public void packetArrived(Object msg) {
         log.debug("Received new packet from agent sending to host");
         if (myChannel == null) log.error("Current context is null, wont be sending packet back to host");
         else myChannel.writeAndFlush(msg);

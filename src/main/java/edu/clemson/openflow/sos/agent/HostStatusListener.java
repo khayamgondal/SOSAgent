@@ -10,7 +10,7 @@ import java.util.EventListener;
  */
 public interface HostStatusListener extends EventListener {
 
-    void hostConnected(RequestParser request);
-    void packetArrived(String hostIP, int hostPort, Object msg);
+    void hostConnected(RequestParser request, HostStatusInitiater callBackhostStatusInitiater);
+    void packetArrived(Object msg);
     void hostDisconnected(String hostIP, int hostPort);
 }

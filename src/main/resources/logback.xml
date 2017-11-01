@@ -11,6 +11,6 @@
         <appender-ref ref="STDOUT"/>
     </root>
 
-    <logger name="edu.clemson.openflow.sos" level="info"/>
+    <logger name="edu.clemson.openflow.sos" level="debug"/>
 
 </configuration>

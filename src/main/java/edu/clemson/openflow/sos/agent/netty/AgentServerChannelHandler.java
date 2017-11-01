@@ -32,9 +32,9 @@ public class AgentServerChannelHandler extends ChannelInboundHandlerAdapter {
                     socketAddress.getHostName());
         else {
             //Start up the HostClient which will sent packets to Server.
-            HostClient hostClient = new HostClient(request.getServerIP(), request.getServerPort(), ctx.channel()); // we are passing our channel to HostClient so It can write back the response messages
-            hostClient.start();
-            this.remoteChannel = hostClient.getChannel();
+        //    HostClient hostClient = new HostClient(request.getServerIP(), request.getServerPort(), ctx.channel()); // we are passing our channel to HostClient so It can write back the response messages
+        //    hostClient.start();
+          //  this.remoteChannel = hostClient.getChannel();
         }
 
     }

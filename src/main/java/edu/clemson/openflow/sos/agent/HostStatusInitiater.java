@@ -12,14 +12,14 @@ public class HostStatusInitiater {
         listeners.add(toAdd);
     }
 
-    public void hostConnected(RequestParser request) {
+    public void hostConnected(RequestParser request, HostStatusInitiater callBackhostStatusInitiater) {
         for (HostStatusListener listener : listeners)
-            listener.hostConnected(request);
+            listener.hostConnected(request, callBackhostStatusInitiater);
     }
 
-    public void packetArrived(String hostIP, int hostPort, Object msg) {
+    public void packetArrived(Object msg) {
         for (HostStatusListener listener : listeners)
-            listener.packetArrived(hostIP, hostPort, msg);
+            listener.packetArrived(msg);
     }
 
 }

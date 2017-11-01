@@ -9,17 +9,11 @@ import io.netty.handler.codec.bytes.ByteArrayEncoder;
 
 public class AgentClientChannelInitializer extends ChannelInitializer {
 
-    private Channel remoteChannel;
-
-    public AgentClientChannelInitializer(Channel remoteChannel) {
-        this.remoteChannel = remoteChannel;
-    }
-
     @Override
     protected void initChannel(Channel socketChannel) throws Exception {
         socketChannel.pipeline().addLast("bytesDecoder",
                 new ByteArrayDecoder());
-        socketChannel.pipeline().addLast("agentClient", new AgentClientChannelHandler(remoteChannel));
+        socketChannel.pipeline().addLast("agentClient", new AgentClientChannelHandler());
 
         // Encoder
         //socketChannel.pipeline().addLast("frameEncoder", new LengthFieldPrepender(4));
