@@ -29,7 +29,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private static final int DATA_PORT = 9877;
     private RequestParser request;
     //private Channel remoteChannel; // remote channel to write to
-    private HostStatusInitiater hostStatusInitiater, callBackhostStatusInitiater;
+    private HostStatusInitiater hostStatusInitiater;
     private AgentClient agentClient;
     private Channel myChannel;
 
@@ -88,9 +88,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
         if (request != null) {
             hostStatusInitiater = new HostStatusInitiater();
-            callBackhostStatusInitiater = new HostStatusInitiater();
             agentClient = new AgentClient();
-           // agentClient.start(request.getServerAgentIP());
             hostStatusInitiater.addListener(agentClient);
 
             hostStatusInitiater.hostConnected(request, this); //also pass the call back handler so It can respond back
@@ -102,6 +100,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        log.debug("Received new packet of size {} from host, will be forwarding to agent", (byte[]) msg) ;
+
         if (request != null) {
             hostStatusInitiater.packetArrived(msg); //notify handlers
         }
@@ -129,7 +129,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     @Override
     public void packetArrived(Object msg) {
-        log.debug("Received new packet from agent sending to host");
+        log.debug("Received new packet from agent sending back to host");
         if (myChannel == null) log.error("Current context is null, wont be sending packet back to host");
         else myChannel.writeAndFlush(msg);
     }

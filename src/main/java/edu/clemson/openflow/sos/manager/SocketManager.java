@@ -13,7 +13,11 @@ import org.slf4j.LoggerFactory;
 public class SocketManager {
     private static final Logger log = LoggerFactory.getLogger(SocketManager.class);
 
+    //private RequestPool requestPool;
 
+  /*  public SocketManager(RequestPool requestPool) {
+        this.requestPool = requestPool;
+    }*/
     public boolean socketRequest(RequestParser request) {
 
         RequestManager requestManager = RequestManager.INSTANCE;

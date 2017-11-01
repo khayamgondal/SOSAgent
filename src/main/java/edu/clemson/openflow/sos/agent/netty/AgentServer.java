@@ -5,6 +5,7 @@ import edu.clemson.openflow.sos.agent.HostStatusListener;
 import edu.clemson.openflow.sos.host.netty.HostClient;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.manager.RequestManager;
+import edu.clemson.openflow.sos.manager.RequestPool;
 import edu.clemson.openflow.sos.rest.RequestParser;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -24,8 +25,17 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
     private RequestParser request;
     private Channel myChannel;
     private HostStatusInitiater hostStatusInitiater;
-    private HostStatusInitiater callBackhostStatusInitiater;
+    //private RequestPool requestPool;
 
+
+    public AgentServer() {
+
+    }
+
+ /*   public AgentServer(RequestPool requestPool) {
+        this.requestPool = requestPool;
+    }
+*/
     private boolean startSocket(int port) {
         NioEventLoopGroup group = new NioEventLoopGroup();
         try {
@@ -78,7 +88,6 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
 
         if (request != null) {
             hostStatusInitiater = new HostStatusInitiater();
-            //callBackhostStatusInitiater = new HostStatusInitiater();
             HostClient hostClient = new HostClient(); // we are passing our channel to HostClient so It can write back the response messages
 
             hostStatusInitiater.addListener(hostClient);
