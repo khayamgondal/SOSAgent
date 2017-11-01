@@ -90,9 +90,10 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             hostStatusInitiater = new HostStatusInitiater();
             callBackhostStatusInitiater = new HostStatusInitiater();
             agentClient = new AgentClient();
-            agentClient.start(request.getServerAgentIP());
+           // agentClient.start(request.getServerAgentIP());
             hostStatusInitiater.addListener(agentClient);
-            hostStatusInitiater.hostConnected(request, callBackhostStatusInitiater); //also pass the call back handler so It can respond back
+
+            hostStatusInitiater.hostConnected(request, this); //also pass the call back handler so It can respond back
         }
         else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                 request.toString());
@@ -122,7 +123,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
 
     @Override
-    public void hostConnected(RequestParser request, HostStatusInitiater hostStatusInitiater) {
+    public void hostConnected(RequestParser request, Object o) {
 
     }
 

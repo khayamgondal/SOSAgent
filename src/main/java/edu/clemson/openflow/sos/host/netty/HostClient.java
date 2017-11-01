@@ -2,8 +2,7 @@ package edu.clemson.openflow.sos.host.netty;
 
 import edu.clemson.openflow.sos.agent.HostStatusInitiater;
 import edu.clemson.openflow.sos.agent.HostStatusListener;
-import edu.clemson.openflow.sos.agent.netty.AgentClient;
-import edu.clemson.openflow.sos.agent.netty.AgentClientChannelInitializer;
+import edu.clemson.openflow.sos.agent.netty.AgentServer;
 import edu.clemson.openflow.sos.rest.RequestParser;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -14,15 +13,22 @@ import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HostClient extends ChannelInboundHandlerAdapter implements HostStatusListener {
-    private static final Logger log = LoggerFactory.getLogger(AgentClient.class);
-    private HostStatusInitiater callBackHostStatusInitiater;
+public class HostClient implements HostStatusListener {
+    private static final Logger log = LoggerFactory.getLogger(HostClient.class);
+    private HostStatusInitiater hostStatusInitiater;
     private Channel myChannel;
 
 
     public HostClient() {
     }
+class HostClientHandler extends ChannelInboundHandlerAdapter{
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        log.debug("Reading from host");
+        hostStatusInitiater.packetArrived(msg); // send back to host side
+    }
 
+}
     public void start(String hostServerIP, int hostServerPort) {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
@@ -33,11 +39,11 @@ public class HostClient extends ChannelInboundHandlerAdapter implements HostStat
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
                                     .addLast("bytesDecoder", new ByteArrayDecoder())
-                                    .addLast("hostClient", new HostClient())
+                                    .addLast("hostClient", new HostClientHandler())
                                     .addLast("bytesEncoder", new ByteArrayEncoder());
                         }
                     });
-            Channel channel = bootstrap.connect(hostServerIP, hostServerPort).sync().channel();
+            myChannel = bootstrap.connect(hostServerIP, hostServerPort).sync().channel();
             log.info("Connected to Host-Server {} on Port {}", hostServerIP, hostServerPort);
 
 
@@ -49,15 +55,12 @@ public class HostClient extends ChannelInboundHandlerAdapter implements HostStat
         }
     }
 
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        log.debug("Reading from remote agent");
-        callBackHostStatusInitiater.packetArrived(msg); // send back to host side
-    }
 
     @Override
-    public void hostConnected(RequestParser request, HostStatusInitiater callBackhostStatusInitiater) {
-        this.callBackHostStatusInitiater = callBackhostStatusInitiater;
+    public void hostConnected(RequestParser request, Object callBackObject) {
+        start(request.getServerIP(), request.getServerPort());
+        hostStatusInitiater = new HostStatusInitiater();
+        hostStatusInitiater.addListener((AgentServer) callBackObject);
         log.debug("new connection from agent {} port {}", request.getClientAgentIP(), request.getClientPort());
 
     }

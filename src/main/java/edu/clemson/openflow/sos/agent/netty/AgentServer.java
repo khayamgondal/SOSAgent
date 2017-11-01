@@ -4,7 +4,6 @@ import edu.clemson.openflow.sos.agent.HostStatusInitiater;
 import edu.clemson.openflow.sos.agent.HostStatusListener;
 import edu.clemson.openflow.sos.host.netty.HostClient;
 import edu.clemson.openflow.sos.manager.ISocketServer;
-import edu.clemson.openflow.sos.host.netty.HostServerChannelInitializer;
 import edu.clemson.openflow.sos.manager.RequestManager;
 import edu.clemson.openflow.sos.rest.RequestParser;
 import io.netty.bootstrap.ServerBootstrap;
@@ -79,11 +78,11 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
 
         if (request != null) {
             hostStatusInitiater = new HostStatusInitiater();
-            callBackhostStatusInitiater = new HostStatusInitiater();
+            //callBackhostStatusInitiater = new HostStatusInitiater();
             HostClient hostClient = new HostClient(); // we are passing our channel to HostClient so It can write back the response messages
-            hostClient.start(request.getServerIP(), request.getServerPort());
+
             hostStatusInitiater.addListener(hostClient);
-            hostStatusInitiater.hostConnected(request, callBackhostStatusInitiater); //also pass the call back handler so It can respond back
+            hostStatusInitiater.hostConnected(request, this); //also pass the call back handler so It can respond back
         }
         else log.error("Couldn't find the request {} in request pool. wont be acting",
                 request.toString());
@@ -101,7 +100,7 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
         ReferenceCountUtil.release(msg);
     }
     @Override
-    public void hostConnected(RequestParser request, HostStatusInitiater hostStatusInitiater) {
+    public void hostConnected(RequestParser request, Object hostStatusInitiater) {
 
     }
 

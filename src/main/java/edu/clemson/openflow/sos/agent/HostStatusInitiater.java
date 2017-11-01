@@ -12,9 +12,9 @@ public class HostStatusInitiater {
         listeners.add(toAdd);
     }
 
-    public void hostConnected(RequestParser request, HostStatusInitiater callBackhostStatusInitiater) {
+    public void hostConnected(RequestParser request, Object callBackObject) {
         for (HostStatusListener listener : listeners)
-            listener.hostConnected(request, callBackhostStatusInitiater);
+            listener.hostConnected(request, callBackObject);
     }
 
     public void packetArrived(Object msg) {
