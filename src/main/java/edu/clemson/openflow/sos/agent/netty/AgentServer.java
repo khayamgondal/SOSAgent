@@ -1,12 +1,11 @@
 package edu.clemson.openflow.sos.agent.netty;
 
-import edu.clemson.openflow.sos.agent.HostStatusInitiater;
+import edu.clemson.openflow.sos.agent.HostStatusInitiator;
 import edu.clemson.openflow.sos.agent.HostStatusListener;
 import edu.clemson.openflow.sos.host.netty.HostClient;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.manager.RequestManager;
-import edu.clemson.openflow.sos.manager.RequestPool;
-import edu.clemson.openflow.sos.rest.RequestParser;
+import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -22,9 +21,9 @@ import java.net.InetSocketAddress;
 public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocketServer, HostStatusListener {
     private static final int AGENT_DATA_PORT = 9878;
     private static final Logger log = LoggerFactory.getLogger(AgentServer.class);
-    private RequestParser request;
+    private ControllerRequestMapper request;
     private Channel myChannel;
-    private HostStatusInitiater hostStatusInitiater;
+    private HostStatusInitiator hostStatusInitiator;
     //private RequestPool requestPool;
 
 
@@ -84,14 +83,15 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
         RequestManager requestManager = RequestManager.INSTANCE;
         request = requestManager.getRequest(socketAddress.getHostName(),
                 socketAddress.getPort(), false);
+
         myChannel = ctx.channel();
 
         if (request != null) {
-            hostStatusInitiater = new HostStatusInitiater();
+            hostStatusInitiator = new HostStatusInitiator();
             HostClient hostClient = new HostClient(); // we are passing our channel to HostClient so It can write back the response messages
 
-            hostStatusInitiater.addListener(hostClient);
-            hostStatusInitiater.hostConnected(request, this); //also pass the call back handler so It can respond back
+            hostStatusInitiator.addListener(hostClient);
+            hostStatusInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
         }
         else log.error("Couldn't find the request {} in request pool. wont be acting",
                 request.toString());
@@ -102,14 +102,14 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
         log.debug("Received new packet from agent sending to host");
 
         if (request != null) {
-            hostStatusInitiater.packetArrived(msg); //notify handlers
+            hostStatusInitiator.packetArrived(msg); //notify handlers
         }
         else log.error("Couldn't find the request {} in request pool. " +
                 "Not forwarding packet", request.toString());
         ReferenceCountUtil.release(msg);
     }
     @Override
-    public void hostConnected(RequestParser request, Object hostStatusInitiater) {
+    public void hostConnected(ControllerRequestMapper request, Object hostStatusInitiater) {
 
     }
 

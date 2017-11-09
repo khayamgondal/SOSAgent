@@ -18,20 +18,20 @@ import java.io.IOException;
  * @author Khayam Anjam kanjam@g.clemson.edu
  * This class will receive the requests from controller and will initiate a socket connection for each of the client.
  */
-public class FloodlightRequest extends ServerResource {
+public class ControllerRequestHandler extends ServerResource {
     ObjectMapper mapper = new ObjectMapper();
-    private static final Logger log = LoggerFactory.getLogger(FloodlightRequest.class);
+    private static final Logger log = LoggerFactory.getLogger(ControllerRequestHandler.class);
 
     @Override
     protected Representation post(Representation entity) throws ResourceException {
         try {
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
-            RequestParser parsedObject = mapper.readValue(request.toString(), RequestParser.class);
+            ControllerRequestMapper requestObj = mapper.readValue(request.toString(), ControllerRequestMapper.class);
             log.info("New connection request from controller.");
             log.debug("Request Object {}", request.toString());
 
             SocketManager socketManager = new SocketManager();
-            boolean status = socketManager.socketRequest(parsedObject);
+            boolean status = socketManager.socketRequest(requestObj);
 
             Representation response = new StringRepresentation(Boolean.toString(status));
             setStatus(Status.SUCCESS_ACCEPTED);

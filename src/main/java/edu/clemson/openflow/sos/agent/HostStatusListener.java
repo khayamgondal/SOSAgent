@@ -1,6 +1,6 @@
 package edu.clemson.openflow.sos.agent;
 
-import edu.clemson.openflow.sos.rest.RequestParser;
+import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 
 import java.util.EventListener;
 
@@ -10,7 +10,7 @@ import java.util.EventListener;
  */
 public interface HostStatusListener extends EventListener {
 
-    void hostConnected(RequestParser request, Object callBackObject);
+    void hostConnected(ControllerRequestMapper request, Object callBackObject);
     void packetArrived(Object msg);
     void hostDisconnected(String hostIP, int hostPort);
 }

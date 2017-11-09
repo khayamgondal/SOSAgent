@@ -5,24 +5,24 @@ package edu.clemson.openflow.sos.manager;
  */
 
 import edu.clemson.openflow.sos.exceptions.RequestNotFoundException;
-import edu.clemson.openflow.sos.rest.RequestParser;
+import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 
 import java.util.ArrayList;
 
 public class RequestPool {
 
-    private ArrayList<RequestParser> incomingRequests = new ArrayList<>();
+    private ArrayList<ControllerRequestMapper> incomingRequests = new ArrayList<>();
 
-    public void addToPool(RequestParser request) {
+    public void addToPool(ControllerRequestMapper request) {
         incomingRequests.add(request);
     }
 
-    public ArrayList<RequestParser> getRequests() {
+    public ArrayList<ControllerRequestMapper> getRequests() {
         return incomingRequests;
     }
 
     private boolean isClientAgentRequest(String IP, int port) {
-        for (RequestParser request : incomingRequests) {
+        for (ControllerRequestMapper request : incomingRequests) {
             if ((request.getClientIP().equals(IP) &&
                     request.getClientPort() == port))
                 return true;
@@ -30,8 +30,8 @@ public class RequestPool {
         return false;
     }
 
-    private RequestParser getClientAgentRequest(String IP, int port) {
-        for (RequestParser request : incomingRequests) {
+    private ControllerRequestMapper getClientAgentRequest(String IP, int port) {
+        for (ControllerRequestMapper request : incomingRequests) {
             if ((request.getClientIP().equals(IP) &&
                     request.getClientPort() == port))
                 return request;
@@ -39,13 +39,13 @@ public class RequestPool {
         return null;
     }
 
-    private RequestParser getServerAgentRequest(String clientAgentIP) {
-        for (RequestParser request : incomingRequests) {
+    private ControllerRequestMapper getServerAgentRequest(String clientAgentIP) {
+        for (ControllerRequestMapper request : incomingRequests) {
             if (request.getClientAgentIP().equals(clientAgentIP)) return request;
         }
         return null;
     }
-    public RequestParser getRequest(String IP, int port, boolean isClientAgent)
+    public ControllerRequestMapper getRequest(String IP, int port, boolean isClientAgent)
             throws RequestNotFoundException {
         if (isClientAgent) return getClientAgentRequest(IP, port);
         else return  getServerAgentRequest(IP);

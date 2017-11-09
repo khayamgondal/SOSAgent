@@ -1,12 +1,11 @@
 package edu.clemson.openflow.sos.host.netty;
 
-import edu.clemson.openflow.sos.agent.HostStatusInitiater;
+import edu.clemson.openflow.sos.agent.HostStatusInitiator;
 import edu.clemson.openflow.sos.agent.HostStatusListener;
-import edu.clemson.openflow.sos.agent.netty.AgentClient;
+import edu.clemson.openflow.sos.buf.Multiplexer;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.manager.RequestManager;
-import edu.clemson.openflow.sos.manager.SocketManager;
-import edu.clemson.openflow.sos.rest.RequestParser;
+import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -25,13 +24,14 @@ import java.net.InetSocketAddress;
  * this class will start a new thread for every incoming connection from clients
  */
 public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, HostStatusListener {
-    private static final Logger log = LoggerFactory.getLogger(SocketManager.class);
+    private static final Logger log = LoggerFactory.getLogger(HostServer.class);
     private static final int DATA_PORT = 9877;
-    private RequestParser request;
-    //private Channel remoteChannel; // remote channel to write to
-    private HostStatusInitiater hostStatusInitiater;
-    private AgentClient agentClient;
+    private ControllerRequestMapper request;
+    private HostStatusInitiator hostStatusInitiator;
+    //private AgentClient agentClient;
     private Channel myChannel;
+    //PacketBuffer packetBuffer;
+    Multiplexer multiplexer ;
 
     private boolean startSocket(int port) {
         NioEventLoopGroup group = new NioEventLoopGroup();
@@ -50,7 +50,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                                       }
                                   }
                     );
-
             ChannelFuture f = b.bind().sync();
             //myChannel = f.channel();
             log.info("Started host-side socket server at Port {}", port);
@@ -87,11 +86,13 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
 
         if (request != null) {
-            hostStatusInitiater = new HostStatusInitiater();
-            agentClient = new AgentClient();
-            hostStatusInitiater.addListener(agentClient);
+            hostStatusInitiator = new HostStatusInitiator();
+            //agentClient = new AgentClient();
+            //hostStatusInitiator.addListener(agentClient);
+            //hostStatusInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
 
-            hostStatusInitiater.hostConnected(request, this); //also pass the call back handler so It can respond back
+            //packetBuffer  = new PacketBuffer(request);
+            multiplexer = new Multiplexer(request);
         }
         else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                 request.toString());
@@ -100,10 +101,11 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        log.debug("Received new packet of size {} from host, will be forwarding to agent", (byte[]) msg) ;
+        log.debug("Received new packet from host, will be forwarding to multiplexer") ;
 
         if (request != null) {
-            hostStatusInitiater.packetArrived(msg); //notify handlers
+            //hostStatusInitiator.packetArrived(msg); //notify handlers
+            if (multiplexer != null) multiplexer.incomingPacket((byte[]) msg); // put packet on buffer
         }
         else log.error("Couldn't find the request {} in request pool. " +
                 "Not forwarding packet", request.toString());
@@ -123,7 +125,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
 
     @Override
-    public void hostConnected(RequestParser request, Object o) {
+    public void hostConnected(ControllerRequestMapper request, Object o) {
 
     }
 

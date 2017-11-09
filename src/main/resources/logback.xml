@@ -12,5 +12,5 @@
     </root>
 
     <logger name="edu.clemson.openflow.sos" level="info"/>
-
+    <logger name="edu.clemson.openflow.sos.buf" level="debug"/>
 </configuration>

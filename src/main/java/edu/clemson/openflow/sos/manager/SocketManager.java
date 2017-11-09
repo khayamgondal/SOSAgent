@@ -1,6 +1,6 @@
 package edu.clemson.openflow.sos.manager;
 
-import edu.clemson.openflow.sos.rest.RequestParser;
+import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /**
@@ -18,7 +18,7 @@ public class SocketManager {
   /*  public SocketManager(RequestPool requestPool) {
         this.requestPool = requestPool;
     }*/
-    public boolean socketRequest(RequestParser request) {
+    public boolean socketRequest(ControllerRequestMapper request) {
 
         RequestManager requestManager = RequestManager.INSTANCE;
         requestManager.addToPool(request);

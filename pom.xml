@@ -54,6 +54,11 @@
             <artifactId>netty-all</artifactId>
             <version>4.1.16.Final</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.2</version>
+        </dependency>
 
     </dependencies>
     <build>
@@ -139,7 +144,7 @@
                                 <Class-Path>.</Class-Path>
                             </manifestEntries>
                             <manifest>
-                                <mainClass>edu.clemson.openflow.sos.MainClass</mainClass>
+                                <mainClass>edu.clemson.openflow.sos.Main</mainClass>
                                 <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                                 <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                             </manifest>

@@ -10,10 +10,12 @@ import org.restlet.routing.Router;
 
 public class RestRoutes {
     private Context context;
+    protected static final String HTTP_PRESTRING = "http://";
     protected static final String BASE_PATH = "/sos";
     protected static final String API_VERSION = "/v1.0";
     protected static final String HEALTH_PATH = "/health";
     protected static final String REQUEST_PATH = "/request";
+    protected static final String PORTMAP_PATH = "/portmap";
 
     public RestRoutes(Context context) {
         this.context = context;
@@ -22,11 +24,18 @@ public class RestRoutes {
     public Restlet getRoutes() {
         Router router = new Router(context);
         router.attach(PathBuilder(HEALTH_PATH), HealthStatus.class);
-        router.attach(PathBuilder(REQUEST_PATH), FloodlightRequest.class);
+        router.attach(PathBuilder(REQUEST_PATH), ControllerRequestHandler.class);
+        router.attach(PathBuilder(PORTMAP_PATH), AgentPortMapHandler.class);
+
         return router;
     }
 
     private static String PathBuilder(String path) {
         return BASE_PATH + API_VERSION + path;
     }
+
+    public static String URIBuilder( String IP, String port, String path) {
+        return HTTP_PRESTRING + IP + ":" + port + BASE_PATH + API_VERSION + path;
+    }
+
 }
