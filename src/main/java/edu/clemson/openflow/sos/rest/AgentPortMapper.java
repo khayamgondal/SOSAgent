@@ -14,4 +14,12 @@ public class AgentPortMapper {
         this.request = request;
         this.ports = ports;
     }
+
+    public ControllerRequestMapper getRequest() {
+        return request;
+    }
+
+    public List<Integer> getPorts() {
+        return ports;
+    }
 }

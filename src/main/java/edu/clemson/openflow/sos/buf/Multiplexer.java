@@ -72,13 +72,13 @@ public class Multiplexer {
         channel.writeAndFlush(data);
 
     }
-
+    //TODO: apache is deprecated webclient
     private boolean notifyRemoteAgent(List<Integer> ports) throws IOException {
         String uri = RestRoutes.URIBuilder(request.getServerAgentIP(), REST_PORT, PORTMAP_PATH);
         HttpClient httpClient = new DefaultHttpClient();
         HttpPost httpRequest = new HttpPost(uri);
 
-        AgentPortMapper portMap = new AgentPortMapper(request, ports);
+        AgentPortMapper portMap = new AgentPortMapper(request, ports); //portmap contains both controller request and all the associated portss
         ObjectMapper mapperObj = new ObjectMapper();
         String portMapString = mapperObj.writeValueAsString(portMap);
 
@@ -87,7 +87,7 @@ public class Multiplexer {
         log.debug("JSON Object to sent {}", portMapString);
         HttpResponse response = httpClient.execute(httpRequest);
 
-        log.info("Sending HTTP request to remote agent {}", request.getServerAgentIP());
+        log.info("Sending HTTP request to remote agent with port info{}", request.getServerAgentIP());
         log.debug("Agent returned {}", response.toString());
         return Boolean.parseBoolean(response.toString());
     }
