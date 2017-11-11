@@ -25,5 +25,6 @@ Vagrant.configure("2") do |config|
 
   ## SSH config
   config.ssh.forward_x11 = true
+  config.ssh.forward_agent = true
 
 end
