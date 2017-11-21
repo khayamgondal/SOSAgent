@@ -4,13 +4,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
-public class AgentPortMapper {
+public class IncomingRequestMapper {
 
     private ControllerRequestMapper request;
     private List<Integer> ports;
 
-    public AgentPortMapper(@JsonProperty("request") ControllerRequestMapper request,
-                           @JsonProperty("ports") List<Integer> ports) {
+    public IncomingRequestMapper(@JsonProperty("request") ControllerRequestMapper request,
+                                 @JsonProperty("ports") List<Integer> ports) {
         this.request = request;
         this.ports = ports;
     }
@@ -22,4 +22,5 @@ public class AgentPortMapper {
     public List<Integer> getPorts() {
         return ports;
     }
+
 }

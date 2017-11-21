@@ -1,7 +1,9 @@
 package edu.clemson.openflow.sos.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.clemson.openflow.sos.manager.PortManager;
+import edu.clemson.openflow.sos.agent.IncomingRequestListener;
+import edu.clemson.openflow.sos.agent.netty.AgentServer;
+import edu.clemson.openflow.sos.manager.IncomingRequestManager;
 import org.json.JSONObject;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -14,21 +16,26 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class AgentPortInfoHandler extends ServerResource{
+public class IncomingRequestHandler extends ServerResource{
     ObjectMapper mapper = new ObjectMapper();
-    private static final Logger log = LoggerFactory.getLogger(AgentPortInfoHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(IncomingRequestHandler.class);
 
     @Override
     protected Representation post(Representation entity) throws ResourceException {
         try {
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
-            AgentPortMapper requestObj = mapper.readValue(request.toString(), AgentPortMapper.class);
-            log.info("New ports info from client- agent {}.", requestObj.getRequest().getClientAgentIP());
+            IncomingRequestMapper incomingRequest = mapper.readValue(request.toString(), IncomingRequestMapper.class);
+            log.info("New ports info from client- agent {}.", incomingRequest.getRequest().getClientAgentIP());
             log.debug("Request Object {}", request.toString());
 
-            PortManager portManager = PortManager.INSTANCE;
-            portManager.addToPool(requestObj);
-            log.debug("Added {} to the Ports Pool", requestObj.toString()); // need to override tostring yet
+            IncomingRequestManager incomingRequestManager = IncomingRequestManager.INSTANCE;
+            incomingRequestManager.addToPool(incomingRequest);
+            log.debug("Added {} to the Ports Pool", incomingRequest.toString()); // need to override tostring yet
+
+            // Also notify the listeners about this new request
+            IncomingRequestListener incomingRequestListener = new AgentServer();
+            incomingRequestListener.newIncomingRequest(incomingRequest);
+
 
             Representation response = new StringRepresentation("TRUE");
             setStatus(Status.SUCCESS_ACCEPTED);

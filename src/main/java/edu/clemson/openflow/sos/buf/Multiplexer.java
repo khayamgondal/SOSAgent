@@ -2,7 +2,7 @@ package edu.clemson.openflow.sos.buf;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.agent.netty.AgentClient;
-import edu.clemson.openflow.sos.rest.AgentPortMapper;
+import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import io.netty.channel.Channel;
@@ -27,7 +27,7 @@ import java.util.List;
 public class Multiplexer {
     private static final Logger log = LoggerFactory.getLogger(Multiplexer.class);
     private static final String PORTMAP_PATH = "/portmap";
-    private static final String REST_PORT = "8001";
+    private static final String REST_PORT = "8002";
     private byte seqNo = -128;
     private int currentChannelNo = 0;
     private ControllerRequestMapper request;
@@ -72,13 +72,13 @@ public class Multiplexer {
         channel.writeAndFlush(data);
 
     }
-    //TODO: apache is deprecated webclient
+    //TODO: apache is deprecated webclient... and move this code to agentclient.java
     private boolean notifyRemoteAgent(List<Integer> ports) throws IOException {
         String uri = RestRoutes.URIBuilder(request.getServerAgentIP(), REST_PORT, PORTMAP_PATH);
         HttpClient httpClient = new DefaultHttpClient();
         HttpPost httpRequest = new HttpPost(uri);
 
-        AgentPortMapper portMap = new AgentPortMapper(request, ports); //portmap contains both controller request and all the associated portss
+        IncomingRequestMapper portMap = new IncomingRequestMapper(request, ports); //portmap contains both controller request and all the associated portss
         ObjectMapper mapperObj = new ObjectMapper();
         String portMapString = mapperObj.writeValueAsString(portMap);
 

@@ -25,7 +25,7 @@ public class RestRoutes {
         Router router = new Router(context);
         router.attach(PathBuilder(HEALTH_PATH), HealthStatus.class);
         router.attach(PathBuilder(REQUEST_PATH), ControllerRequestHandler.class);
-        router.attach(PathBuilder(PORTMAP_PATH), AgentPortInfoHandler.class);
+        router.attach(PathBuilder(PORTMAP_PATH), IncomingRequestHandler.class);
 
         return router;
     }
