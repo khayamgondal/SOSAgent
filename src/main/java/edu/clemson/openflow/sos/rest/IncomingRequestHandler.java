@@ -3,6 +3,8 @@ package edu.clemson.openflow.sos.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.agent.IncomingRequestListener;
 import edu.clemson.openflow.sos.agent.netty.AgentServer;
+import edu.clemson.openflow.sos.buf.Demultiplexer;
+import edu.clemson.openflow.sos.buf.PacketBuffer;
 import edu.clemson.openflow.sos.manager.IncomingRequestManager;
 import org.json.JSONObject;
 import org.restlet.data.Status;
@@ -15,10 +17,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 
 public class IncomingRequestHandler extends ServerResource{
     ObjectMapper mapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(IncomingRequestHandler.class);
+    private List<Demultiplexer> demultiplexers;
 
     @Override
     protected Representation post(Representation entity) throws ResourceException {
@@ -34,7 +38,11 @@ public class IncomingRequestHandler extends ServerResource{
 
             // Also notify the listeners about this new request
             IncomingRequestListener incomingRequestListener = new AgentServer();
-            incomingRequestListener.newIncomingRequest(incomingRequest);
+            PacketBuffer packetBuffer = new PacketBuffer(incomingRequest);
+            log.debug("Buffer assigned for this client request");
+
+            incomingRequestListener.newIncomingRequest(incomingRequest, packetBuffer); //notify the packet receiver about new incoming connection && and also assign a buffer to it.
+            log.debug("Notified the server about request & buffer");
 
 
             Representation response = new StringRepresentation("TRUE");

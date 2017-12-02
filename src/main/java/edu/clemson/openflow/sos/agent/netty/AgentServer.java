@@ -4,6 +4,7 @@ import edu.clemson.openflow.sos.agent.HostStatusInitiator;
 import edu.clemson.openflow.sos.agent.HostStatusListener;
 import edu.clemson.openflow.sos.agent.IncomingRequestListener;
 import edu.clemson.openflow.sos.buf.Demultiplexer;
+import edu.clemson.openflow.sos.buf.PacketBuffer;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.manager.IncomingRequestManager;
 import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
@@ -33,6 +34,7 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
     //private RequestPool requestPool;
     private Demultiplexer demultiplexer;
     private List<IncomingRequestMapper> incomingRequests = new ArrayList<>();
+    private List<PacketBuffer> packetBuffers = new ArrayList<>();
     public AgentServer() {
 
     }
@@ -75,6 +77,13 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
         }
     }
 
+    private PacketBuffer getMyPacketBuffer(IncomingRequestMapper request) {
+        for (PacketBuffer buffer: packetBuffers
+             ) {
+            if (buffer.getRequest().equals(request)) return buffer;
+        }
+        return null;
+    }
     private IncomingRequestMapper getMyRequestByClientAgentPort(int remotePort) {
         for (IncomingRequestMapper incomingRequest: incomingRequests
                 ) {
@@ -108,8 +117,16 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
         //    return;
     //    }
 
-        IncomingRequestMapper request = getMyRequestByClientAgentPort(socketAddress.getPort());
-
+        IncomingRequestMapper request = getMyRequestByClientAgentPort(socketAddress.getPort()); // go through the list and find related request
+        if (request == null) {
+            log.error("No request found for this associated port ... ");
+            return;
+        }
+        PacketBuffer packetBuffer = getMyPacketBuffer(request);
+        if (packetBuffer == null) {
+            log.error("No allocated packet buffer for this request found");
+            return;
+        }
         //request = requestManager.getRequest(socketAddress.getHostName(),
           //      socketAddress.getPort(), false);
 
@@ -124,7 +141,6 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
      //   }
      //   else log.error("Couldn't find the request {} in request pool. wont be acting",
      //           request.toString());
-        demultiplexer = new Demultiplexer(request);
     }
 
     @Override
@@ -157,8 +173,9 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
     }
 
     @Override
-    public void newIncomingRequest(IncomingRequestMapper request) {
+    public void newIncomingRequest(IncomingRequestMapper request, PacketBuffer packetBuffer) {
         incomingRequests.add(request);
+        packetBuffers.add(packetBuffer);
         log.debug("Received new request from client agent");
     }
 }

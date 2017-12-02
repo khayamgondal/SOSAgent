@@ -1,6 +1,7 @@
 package edu.clemson.openflow.sos.buf;
 
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
+import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,27 +17,31 @@ public class PacketBuffer {
     private ByteBuffer byteBuffer;
     private int currentSize;
     private int offSet;
-    private BufferStatusListener bufferStatusListener;
+    //private BufferStatusListener bufferStatusListener;
     private int incomingPacketSize;
     private static final int BUFFER_SIZE = 16 * 1024;
-    private ControllerRequestMapper request;
+    private IncomingRequestMapper request;
 
-    public PacketBuffer(ControllerRequestMapper request) {
+    public PacketBuffer(IncomingRequestMapper request) {
         if (byteBuffer == null) {
             byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
             log.debug("Buffer for client {}:{} is created of size {}",
-                    request.getClientIP(), request.getClientPort(), request.getQueueCapacity());
+                    request.getRequest().getClientIP(), request.getRequest().getClientPort(), request.getRequest().getQueueCapacity());
         }
         if (request == null) this.request = request;
 
         //bufferStatusListener = new Multiplexer();
-        bufferStatusListener.BufferInitialized(request, byteBuffer); //notify the listeners
+        //bufferStatusListener.BufferInitialized(request, byteBuffer); //notify the listeners
         offSet = 0;
     }
 
+    public IncomingRequestMapper getRequest() {
+        return request;
+    }
+
     /*
-    write the packet in the buffer. if buffer is full. than start rewriting from the start.
-     */
+        write the packet in the buffer. if buffer is full. than start rewriting from the start.
+         */
     public boolean putPacket(Object data) {
         byte[] bytes = (byte[]) data;
         if (offSet + bytes.length <= byteBuffer.capacity()) {
