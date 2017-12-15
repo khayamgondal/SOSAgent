@@ -33,8 +33,10 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
     private IncomingRequestMapper request;
     //private RequestPool requestPool;
     private Demultiplexer demultiplexer;
+
     private List<IncomingRequestMapper> incomingRequests = new ArrayList<>();
     private List<PacketBuffer> packetBuffers = new ArrayList<>();
+
     public AgentServer() {
 
     }
@@ -176,6 +178,6 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
     public void newIncomingRequest(IncomingRequestMapper request, PacketBuffer packetBuffer) {
         incomingRequests.add(request);
         packetBuffers.add(packetBuffer);
-        log.debug("Received new request from client agent");
+        log.debug("Received new request from client agent {}", request.toString());
     }
 }
