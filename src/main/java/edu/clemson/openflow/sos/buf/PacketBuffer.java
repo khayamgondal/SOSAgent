@@ -30,7 +30,7 @@ public class PacketBuffer {
         }
         if (request == null) this.request = request;
 
-        //bufferStatusListener = new Multiplexer();
+        //bufferStatusListener = new SeqGen();
         //bufferStatusListener.BufferInitialized(request, byteBuffer); //notify the listeners
         offSet = 0;
     }

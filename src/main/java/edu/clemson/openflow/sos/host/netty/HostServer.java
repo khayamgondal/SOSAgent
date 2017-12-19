@@ -2,7 +2,7 @@ package edu.clemson.openflow.sos.host.netty;
 
 import edu.clemson.openflow.sos.agent.HostStatusInitiator;
 import edu.clemson.openflow.sos.agent.HostStatusListener;
-import edu.clemson.openflow.sos.buf.Multiplexer;
+import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.manager.RequestManager;
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
@@ -31,7 +31,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     //private AgentClient agentClient;
     private Channel myChannel;
     //PacketBuffer packetBuffer;
-    Multiplexer multiplexer ;
+    SeqGen seqGen;
 
     private boolean startSocket(int port) {
         NioEventLoopGroup group = new NioEventLoopGroup();
@@ -92,7 +92,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             //hostStatusInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
 
             //packetBuffer  = new PacketBuffer(request);
-            multiplexer = new Multiplexer(request);
+            seqGen = new SeqGen(request);
         }
         else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                 request.toString());
@@ -101,11 +101,11 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        log.debug("Received new packet from host, will be forwarding to multiplexer") ;
+        log.debug("Received new packet from host, will be forwarding to seqGen") ;
 
         if (request != null) {
             //hostStatusInitiator.packetArrived(msg); //notify handlers
-            if (multiplexer != null) multiplexer.incomingPacket((byte[]) msg); // put packet on buffer
+            if (seqGen != null) seqGen.incomingPacket((byte[]) msg); // put packet on buffer
         }
         else log.error("Couldn't find the request {} in request pool. " +
                 "Not forwarding packet", request.toString());

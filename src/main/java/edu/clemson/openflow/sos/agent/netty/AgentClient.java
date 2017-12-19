@@ -1,24 +1,43 @@
 package edu.clemson.openflow.sos.agent.netty;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.agent.HostStatusInitiator;
 import edu.clemson.openflow.sos.agent.HostStatusListener;
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
+import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
+import edu.clemson.openflow.sos.rest.RestRoutes;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AgentClient implements HostStatusListener {
     private static final Logger log = LoggerFactory.getLogger(AgentClient.class);
 
+    private static final String PORTMAP_PATH = "/portmap";
+    private static final String REST_PORT = "8002";
     private static final int AGENT_DATA_PORT = 9878;
+
+    private int currentChannelNo = 0;
+
     //private Channel myChannel;
     private HostStatusInitiator hostStatusInitiator;
     private AgentClientHandler agentClientHandler;
+    private ControllerRequestMapper request;
+    private ArrayList<Channel> channels;
 
     public class AgentClientHandler extends ChannelInboundHandlerAdapter {
 
@@ -31,12 +50,64 @@ public class AgentClient implements HostStatusListener {
 
     }
 
-    public AgentClient() {
+    public AgentClient(ControllerRequestMapper request) {
         agentClientHandler = new AgentClientHandler();
+        this.request = request;
+        channels = new ArrayList<>(request.getNumParallelSockets());
 
+        EventLoopGroup eventLoopGroup = createEventLoopGroup();
+        log.debug("Bootstrapping {} connections to agent server", request.getNumParallelSockets());
+        for (int i = 0; i < request.getNumParallelSockets(); i++)
+            channels.add(bootStrap(eventLoopGroup, request.getServerAgentIP()));
+        // TODO: Notify the agent-server about the ports so It can use it to filter out
+
+        List<Integer> ports = new ArrayList<>(request.getNumParallelSockets());
+        for (Channel channel : channels
+                ) {
+            InetSocketAddress socketAddress = (InetSocketAddress) channel.localAddress();
+            ports.add(socketAddress.getPort());
+        }
+        try {
+            boolean remoteAgentRes = notifyRemoteAgent(ports);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public Channel bootStrap(EventLoopGroup group, String agentServerIP) {
+    //TODO: apache is deprecated webclient...
+    private boolean notifyRemoteAgent(List<Integer> ports) throws IOException {
+        String uri = RestRoutes.URIBuilder(request.getServerAgentIP(), REST_PORT, PORTMAP_PATH);
+        HttpClient httpClient = new DefaultHttpClient();
+        HttpPost httpRequest = new HttpPost(uri);
+
+        IncomingRequestMapper portMap = new IncomingRequestMapper(request, ports); //portmap contains both controller request and all the associated portss
+        ObjectMapper mapperObj = new ObjectMapper();
+        String portMapString = mapperObj.writeValueAsString(portMap);
+
+        org.apache.http.entity.StringEntity stringEntry = new org.apache.http.entity.StringEntity(portMapString, "UTF-8");
+        httpRequest.setEntity(stringEntry);
+        log.debug("JSON Object to sent {}", portMapString);
+        HttpResponse response = httpClient.execute(httpRequest);
+
+        log.info("Sending HTTP request to remote agent with port info{}", request.getServerAgentIP());
+        log.debug("Agent returned {}", response.toString());
+        return Boolean.parseBoolean(response.toString());
+    }
+
+
+    public void incomingPacket(byte seqNo, byte[] data) {
+        if (currentChannelNo == request.getNumParallelSockets()) currentChannelNo = 0;
+        writeToAgentChannel(channels.get(currentChannelNo), data);
+        log.debug("Wrote packet with size {} & seq {} on channel no {}", data.length, seqNo, currentChannelNo);
+        currentChannelNo++;
+    }
+
+    private void writeToAgentChannel(Channel channel, byte[] data) {
+        channel.writeAndFlush(data);
+    }
+
+
+    private Channel bootStrap(EventLoopGroup group, String agentServerIP) {
         try {
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)
@@ -65,7 +136,7 @@ public class AgentClient implements HostStatusListener {
         }
     }
 
-    public NioEventLoopGroup createEventLoopGroup() {
+    private NioEventLoopGroup createEventLoopGroup() {
         return new NioEventLoopGroup();
     }
    // public void start(String agentServerIP) {

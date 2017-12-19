@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocketServer, HostStatusListener, IncomingRequestListener {
+public class AgentServer implements ISocketServer, HostStatusListener, IncomingRequestListener {
     private static final int AGENT_DATA_PORT = 9878;
     private static final Logger log = LoggerFactory.getLogger(AgentServer.class);
     //private ControllerRequestMapper request;
@@ -41,10 +41,68 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
 
     }
 
- /*   public AgentServer(RequestPool requestPool) {
-        this.requestPool = requestPool;
+    public class AgentServerHandler extends ChannelInboundHandlerAdapter {
+
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
+            log.info("New agent-side connection from agent {} at Port {}",
+                    socketAddress.getHostName(),
+                    socketAddress.getPort());
+
+
+            //RequestManager requestManager = RequestManager.INSTANCE;
+            //iterate over all the received requests and find the one which matches this port. It
+            //Optional<IncomingRequestMapper> incomingRequest = IncomingRequestManager.INSTANCE.getRequestByPort(socketAddress.getPort());
+            //if (! incomingRequest.isPresent()) {
+            //    log.error("No request found using this port");
+            //    return;
+            //    }
+
+            IncomingRequestMapper request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
+            if (request == null) {
+                log.error("No request found for this associated port ... ");
+                return;
+            }
+            PacketBuffer packetBuffer = getMyPacketBuffer(request);
+            if (packetBuffer == null) {
+                log.error("No allocated packet buffer for this request found");
+                return;
+            }
+            //request = requestManager.getRequest(socketAddress.getHostName(),
+            //      socketAddress.getPort(), false);
+
+            myChannel = ctx.channel();
+
+            // if (request != null) {
+            //hostStatusInitiator = new HostStatusInitiator();
+            //HostClient hostClient = new HostClient(); // we are passing our channel to HostClient so It can write back the response messages
+
+            //hostStatusInitiator.addListener(hostClient);
+            //hostStatusInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
+            //   }
+            //   else log.error("Couldn't find the request {} in request pool. wont be acting",
+            //           request.toString());
+        }
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            log.debug("Received new packet from agent sending to host");
+            byte[] bytes = (byte[]) msg;
+            log.debug("seq no: is {}", bytes[0] & 0xff);
+            //  if (request != null) {
+            //     hostStatusInitiator.packetArrived(msg); //notify handlers
+            // }
+            // else log.error("Couldn't find the request {} in request pool. " +
+            //        "Not forwarding packet", request.toString());
+            ReferenceCountUtil.release(msg);
+        }
     }
-*/
+
+    /*   public AgentServer(RequestPool requestPool) {
+           this.requestPool = requestPool;
+       }
+   */
     private boolean startSocket(int port) {
         NioEventLoopGroup group = new NioEventLoopGroup();
         try {
@@ -58,7 +116,7 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
                                           channel.pipeline().addLast("bytesDecoder",
                                                   new ByteArrayDecoder());
                                           channel.pipeline().addLast(
-                                                  new AgentServer());
+                                                  new AgentServerHandler());
                                           channel.pipeline().addLast("bytesEncoder", new ByteArrayEncoder());
                                       }
                                   }
@@ -80,18 +138,21 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
     }
 
     private PacketBuffer getMyPacketBuffer(IncomingRequestMapper request) {
-        for (PacketBuffer buffer: packetBuffers
-             ) {
+        for (PacketBuffer buffer : packetBuffers
+                ) {
             if (buffer.getRequest().equals(request)) return buffer;
         }
         return null;
     }
-    private IncomingRequestMapper getMyRequestByClientAgentPort(int remotePort) {
-        for (IncomingRequestMapper incomingRequest: incomingRequests
-                ) {
-            for (int port: incomingRequest.getPorts()
-                    ) {
-                if (port == remotePort) return incomingRequest;
+
+    private IncomingRequestMapper getMyRequestByClientAgentPort(String remoteIP, int remotePort) {
+        for (IncomingRequestMapper incomingRequest : incomingRequests
+                ) { log.debug(incomingRequest.getRequest().getClientAgentIP() + "LLLLLLLLLLLLLLLLLLLL");
+            if (incomingRequest.getRequest().getClientAgentIP() == remoteIP) {
+                for (int port : incomingRequest.getPorts()
+                        ) { log.debug(port + "KKKKKKKKKKKKKKKKKKK");
+                    if (port == remotePort) return incomingRequest;
+                }
             }
             //incomingRequest.getPorts().stream().filter(o -> o.equals(socketAddress.getPort())).findFirst().isPresent();
         }
@@ -103,60 +164,6 @@ public class AgentServer  extends ChannelInboundHandlerAdapter implements ISocke
         return startSocket(AGENT_DATA_PORT);
     }
 
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
-        log.info("New agent-side connection from agent {} at Port {}",
-                socketAddress.getHostName(),
-                socketAddress.getPort());
-
-
-        //RequestManager requestManager = RequestManager.INSTANCE;
-        //iterate over all the received requests and find the one which matches this port. It
-        //Optional<IncomingRequestMapper> incomingRequest = IncomingRequestManager.INSTANCE.getRequestByPort(socketAddress.getPort());
-        //if (! incomingRequest.isPresent()) {
-        //    log.error("No request found using this port");
-        //    return;
-    //    }
-
-        IncomingRequestMapper request = getMyRequestByClientAgentPort(socketAddress.getPort()); // go through the list and find related request
-        if (request == null) {
-            log.error("No request found for this associated port ... ");
-            return;
-        }
-        PacketBuffer packetBuffer = getMyPacketBuffer(request);
-        if (packetBuffer == null) {
-            log.error("No allocated packet buffer for this request found");
-            return;
-        }
-        //request = requestManager.getRequest(socketAddress.getHostName(),
-          //      socketAddress.getPort(), false);
-
-        myChannel = ctx.channel();
-
-       // if (request != null) {
-            //hostStatusInitiator = new HostStatusInitiator();
-            //HostClient hostClient = new HostClient(); // we are passing our channel to HostClient so It can write back the response messages
-
-            //hostStatusInitiator.addListener(hostClient);
-            //hostStatusInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
-     //   }
-     //   else log.error("Couldn't find the request {} in request pool. wont be acting",
-     //           request.toString());
-    }
-
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        log.debug("Received new packet from agent sending to host");
-        byte[] bytes = (byte[]) msg;
-        log.debug("seq no: is {}", bytes[0] & 0xff);
-      //  if (request != null) {
-       //     hostStatusInitiator.packetArrived(msg); //notify handlers
-       // }
-       // else log.error("Couldn't find the request {} in request pool. " +
-        //        "Not forwarding packet", request.toString());
-        ReferenceCountUtil.release(msg);
-    }
     @Override
     public void hostConnected(ControllerRequestMapper request, Object hostStatusInitiater) {
 
