@@ -23,4 +23,11 @@ public class IncomingRequestMapper {
         return ports;
     }
 
+    @Override
+    public String toString() {
+        return "IncomingRequestMapper{" +
+                "request=" + request.toString() +
+                ", ports=" + ports +
+                '}';
+    }
 }

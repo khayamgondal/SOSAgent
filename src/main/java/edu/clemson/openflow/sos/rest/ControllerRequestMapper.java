@@ -91,4 +91,21 @@ public class ControllerRequestMapper {
     public int getServerPort() {
         return serverPort;
     }
+
+    @Override
+    public String toString() {
+        return "ControllerRequestMapper{" +
+                "isClientAgent=" + isClientAgent +
+                ", transferID='" + transferID + '\'' +
+                ", clientIP='" + clientIP + '\'' +
+                ", clientPort=" + clientPort +
+                ", serverAgentIP='" + serverAgentIP + '\'' +
+                ", clientAgentIP='" + clientAgentIP + '\'' +
+                ", numParallelSockets=" + numParallelSockets +
+                ", bufferSize=" + bufferSize +
+                ", queueCapacity=" + queueCapacity +
+                ", serverIP='" + serverIP + '\'' +
+                ", serverPort=" + serverPort +
+                '}';
+    }
 }

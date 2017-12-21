@@ -5,10 +5,13 @@ import edu.clemson.openflow.sos.agent.HostStatusListener;
 import edu.clemson.openflow.sos.agent.IncomingRequestListener;
 import edu.clemson.openflow.sos.buf.Demultiplexer;
 import edu.clemson.openflow.sos.buf.PacketBuffer;
+import edu.clemson.openflow.sos.buf.PacketFilter;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.manager.IncomingRequestManager;
+import edu.clemson.openflow.sos.rest.IncomingRequestHandler;
 import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
+import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -21,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.EventListener;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,11 +38,14 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
     //private RequestPool requestPool;
     private Demultiplexer demultiplexer;
 
-    private List<IncomingRequestMapper> incomingRequests = new ArrayList<>();
+    private PacketFilter packetFilter;
+
+    private List<IncomingRequestMapper> incomingRequests;
     private List<PacketBuffer> packetBuffers = new ArrayList<>();
 
     public AgentServer() {
-
+        incomingRequests = new ArrayList<>();
+        EventListenersLists.incomingRequestListeners.add(this);
     }
 
     public class AgentServerHandler extends ChannelInboundHandlerAdapter {
@@ -59,18 +66,20 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
             //    return;
             //    }
 
-            IncomingRequestMapper request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
+           IncomingRequestMapper request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
             if (request == null) {
-                log.error("No request found for this associated port ... ");
+                log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
             }
-            PacketBuffer packetBuffer = getMyPacketBuffer(request);
+         /*   PacketBuffer packetBuffer = getMyPacketBuffer(request);
             if (packetBuffer == null) {
-                log.error("No allocated packet buffer for this request found");
+                log.error("No allocated packet buffer for this request found... returning ...");
                 return;
-            }
+            }*/
             //request = requestManager.getRequest(socketAddress.getHostName(),
             //      socketAddress.getPort(), false);
+
+            packetFilter = new PacketFilter(request);
 
             myChannel = ctx.channel();
 
@@ -87,9 +96,14 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            log.debug("Received new packet from agent sending to host");
+            //log.debug("Received new packet from agent sending to host");
+            if (request == null) {
+                ReferenceCountUtil.release(msg);
+                return;
+            }
             byte[] bytes = (byte[]) msg;
-            log.debug("seq no: is {}", bytes[0] & 0xff);
+            packetFilter.packetToFilter(bytes);
+           // log.debug("seq no: is {}", bytes[0] & 0xff);
             //  if (request != null) {
             //     hostStatusInitiator.packetArrived(msg); //notify handlers
             // }
@@ -146,11 +160,10 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
     }
 
     private IncomingRequestMapper getMyRequestByClientAgentPort(String remoteIP, int remotePort) {
-        for (IncomingRequestMapper incomingRequest : incomingRequests
-                ) { log.debug(incomingRequest.getRequest().getClientAgentIP() + "LLLLLLLLLLLLLLLLLLLL");
-            if (incomingRequest.getRequest().getClientAgentIP() == remoteIP) {
+        for (IncomingRequestMapper incomingRequest : incomingRequests) {
+            if (incomingRequest.getRequest().getClientAgentIP().equals(remoteIP)) {
                 for (int port : incomingRequest.getPorts()
-                        ) { log.debug(port + "KKKKKKKKKKKKKKKKKKK");
+                        ) {
                     if (port == remotePort) return incomingRequest;
                 }
             }
@@ -182,9 +195,9 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
     }
 
     @Override
-    public void newIncomingRequest(IncomingRequestMapper request, PacketBuffer packetBuffer) {
+    public void newIncomingRequest(IncomingRequestMapper request) {
         incomingRequests.add(request);
-        packetBuffers.add(packetBuffer);
+       // packetBuffers.add(packetBuffer);
         log.debug("Received new request from client agent {}", request.toString());
     }
 }
