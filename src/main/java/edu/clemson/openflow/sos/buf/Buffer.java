@@ -8,6 +8,11 @@ public class Buffer {
     private String clientIP;
     private int clientPort;
 
+    private int lastSent = -1;
+    private int expecting = 0;
+    private int sendFrom = 0;
+    private int sentTill = 0;
+
     public Buffer(String clientIP, int clientPort) {
         this.clientIP = clientIP;
         this.clientPort = clientPort;
