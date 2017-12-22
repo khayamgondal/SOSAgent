@@ -13,10 +13,11 @@
 
     <logger name="edu.clemson.openflow.sos" level="info"/>
     <logger name="edu.clemson.openflow.sos.buf" level="info"/>
-    <logger name="edu.clemson.openflow.sos.agent.netty.AgentServer" level="debug" />
-    <logger name="edu.clemson.openflow.sos.rest.IncomingRequestHandler" level="debug" />
+    <logger name="edu.clemson.openflow.sos.agent.netty.AgentServer" level="info" />
+    <logger name="edu.clemson.openflow.sos.rest.IncomingRequestHandler" level="info" />
+    <logger name="edu.clemson.openflow.sos.buf" level="debug" />
 
-    <logger name="edu.clemson.openflow.sos.buf.SeqGen" level="debug"/>
+    <logger name="edu.clemson.openflow.sos.buf.SeqGen" level="info"/>
 
 
 </configuration>

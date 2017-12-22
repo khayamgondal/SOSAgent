@@ -3,9 +3,7 @@ package edu.clemson.openflow.sos.agent.netty;
 import edu.clemson.openflow.sos.agent.HostStatusInitiator;
 import edu.clemson.openflow.sos.agent.HostStatusListener;
 import edu.clemson.openflow.sos.agent.IncomingRequestListener;
-import edu.clemson.openflow.sos.buf.Demultiplexer;
-import edu.clemson.openflow.sos.buf.PacketBuffer;
-import edu.clemson.openflow.sos.buf.PacketFilter;
+import edu.clemson.openflow.sos.buf.*;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.manager.IncomingRequestManager;
 import edu.clemson.openflow.sos.rest.IncomingRequestHandler;
@@ -39,6 +37,8 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
     private Demultiplexer demultiplexer;
 
     private PacketFilter packetFilter;
+    private BufferManager bufferManager;
+    private Buffer myBuffer;
 
     private List<IncomingRequestMapper> incomingRequests;
     private List<PacketBuffer> packetBuffers = new ArrayList<>();
@@ -46,6 +46,7 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
     public AgentServer() {
         incomingRequests = new ArrayList<>();
         EventListenersLists.incomingRequestListeners.add(this);
+        bufferManager = new BufferManager(); //setup buffer manager.
     }
 
     public class AgentServerHandler extends ChannelInboundHandlerAdapter {
@@ -79,8 +80,8 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
             //request = requestManager.getRequest(socketAddress.getHostName(),
             //      socketAddress.getPort(), false);
 
-            packetFilter = new PacketFilter(request);
-
+           // packetFilter = new PacketFilter(request);
+            myBuffer = bufferManager.addBuffer(request);
             myChannel = ctx.channel();
 
             // if (request != null) {
@@ -102,7 +103,9 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
                 return;
             }
             byte[] bytes = (byte[]) msg;
-            packetFilter.packetToFilter(bytes);
+            myBuffer.incomingPacket(bytes);
+
+            //packetFilter.packetToFilter(bytes);
            // log.debug("seq no: is {}", bytes[0] & 0xff);
             //  if (request != null) {
             //     hostStatusInitiator.packetArrived(msg); //notify handlers
