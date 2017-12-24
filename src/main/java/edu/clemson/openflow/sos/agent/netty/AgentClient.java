@@ -7,6 +7,8 @@ import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -21,7 +23,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class AgentClient implements HostStatusListener {
@@ -95,15 +99,20 @@ public class AgentClient implements HostStatusListener {
     }
 
 
-    public void incomingPacket(byte seqNo, byte[] data) {
+    public void incomingPacket(ByteBuffer data) {
         if (currentChannelNo == request.getNumParallelSockets()) currentChannelNo = 0;
-        writeToAgentChannel(channels.get(currentChannelNo), data);
-        log.debug("Wrote packet with size {} & seq {} on channel no {}", data.length, seqNo, currentChannelNo);
+        writeToAgentChannel(channels.get(currentChannelNo), Unpooled.copiedBuffer(data));
+        log.debug("Wrote packet with seq {} & size {} on channel no {}",data.getInt(0),
+                data.getInt(31),
+                currentChannelNo);
         currentChannelNo++;
     }
 
-    private void writeToAgentChannel(Channel channel, byte[] data) {
-        channel.writeAndFlush(data);
+    private void writeToAgentChannel(Channel channel, ByteBuf data) {
+        ChannelFuture cf = channel.writeAndFlush(data);
+        if (!cf.isSuccess()) {
+            log.error("Sending packet failed .. due to {}", cf.cause());
+        }
     }
 
 

@@ -21,14 +21,16 @@ public class HostClient implements HostStatusListener {
 
     public HostClient() {
     }
-class HostClientHandler extends ChannelInboundHandlerAdapter{
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        log.debug("Reading from host");
-        hostStatusInitiator.packetArrived(msg); // send back to host side
+
+    class HostClientHandler extends ChannelInboundHandlerAdapter {
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            log.debug("Reading from host");
+            hostStatusInitiator.packetArrived(msg); // send back to host side
+        }
+
     }
 
-}
     public void start(String hostServerIP, int hostServerPort) {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
@@ -69,7 +71,8 @@ class HostClientHandler extends ChannelInboundHandlerAdapter{
     public void packetArrived(Object msg) { //write this packet
         log.debug("Received new packet from remote agent");
         if (myChannel == null) log.error("Current channel is null, wont be forwarding packet to other agent");
-        else myChannel.writeAndFlush(msg);    }
+        else myChannel.writeAndFlush(msg);
+    }
 
     @Override
     public void hostDisconnected(String hostIP, int hostPort) {

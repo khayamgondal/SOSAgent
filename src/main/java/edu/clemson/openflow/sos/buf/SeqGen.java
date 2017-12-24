@@ -20,7 +20,8 @@ import java.util.List;
 public class SeqGen {
     private static final Logger log = LoggerFactory.getLogger(SeqGen.class);
 
-    private byte seqNo = -128;
+    private int seqNo = 0;
+    private static final int MAX_SEQ = Integer.MAX_VALUE;
    // private ControllerRequestMapper request;
   //  private ArrayList<Channel> channels;
     private AgentClient agentClient;
@@ -48,14 +49,16 @@ public class SeqGen {
             e.printStackTrace();
         }*/
     }
-
+//TODO: check performance when instead of byteBuffer bytebuf is used
     public void incomingPacket(byte[] packet) {
       //  if (currentChannelNo == request.getNumParallelSockets()) currentChannelNo = 0;
-        if (seqNo == 127) seqNo = 0;
-        ByteBuffer toSend = ByteBuffer.allocate(1 + packet.length).put(seqNo).put(packet);
+        if (seqNo == MAX_SEQ) seqNo = 0;
+
+        ByteBuffer toSend = ByteBuffer.allocate(Integer.SIZE + Integer.SIZE + packet.length)
+                .putInt(seqNo).putInt(packet.length).put(packet);
 
         //writeToAgentChannel(channels.get(currentChannelNo), toSend.array());
-        agentClient.incomingPacket(seqNo, toSend.array());
+        agentClient.incomingPacket(toSend);
 
         seqNo++;
     }

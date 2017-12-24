@@ -11,9 +11,12 @@ import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.util.ReferenceCountUtil;
@@ -67,7 +70,7 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
             //    return;
             //    }
 
-           IncomingRequestMapper request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
+           request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
             if (request == null) {
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
@@ -97,13 +100,17 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            //log.debug("Received new packet from agent sending to host");
+
             if (request == null) {
                 ReferenceCountUtil.release(msg);
+                log.debug("No request found .. releasing received packets");
                 return;
             }
-            byte[] bytes = (byte[]) msg;
-            myBuffer.incomingPacket(bytes);
+            //ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
+            log.debug( ""+((byte[]) msg).length);
+            //log.debug("Got packet with seq {} & size {}" ,bytes.getInt(0),
+            //        bytes.getInt(31));
+            //myBuffer.incomingPacket(bytes);
 
             //packetFilter.packetToFilter(bytes);
            // log.debug("seq no: is {}", bytes[0] & 0xff);
@@ -131,7 +138,7 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
                                       @Override
                                       protected void initChannel(Channel channel) throws Exception {
                                           channel.pipeline().addLast("bytesDecoder",
-                                                  new ByteArrayDecoder());
+                                                  new LengthFieldBasedFrameDecoder());
                                           channel.pipeline().addLast(
                                                   new AgentServerHandler());
                                           channel.pipeline().addLast("bytesEncoder", new ByteArrayEncoder());
