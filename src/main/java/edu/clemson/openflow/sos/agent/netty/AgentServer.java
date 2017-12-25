@@ -70,7 +70,7 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
             //    return;
             //    }
 
-           request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
+            request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
             if (request == null) {
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
@@ -83,7 +83,7 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
             //request = requestManager.getRequest(socketAddress.getHostName(),
             //      socketAddress.getPort(), false);
 
-           // packetFilter = new PacketFilter(request);
+            // packetFilter = new PacketFilter(request);
             myBuffer = bufferManager.addBuffer(request);
             myChannel = ctx.channel();
 
@@ -106,14 +106,13 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
                 log.debug("No request found .. releasing received packets");
                 return;
             }
-            //ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
-            log.debug( ""+((byte[]) msg).length);
-            //log.debug("Got packet with seq {} & size {}" ,bytes.getInt(0),
-            //        bytes.getInt(31));
-            //myBuffer.incomingPacket(bytes);
+            ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
+            //log.debug("" + ((byte[]) msg).length);
+            log.debug("Got packet with seq {} & size {}" ,bytes.getInt(0), ((byte[]) msg).length);
+            myBuffer.incomingPacket(bytes);
 
             //packetFilter.packetToFilter(bytes);
-           // log.debug("seq no: is {}", bytes[0] & 0xff);
+            // log.debug("seq no: is {}", bytes[0] & 0xff);
             //  if (request != null) {
             //     hostStatusInitiator.packetArrived(msg); //notify handlers
             // }
@@ -137,11 +136,12 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
                     .childHandler(new ChannelInitializer() {
                                       @Override
                                       protected void initChannel(Channel channel) throws Exception {
-                                          channel.pipeline().addLast("bytesDecoder",
-                                                  new LengthFieldBasedFrameDecoder());
-                                          channel.pipeline().addLast(
-                                                  new AgentServerHandler());
-                                          channel.pipeline().addLast("bytesEncoder", new ByteArrayEncoder());
+                                          channel.pipeline()
+                                                  .addLast("lengthdecorder",
+                                                          new LengthFieldBasedFrameDecoder(65548, 0, 4, 0, 4))
+                                                  .addLast("bytesDecoder", new ByteArrayDecoder())
+                                                  .addLast(new AgentServerHandler())
+                                                  .addLast("bytesEncoder", new ByteArrayEncoder());
                                       }
                                   }
                     );
@@ -207,7 +207,7 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
     @Override
     public void newIncomingRequest(IncomingRequestMapper request) {
         incomingRequests.add(request);
-       // packetBuffers.add(packetBuffer);
+        // packetBuffers.add(packetBuffer);
         log.debug("Received new request from client agent {}", request.toString());
     }
 }

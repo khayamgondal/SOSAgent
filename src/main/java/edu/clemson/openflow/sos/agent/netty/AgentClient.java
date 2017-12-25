@@ -8,10 +8,12 @@ import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.apache.http.HttpResponse;
@@ -99,20 +101,21 @@ public class AgentClient implements HostStatusListener {
     }
 
 
-    public void incomingPacket(ByteBuffer data) {
+    public void incomingPacket(byte[] data) {
         if (currentChannelNo == request.getNumParallelSockets()) currentChannelNo = 0;
-        writeToAgentChannel(channels.get(currentChannelNo), Unpooled.copiedBuffer(data));
-        log.debug("Wrote packet with seq {} & size {} on channel no {}",data.getInt(0),
-                data.getInt(31),
+        log.debug("Trying to write packet with size {} & seq {} on channel no {}", data.length,
+                ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
                 currentChannelNo);
+        writeToAgentChannel(channels.get(currentChannelNo), data);
         currentChannelNo++;
     }
 
-    private void writeToAgentChannel(Channel channel, ByteBuf data) {
+    private void writeToAgentChannel(Channel channel, byte[] data) {
+       // log.debug("packet content is {}", new String(data));
         ChannelFuture cf = channel.writeAndFlush(data);
-        if (!cf.isSuccess()) {
+      /*  if (!cf.isSuccess()) {
             log.error("Sending packet failed .. due to {}", cf.cause());
-        }
+        }*/
     }
 
 
@@ -126,6 +129,7 @@ public class AgentClient implements HostStatusListener {
                             channel.pipeline()
                                     .addLast("bytesDecoder", new ByteArrayDecoder())
                                     .addLast("agentClient", new AgentClientHandler())
+                                    .addLast("4blength", new LengthFieldPrepender(4))
                                     .addLast("bytesEncoder", new ByteArrayEncoder());
                         }
                     });

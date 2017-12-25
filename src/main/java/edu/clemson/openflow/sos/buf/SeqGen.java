@@ -22,13 +22,13 @@ public class SeqGen {
 
     private int seqNo = 0;
     private static final int MAX_SEQ = Integer.MAX_VALUE;
-   // private ControllerRequestMapper request;
-  //  private ArrayList<Channel> channels;
+    // private ControllerRequestMapper request;
+    //  private ArrayList<Channel> channels;
     private AgentClient agentClient;
 
     public SeqGen(ControllerRequestMapper request) {
-    //    this.request = request;
-     //   channels = new ArrayList<>(request.getNumParallelSockets());
+        //    this.request = request;
+        //   channels = new ArrayList<>(request.getNumParallelSockets());
 
         agentClient = new AgentClient(request);
        /* EventLoopGroup eventLoopGroup = agentClient.createEventLoopGroup();
@@ -49,16 +49,20 @@ public class SeqGen {
             e.printStackTrace();
         }*/
     }
-//TODO: check performance when instead of byteBuffer bytebuf is used
+
+    //TODO: check performance when instead of byteBuffer bytebuf is used
     public void incomingPacket(byte[] packet) {
-      //  if (currentChannelNo == request.getNumParallelSockets()) currentChannelNo = 0;
+        //  if (currentChannelNo == request.getNumParallelSockets()) currentChannelNo = 0;
         if (seqNo == MAX_SEQ) seqNo = 0;
 
-        ByteBuffer toSend = ByteBuffer.allocate(Integer.SIZE + Integer.SIZE + packet.length)
-                .putInt(seqNo).putInt(packet.length).put(packet);
-
+        //ByteBuffer toSend = ByteBuffer.allocate(Integer.SIZE + Integer.SIZE + packet.length)
+        //        .putInt(seqNo).putInt(packet.length).put(packet);
+        ByteBuffer toSend = ByteBuffer.allocate(4 + packet.length);
+        toSend.putInt(seqNo)
+                .put(packet);
+        log.debug("prepended seq no. {}.. ", toSend.getInt(0));
         //writeToAgentChannel(channels.get(currentChannelNo), toSend.array());
-        agentClient.incomingPacket(toSend);
+        agentClient.incomingPacket(toSend.array());
 
         seqNo++;
     }

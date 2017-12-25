@@ -101,7 +101,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        log.debug("Received new packet from host, will be forwarding to seqGen") ;
+        log.debug("Received new packet from host of size {}, will be forwarding to seqGen", ((byte[]) msg).length  ) ;
+        //log.debug("content is {}", new String((byte[]) msg));
 
         if (request != null) {
             //hostStatusInitiator.packetArrived(msg); //notify handlers
