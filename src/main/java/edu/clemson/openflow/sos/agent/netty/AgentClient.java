@@ -1,15 +1,12 @@
 package edu.clemson.openflow.sos.agent.netty;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.clemson.openflow.sos.agent.HostStatusInitiator;
-import edu.clemson.openflow.sos.agent.HostStatusListener;
+import edu.clemson.openflow.sos.agent.DataPipelineInitiator;
+import edu.clemson.openflow.sos.agent.DataPipelineListener;
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -30,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class AgentClient implements HostStatusListener {
+public class AgentClient implements DataPipelineListener {
     private static final Logger log = LoggerFactory.getLogger(AgentClient.class);
 
     private static final String PORTMAP_PATH = "/portmap";
@@ -40,7 +37,7 @@ public class AgentClient implements HostStatusListener {
     private int currentChannelNo = 0;
 
     //private Channel myChannel;
-    private HostStatusInitiator hostStatusInitiator;
+    private DataPipelineInitiator dataPipelineInitiator;
     private AgentClientHandler agentClientHandler;
     private ControllerRequestMapper request;
     private ArrayList<Channel> channels;
@@ -51,7 +48,7 @@ public class AgentClient implements HostStatusListener {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             log.debug("Reading from remote agent");
-            hostStatusInitiator.packetArrived(msg); // send back to host side
+            dataPipelineInitiator.packetArrived(msg); // send back to host side
         }
 
     }
@@ -163,8 +160,8 @@ public class AgentClient implements HostStatusListener {
 
    @Override
     public void hostConnected(ControllerRequestMapper request, Object callBackObject) {
-  /*       hostStatusInitiator = new HostStatusInitiator();
-        hostStatusInitiator.addListener((HostServer) callBackObject);
+  /*       dataPipelineInitiator = new DataPipelineInitiator();
+        dataPipelineInitiator.addListener((HostServer) callBackObject);
         log.debug("new client connection from host {} port {}", request.getClientAgentIP(), request.getClientPort());
         start(request.getServerAgentIP());
   */  }

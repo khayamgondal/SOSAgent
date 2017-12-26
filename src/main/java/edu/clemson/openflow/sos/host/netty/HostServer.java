@@ -1,7 +1,7 @@
 package edu.clemson.openflow.sos.host.netty;
 
-import edu.clemson.openflow.sos.agent.HostStatusInitiator;
-import edu.clemson.openflow.sos.agent.HostStatusListener;
+import edu.clemson.openflow.sos.agent.DataPipelineInitiator;
+import edu.clemson.openflow.sos.agent.DataPipelineListener;
 import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.manager.RequestManager;
@@ -23,11 +23,11 @@ import java.net.InetSocketAddress;
  * @author Khayam Anjam kanjam@g.clemson.edu
  * this class will start a new thread for every incoming connection from clients
  */
-public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, HostStatusListener {
+public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, DataPipelineListener {
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
     private static final int DATA_PORT = 9877;
     private ControllerRequestMapper request;
-    private HostStatusInitiator hostStatusInitiator;
+    private DataPipelineInitiator dataPipelineInitiator;
     //private AgentClient agentClient;
     private Channel myChannel;
     //PacketBuffer packetBuffer;
@@ -86,10 +86,10 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
 
         if (request != null) {
-            hostStatusInitiator = new HostStatusInitiator();
+            dataPipelineInitiator = new DataPipelineInitiator();
             //agentClient = new AgentClient();
-            //hostStatusInitiator.addListener(agentClient);
-            //hostStatusInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
+            //dataPipelineInitiator.addListener(agentClient);
+            //dataPipelineInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
 
             //packetBuffer  = new PacketBuffer(request);
             seqGen = new SeqGen(request);
@@ -105,7 +105,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         //log.debug("content is {}", new String((byte[]) msg));
 
         if (request != null) {
-            //hostStatusInitiator.packetArrived(msg); //notify handlers
+            //dataPipelineInitiator.packetArrived(msg); //notify handlers
             if (seqGen != null) seqGen.incomingPacket((byte[]) msg); // put packet on buffer
         }
         else log.error("Couldn't find the request {} in request pool. " +
@@ -132,7 +132,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     @Override
     public void packetArrived(Object msg) {
-        log.debug("Received new packet from agent sending back to host");
+        log.debug("Received new packet from agent sending to host");
         if (myChannel == null) log.error("Current context is null, wont be sending packet back to host");
         else myChannel.writeAndFlush(msg);
     }

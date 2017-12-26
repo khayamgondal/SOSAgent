@@ -12,19 +12,19 @@ public class BufferManager {
 
     private ArrayList<Buffer> buffers = new ArrayList<>();
 
-    private Buffer getBuffer(IncomingRequestMapper request) { // we will use client IP + client port to decide buffer
+    private Buffer getBuffer(IncomingRequestMapper request, Object caller) { // we will use client IP + client port to decide buffer
         for (Buffer buffer: buffers
              ) {
-            if (buffer.equals(new Buffer(request.getRequest().getClientIP(), request.getRequest().getClientPort()))) {
+            if (buffer.equals(new Buffer(request.getRequest().getClientIP(), request.getRequest().getClientPort(), null))) {
                 return buffer;
             }
         }
         return null;
     }
-    public Buffer addBuffer(IncomingRequestMapper request) {
-       Buffer buffer = getBuffer(request);
+    public Buffer addBuffer(IncomingRequestMapper request, Object caller) {
+       Buffer buffer = getBuffer(request, caller);
         if (buffer == null) {
-            buffer = new Buffer(request.getRequest().getClientIP(), request.getRequest().getClientPort());
+            buffer = new Buffer(request.getRequest().getClientIP(), request.getRequest().getClientPort(), caller);
             log.debug("Setting up new buffer for client {} : port {}",
                     request.getRequest().getClientIP(),
                     request.getRequest().getClientPort());

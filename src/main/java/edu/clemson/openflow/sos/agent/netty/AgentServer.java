@@ -1,12 +1,11 @@
 package edu.clemson.openflow.sos.agent.netty;
 
-import edu.clemson.openflow.sos.agent.HostStatusInitiator;
-import edu.clemson.openflow.sos.agent.HostStatusListener;
+import edu.clemson.openflow.sos.agent.DataPipelineInitiator;
+import edu.clemson.openflow.sos.agent.DataPipelineListener;
 import edu.clemson.openflow.sos.agent.IncomingRequestListener;
+import edu.clemson.openflow.sos.agent.OrderedPacketListener;
 import edu.clemson.openflow.sos.buf.*;
 import edu.clemson.openflow.sos.manager.ISocketServer;
-import edu.clemson.openflow.sos.manager.IncomingRequestManager;
-import edu.clemson.openflow.sos.rest.IncomingRequestHandler;
 import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
@@ -25,16 +24,14 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.EventListener;
 import java.util.List;
-import java.util.Optional;
 
-public class AgentServer implements ISocketServer, HostStatusListener, IncomingRequestListener {
+public class AgentServer implements ISocketServer, DataPipelineListener, IncomingRequestListener {
     private static final int AGENT_DATA_PORT = 9878;
     private static final Logger log = LoggerFactory.getLogger(AgentServer.class);
     //private ControllerRequestMapper request;
     private Channel myChannel;
-    private HostStatusInitiator hostStatusInitiator;
+    private DataPipelineInitiator dataPipelineInitiator;
     private IncomingRequestMapper request;
     //private RequestPool requestPool;
     private Demultiplexer demultiplexer;
@@ -52,7 +49,7 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
         bufferManager = new BufferManager(); //setup buffer manager.
     }
 
-    public class AgentServerHandler extends ChannelInboundHandlerAdapter {
+    public class AgentServerHandler extends ChannelInboundHandlerAdapter implements OrderedPacketListener{
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -84,15 +81,15 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
             //      socketAddress.getPort(), false);
 
             // packetFilter = new PacketFilter(request);
-            myBuffer = bufferManager.addBuffer(request);
+            myBuffer = bufferManager.addBuffer(request, this);
             myChannel = ctx.channel();
 
             // if (request != null) {
-            //hostStatusInitiator = new HostStatusInitiator();
+            //dataPipelineInitiator = new DataPipelineInitiator();
             //HostClient hostClient = new HostClient(); // we are passing our channel to HostClient so It can write back the response messages
 
-            //hostStatusInitiator.addListener(hostClient);
-            //hostStatusInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
+            //dataPipelineInitiator.addListener(hostClient);
+            //dataPipelineInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
             //   }
             //   else log.error("Couldn't find the request {} in request pool. wont be acting",
             //           request.toString());
@@ -114,11 +111,16 @@ public class AgentServer implements ISocketServer, HostStatusListener, IncomingR
             //packetFilter.packetToFilter(bytes);
             // log.debug("seq no: is {}", bytes[0] & 0xff);
             //  if (request != null) {
-            //     hostStatusInitiator.packetArrived(msg); //notify handlers
+            //     dataPipelineInitiator.packetArrived(msg); //notify handlers
             // }
             // else log.error("Couldn't find the request {} in request pool. " +
             //        "Not forwarding packet", request.toString());
             ReferenceCountUtil.release(msg);
+        }
+
+        @Override
+        public void orderedPacket(ByteBuf packet) {
+            log.debug("Got sorted packet");
         }
     }
 

@@ -1,7 +1,7 @@
 package edu.clemson.openflow.sos.host.netty;
 
-import edu.clemson.openflow.sos.agent.HostStatusInitiator;
-import edu.clemson.openflow.sos.agent.HostStatusListener;
+import edu.clemson.openflow.sos.agent.DataPipelineInitiator;
+import edu.clemson.openflow.sos.agent.DataPipelineListener;
 import edu.clemson.openflow.sos.agent.netty.AgentServer;
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import io.netty.bootstrap.Bootstrap;
@@ -13,9 +13,9 @@ import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HostClient implements HostStatusListener {
+public class HostClient implements DataPipelineListener {
     private static final Logger log = LoggerFactory.getLogger(HostClient.class);
-    private HostStatusInitiator hostStatusInitiator;
+    private DataPipelineInitiator dataPipelineInitiator;
     private Channel myChannel;
 
 
@@ -26,7 +26,7 @@ public class HostClient implements HostStatusListener {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             log.debug("Reading from host");
-            hostStatusInitiator.packetArrived(msg); // send back to host side
+            dataPipelineInitiator.packetArrived(msg); // send back to host side
         }
 
     }
@@ -61,8 +61,8 @@ public class HostClient implements HostStatusListener {
     @Override
     public void hostConnected(ControllerRequestMapper request, Object callBackObject) {
         start(request.getServerIP(), request.getServerPort());
-        hostStatusInitiator = new HostStatusInitiator();
-        hostStatusInitiator.addListener((AgentServer) callBackObject);
+        dataPipelineInitiator = new DataPipelineInitiator();
+        dataPipelineInitiator.addListener((AgentServer) callBackObject);
         log.debug("new connection from agent {} port {}", request.getClientAgentIP(), request.getClientPort());
 
     }

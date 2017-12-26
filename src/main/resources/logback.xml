@@ -13,7 +13,7 @@
 
     <logger name="edu.clemson.openflow.sos" level="info"/>
     <logger name="edu.clemson.openflow.sos.buf.Buffer" level="debug"/>
-    <logger name="edu.clemson.openflow.sos.agent.netty.AgentServer" level="info" />
+    <logger name="edu.clemson.openflow.sos.agent.netty.AgentServer" level="debu" />
     <logger name="edu.clemson.openflow.sos.rest.IncomingRequestHandler" level="info" />
     <logger name="edu.clemson.openflow.sos.agent.netty.AgentClient" level="info" />
     <logger name="edu.clemson.openflow.sos.host.netty.HostServer" level="info" />

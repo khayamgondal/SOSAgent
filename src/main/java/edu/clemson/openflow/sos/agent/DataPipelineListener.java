@@ -8,7 +8,7 @@ import java.util.EventListener;
  * @author Khayam Gondal kanjam@g.clemson.edu
  * This event listener will be called when a new host connects/disconnects
  */
-public interface HostStatusListener extends EventListener {
+public interface DataPipelineListener extends EventListener {
 
     void hostConnected(ControllerRequestMapper request, Object callBackObject);
     void packetArrived(Object msg);
