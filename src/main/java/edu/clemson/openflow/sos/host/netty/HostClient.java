@@ -19,14 +19,12 @@ public class HostClient implements DataPipelineListener {
     private Channel myChannel;
 
 
-    public HostClient() {
-    }
 
     class HostClientHandler extends ChannelInboundHandlerAdapter {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             log.debug("Reading from host");
-            dataPipelineInitiator.packetArrived(msg); // send back to host side
+         //   dataPipelineInitiator.packetArrived(msg); // send back to host side
         }
 
     }
@@ -57,6 +55,9 @@ public class HostClient implements DataPipelineListener {
         }
     }
 
+    public Channel getMyChannel() {
+        return myChannel;
+    }
 
     @Override
     public void hostConnected(ControllerRequestMapper request, Object callBackObject) {

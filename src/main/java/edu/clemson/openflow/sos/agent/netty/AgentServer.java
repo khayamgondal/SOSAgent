@@ -4,6 +4,8 @@ import edu.clemson.openflow.sos.agent.DataPipelineInitiator;
 import edu.clemson.openflow.sos.agent.DataPipelineListener;
 import edu.clemson.openflow.sos.agent.IncomingRequestListener;
 import edu.clemson.openflow.sos.agent.OrderedPacketListener;
+import edu.clemson.openflow.sos.agent2host.AgentToHost;
+import edu.clemson.openflow.sos.agent2host.AgentToHostManager;
 import edu.clemson.openflow.sos.buf.*;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
@@ -34,11 +36,11 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
     private DataPipelineInitiator dataPipelineInitiator;
     private IncomingRequestMapper request;
     //private RequestPool requestPool;
-    private Demultiplexer demultiplexer;
 
     private PacketFilter packetFilter;
+
     private BufferManager bufferManager;
-    private Buffer myBuffer;
+    private AgentToHostManager hostManager;
 
     private List<IncomingRequestMapper> incomingRequests;
     private List<PacketBuffer> packetBuffers = new ArrayList<>();
@@ -47,9 +49,12 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
         incomingRequests = new ArrayList<>();
         EventListenersLists.incomingRequestListeners.add(this);
         bufferManager = new BufferManager(); //setup buffer manager.
+        hostManager = new AgentToHostManager();
     }
 
-    public class AgentServerHandler extends ChannelInboundHandlerAdapter implements OrderedPacketListener{
+    public class AgentServerHandler extends ChannelInboundHandlerAdapter {
+        private Buffer myBuffer;
+        private AgentToHost myHost;
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -58,31 +63,17 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
                     socketAddress.getHostName(),
                     socketAddress.getPort());
 
-
-            //RequestManager requestManager = RequestManager.INSTANCE;
-            //iterate over all the received requests and find the one which matches this port. It
-            //Optional<IncomingRequestMapper> incomingRequest = IncomingRequestManager.INSTANCE.getRequestByPort(socketAddress.getPort());
-            //if (! incomingRequest.isPresent()) {
-            //    log.error("No request found using this port");
-            //    return;
-            //    }
-
             request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
             if (request == null) {
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
             }
-         /*   PacketBuffer packetBuffer = getMyPacketBuffer(request);
-            if (packetBuffer == null) {
-                log.error("No allocated packet buffer for this request found... returning ...");
-                return;
-            }*/
-            //request = requestManager.getRequest(socketAddress.getHostName(),
-            //      socketAddress.getPort(), false);
 
-            // packetFilter = new PacketFilter(request);
-            myBuffer = bufferManager.addBuffer(request, this);
-            myChannel = ctx.channel();
+            myHost = hostManager.addAgentToHost(request);
+            myHost.addChannel(ctx.channel());
+            myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+
+           // myChannel = ctx.channel();
 
             // if (request != null) {
             //dataPipelineInitiator = new DataPipelineInitiator();
@@ -105,7 +96,7 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
             }
             ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
             //log.debug("" + ((byte[]) msg).length);
-            log.debug("Got packet with seq {} & size {}" ,bytes.getInt(0), ((byte[]) msg).length);
+            log.debug("Got packet with seq {} & size {}", bytes.getInt(0), ((byte[]) msg).length);
             myBuffer.incomingPacket(bytes);
 
             //packetFilter.packetToFilter(bytes);
@@ -118,10 +109,7 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
             ReferenceCountUtil.release(msg);
         }
 
-        @Override
-        public void orderedPacket(ByteBuf packet) {
-            log.debug("Got sorted packet");
-        }
+
     }
 
     /*   public AgentServer(RequestPool requestPool) {

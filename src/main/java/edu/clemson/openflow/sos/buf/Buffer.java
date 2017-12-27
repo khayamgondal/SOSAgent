@@ -2,6 +2,9 @@ package edu.clemson.openflow.sos.buf;
 
 import edu.clemson.openflow.sos.agent.OrderedPacketInitiator;
 import edu.clemson.openflow.sos.agent.netty.AgentServer;
+import edu.clemson.openflow.sos.agent2host.AgentToHost;
+import edu.clemson.openflow.sos.agent2host.AgentToHostManager;
+import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,15 +17,16 @@ public class Buffer {
 
     private static final Logger log = LoggerFactory.getLogger(Buffer.class);
 
-    private String clientIP;
-    private int clientPort;
+    private String clientIP; //remove these
+    private int clientPort; //remove these
+    private IncomingRequestMapper request;
 
     private int lastSent = -1;
     private int expecting = 0;
     private int sendFrom = 0;
     private int sendTill = 0;
     private static final int MAX_SEQ = Integer.MAX_VALUE;
-    private Object caller;
+ //   private Object caller;
     private OrderedPacketInitiator orderedPacketInitiator;
 
     private HashMap<Integer, ByteBuf> bufs = new HashMap<>(1000); // to improve performance
@@ -32,25 +36,35 @@ public class Buffer {
 
     //private boolean[] status = new boolean[100];
 
-    public Buffer(String clientIP, int clientPort, Object caller) {
-        this.clientIP = clientIP;
-        this.clientPort = clientPort;
-        if (caller != null) orderedPacketInitiator.addListener((AgentServer.AgentServerHandler)caller);
+    public Buffer(IncomingRequestMapper request) {
+        this.clientIP = request.getRequest().getClientIP();
+        this.clientPort = request.getRequest().getClientPort();
+        this.request = request;
+    }
+
+    public Buffer(IncomingRequestMapper request, Object callBackHandler) {
+        this.clientIP = request.getRequest().getClientIP();
+        this.clientPort = request.getRequest().getClientPort();
+
+        if (callBackHandler != null) {
+            orderedPacketInitiator = new OrderedPacketInitiator();
+            orderedPacketInitiator.addListener((AgentToHost)callBackHandler);
+        }
     }
 
     public void incomingPacket(ByteBuf data) { // need to check performance of this method
         int currentSeqNo = data.getInt(0);
         if (currentSeqNo == expecting) {
             sendData(data);
-            log.debug("Sending seq no: {}", expecting);
+            log.debug("Sending seq no: back{}", expecting);
             // check how much we have in buffer
             expecting++; //TODO: circular increment
                 while (true) {
                     if (status.get(expecting) != null && status.get(expecting) != false) {
                         sendData(data);
                         status.put(expecting, false);
-                        log.debug("Sending seq no: {}", expecting);
-                        expecting++;
+                        log.debug("Sending seq no: back{}", expecting);
+                        expecting++; //TODO: circular loop
                     } else break;
                 }
 
@@ -61,7 +75,7 @@ public class Buffer {
     }
 
     private void sendData(ByteBuf data) {
-        if (orderedPacketInitiator !=null) orderedPacketInitiator.orderedPacket(data); //notify the listener
+        if (orderedPacketInitiator !=null) orderedPacketInitiator.orderedPacket(data, request); //notify the listener
     }
 
     @Override

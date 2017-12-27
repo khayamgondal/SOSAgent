@@ -9,22 +9,22 @@ import java.util.ArrayList;
 
 public class BufferManager {
     private static final Logger log = LoggerFactory.getLogger(BufferManager.class);
-
     private ArrayList<Buffer> buffers = new ArrayList<>();
 
-    private Buffer getBuffer(IncomingRequestMapper request, Object caller) { // we will use client IP + client port to decide buffer
+
+    private Buffer getBuffer(IncomingRequestMapper request) { // we will use client IP + client port to decide buffer
         for (Buffer buffer: buffers
              ) {
-            if (buffer.equals(new Buffer(request.getRequest().getClientIP(), request.getRequest().getClientPort(), null))) {
+            if (buffer.equals(new Buffer(request))) {
                 return buffer;
             }
         }
         return null;
     }
-    public Buffer addBuffer(IncomingRequestMapper request, Object caller) {
-       Buffer buffer = getBuffer(request, caller);
+    public Buffer addBuffer(IncomingRequestMapper request, Object callBackHandler) {
+       Buffer buffer = getBuffer(request);
         if (buffer == null) {
-            buffer = new Buffer(request.getRequest().getClientIP(), request.getRequest().getClientPort(), caller);
+            buffer = new Buffer(request, callBackHandler);
             log.debug("Setting up new buffer for client {} : port {}",
                     request.getRequest().getClientIP(),
                     request.getRequest().getClientPort());
