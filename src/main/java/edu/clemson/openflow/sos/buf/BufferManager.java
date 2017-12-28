@@ -21,7 +21,7 @@ public class BufferManager {
         }
         return null;
     }
-    public Buffer addBuffer(IncomingRequestMapper request, Object callBackHandler) {
+    public synchronized Buffer addBuffer(IncomingRequestMapper request, Object callBackHandler) {
        Buffer buffer = getBuffer(request);
         if (buffer == null) {
             buffer = new Buffer(request, callBackHandler);

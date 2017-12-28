@@ -1,6 +1,7 @@
 package edu.clemson.openflow.sos.buf;
 
 import edu.clemson.openflow.sos.agent.OrderedPacketInitiator;
+import edu.clemson.openflow.sos.agent.netty.AgentClient;
 import edu.clemson.openflow.sos.agent.netty.AgentServer;
 import edu.clemson.openflow.sos.agent2host.AgentToHost;
 import edu.clemson.openflow.sos.agent2host.AgentToHostManager;
@@ -36,6 +37,10 @@ public class Buffer {
 
     //private boolean[] status = new boolean[100];
 
+    public Buffer() {
+        orderedPacketInitiator = new OrderedPacketInitiator();
+    }
+
     public Buffer(IncomingRequestMapper request) {
         this.clientIP = request.getRequest().getClientIP();
         this.clientPort = request.getRequest().getClientPort();
@@ -50,6 +55,10 @@ public class Buffer {
             orderedPacketInitiator = new OrderedPacketInitiator();
             orderedPacketInitiator.addListener((AgentToHost)callBackHandler);
         }
+    }
+
+    public void setListener(Object listener) {
+        orderedPacketInitiator.addListener((AgentClient)listener);
     }
 
     public void incomingPacket(ByteBuf data) { // need to check performance of this method

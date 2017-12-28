@@ -18,6 +18,7 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.util.ReferenceCountUtil;
@@ -131,6 +132,7 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
                                                           new LengthFieldBasedFrameDecoder(65548, 0, 4, 0, 4))
                                                   .addLast("bytesDecoder", new ByteArrayDecoder())
                                                   .addLast(new AgentServerHandler())
+                                                  .addLast("4blength", new LengthFieldPrepender(4))
                                                   .addLast("bytesEncoder", new ByteArrayEncoder());
                                       }
                                   }

@@ -26,11 +26,11 @@ public class SeqGen {
     //  private ArrayList<Channel> channels;
     private AgentClient agentClient;
 
-    public SeqGen(ControllerRequestMapper request) {
+  //  public SeqGen(ControllerRequestMapper request) {
         //    this.request = request;
         //   channels = new ArrayList<>(request.getNumParallelSockets());
 
-        agentClient = new AgentClient(request);
+      //  agentClient = new AgentClient(request);
        /* EventLoopGroup eventLoopGroup = agentClient.createEventLoopGroup();
         log.debug("Bootstrapping {} connections to agent server", request.getNumParallelSockets());
         for (int i = 0; i < request.getNumParallelSockets(); i++)
@@ -48,10 +48,10 @@ public class SeqGen {
         } catch (IOException e) {
             e.printStackTrace();
         }*/
-    }
+  //  }
 
     //TODO: check performance when instead of byteBuffer bytebuf is used
-    public void incomingPacket(byte[] packet) {
+    public byte[] incomingPacket(byte[] packet) {
         //  if (currentChannelNo == request.getNumParallelSockets()) currentChannelNo = 0;
         if (seqNo == MAX_SEQ) seqNo = 0;
 
@@ -62,9 +62,11 @@ public class SeqGen {
                 .put(packet);
         log.debug("prepended seq no. {}.. ", toSend.getInt(0));
         //writeToAgentChannel(channels.get(currentChannelNo), toSend.array());
-        agentClient.incomingPacket(toSend.array());
 
+
+        //agentClient.incomingPacket(toSend.array());
         seqNo++;
+        return toSend.array();
     }
 
     private void writeToAgentChannel(Channel channel, byte[] data) {

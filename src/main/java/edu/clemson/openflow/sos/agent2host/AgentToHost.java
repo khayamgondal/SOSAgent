@@ -1,5 +1,6 @@
 package edu.clemson.openflow.sos.agent2host;
 
+import edu.clemson.openflow.sos.agent.HostPacketListener;
 import edu.clemson.openflow.sos.agent.OrderedPacketListener;
 import edu.clemson.openflow.sos.host.netty.HostClient;
 import edu.clemson.openflow.sos.host.netty.HostServer;
@@ -12,17 +13,20 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
-public class AgentToHost implements OrderedPacketListener {
+public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private static final Logger log = LoggerFactory.getLogger(AgentToHost.class);
 
     private IncomingRequestMapper request;
     private ArrayList<Channel> channels;
     private HostClient hostClient;
+    private int currentChannelNo = 0;
 
     public AgentToHost(IncomingRequestMapper request) {
         this.request = request;
         channels = new ArrayList<>();
         hostClient = new HostClient();
+        hostClient.setListener(this);
+
         hostClient.start(request.getRequest().getServerIP(), request.getRequest().getServerPort());
         log.debug("Created & started new host handler for server {} port {}",
                 request.getRequest().getServerIP(),
@@ -30,9 +34,8 @@ public class AgentToHost implements OrderedPacketListener {
     }
 
     @Override
-    public void orderedPacket(ByteBuf packet, IncomingRequestMapper request) {
+    public void orderedPacket(ByteBuf packet, IncomingRequestMapper request) { //TODO: remove incoming request
         log.debug("Got new sorted packet");
-        ByteBuf des;
         byte[] bytes = new byte[packet.capacity() - 4 ];
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostClient.getMyChannel().writeAndFlush(bytes);
@@ -62,5 +65,13 @@ public class AgentToHost implements OrderedPacketListener {
     @Override
     public int hashCode() {
         return 0;
+    }
+
+    @Override
+    public void hostPacket(byte[] packet) {
+        if (currentChannelNo == channels.size()) currentChannelNo = 0;
+        channels.get(currentChannelNo).writeAndFlush(packet);
+        log.debug("Wrote response packet on channel {}", currentChannelNo);
+        currentChannelNo ++ ;
     }
 }

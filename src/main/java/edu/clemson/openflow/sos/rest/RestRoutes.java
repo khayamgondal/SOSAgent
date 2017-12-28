@@ -24,7 +24,8 @@ public class RestRoutes {
     public Restlet getRoutes() {
         Router router = new Router(context);
         router.attach(PathBuilder(HEALTH_PATH), HealthStatus.class);
-        router.attach(PathBuilder(REQUEST_PATH), ControllerRequestHandler.class);
+    //    router.attach(PathBuilder(REQUEST_PATH), ControllerRequestHandler.class);
+        router.attach(PathBuilder(REQUEST_PATH), IncomingRequestHandler.class);
         router.attach(PathBuilder(PORTMAP_PATH), IncomingRequestHandler.class);
 
         return router;

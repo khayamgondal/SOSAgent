@@ -30,8 +30,9 @@ public class IncomingRequestHandler extends ServerResource{
     protected Representation post(Representation entity) throws ResourceException {
         try {
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
+            log.info(request.toString());
             IncomingRequestMapper incomingRequest = mapper.readValue(request.toString(), IncomingRequestMapper.class);
-            log.info("New ports info from client- agent {}.", incomingRequest.getRequest().getClientAgentIP());
+            if (incomingRequest.getPorts() != null)log.info("New ports info from client- agent {}.", incomingRequest.getRequest().getClientAgentIP());
             log.debug("Request Object {}", request.toString());
 
            // IncomingRequestManager incomingRequestManager = IncomingRequestManager.INSTANCE;
@@ -42,11 +43,11 @@ public class IncomingRequestHandler extends ServerResource{
             //= AgentServer.class;
 
           //  PacketBuffer packetBuffer = new PacketBuffer(incomingRequest);
-            log.debug("Buffer assigned for this client request");
+        //    log.debug("Buffer assigned for this client request");
             for (IncomingRequestListener incomingRequestListener : EventListenersLists.incomingRequestListeners ) {
                 if (incomingRequestListener != null) {
                     incomingRequestListener.newIncomingRequest(incomingRequest); //notify the packet receiver about new incoming connection && and also assign a buffer to it.
-                    log.debug("Notified the server about request & buffer");
+                    log.debug("Notified the server about request ");
                 } else log.warn("Event listener is null.. wont be notifying server about new connection");
             }
 

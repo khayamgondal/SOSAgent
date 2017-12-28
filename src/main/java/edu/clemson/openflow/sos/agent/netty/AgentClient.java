@@ -3,13 +3,18 @@ package edu.clemson.openflow.sos.agent.netty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.agent.DataPipelineInitiator;
 import edu.clemson.openflow.sos.agent.DataPipelineListener;
+import edu.clemson.openflow.sos.agent.OrderedPacketListener;
+import edu.clemson.openflow.sos.buf.Buffer;
 import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
@@ -27,7 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class AgentClient implements DataPipelineListener {
+public class AgentClient implements OrderedPacketListener {
     private static final Logger log = LoggerFactory.getLogger(AgentClient.class);
 
     private static final String PORTMAP_PATH = "/portmap";
@@ -39,8 +44,20 @@ public class AgentClient implements DataPipelineListener {
     //private Channel myChannel;
     private DataPipelineInitiator dataPipelineInitiator;
     private AgentClientHandler agentClientHandler;
-    private ControllerRequestMapper request;
+    private IncomingRequestMapper request;
     private ArrayList<Channel> channels;
+    private Buffer myBuffer;
+    private Channel hostChannel;
+
+    @Override
+    public void orderedPacket(ByteBuf packet, IncomingRequestMapper request) {
+        //log.info(new String(packet.array()));
+
+    }
+
+    public void setChannel(Channel channel) {
+        this.hostChannel = channel;
+    }
 
     public class AgentClientHandler extends ChannelInboundHandlerAdapter {
 
@@ -48,23 +65,25 @@ public class AgentClient implements DataPipelineListener {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             log.debug("Reading from remote agent");
-            dataPipelineInitiator.packetArrived(msg); // send back to host side
+            myBuffer.incomingPacket(Unpooled.wrappedBuffer((byte[]) msg));
+          //  dataPipelineInitiator.packetArrived(msg); // send back to host side
         }
 
     }
 
-    public AgentClient(ControllerRequestMapper request) {
+    public AgentClient(IncomingRequestMapper request) {
         agentClientHandler = new AgentClientHandler();
         this.request = request;
-        channels = new ArrayList<>(request.getNumParallelSockets());
-
+        channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
+        myBuffer = new Buffer();
+        myBuffer.setListener(this);
         EventLoopGroup eventLoopGroup = createEventLoopGroup();
-        log.debug("Bootstrapping {} connections to agent server", request.getNumParallelSockets());
-        for (int i = 0; i < request.getNumParallelSockets(); i++)
-            channels.add(bootStrap(eventLoopGroup, request.getServerAgentIP()));
+        log.debug("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
+        for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++)
+            channels.add(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()));
         // TODO: Notify the agent-server about the ports so It can use it to filter out
 
-        List<Integer> ports = new ArrayList<>(request.getNumParallelSockets());
+        List<Integer> ports = new ArrayList<>(request.getRequest().getNumParallelSockets());
         for (Channel channel : channels
                 ) {
             InetSocketAddress socketAddress = (InetSocketAddress) channel.localAddress();
@@ -79,11 +98,11 @@ public class AgentClient implements DataPipelineListener {
 
     //TODO: apache is deprecated webclient...
     private boolean notifyRemoteAgent(List<Integer> ports) throws IOException {
-        String uri = RestRoutes.URIBuilder(request.getServerAgentIP(), REST_PORT, PORTMAP_PATH);
+        String uri = RestRoutes.URIBuilder(request.getRequest().getServerAgentIP(), REST_PORT, PORTMAP_PATH);
         HttpClient httpClient = new DefaultHttpClient();
         HttpPost httpRequest = new HttpPost(uri);
 
-        IncomingRequestMapper portMap = new IncomingRequestMapper(request, ports); //portmap contains both controller request and all the associated portss
+        IncomingRequestMapper portMap = new IncomingRequestMapper(request.getRequest(), ports); //portmap contains both controller request and all the associated portss
         ObjectMapper mapperObj = new ObjectMapper();
         String portMapString = mapperObj.writeValueAsString(portMap);
 
@@ -92,14 +111,14 @@ public class AgentClient implements DataPipelineListener {
         log.debug("JSON Object to sent {}", portMapString);
         HttpResponse response = httpClient.execute(httpRequest);
 
-        log.info("Sending HTTP request to remote agent with port info{}", request.getServerAgentIP());
+        log.info("Sending HTTP request to remote agent with port info{}", request.getRequest().getServerAgentIP());
         log.debug("Agent returned {}", response.toString());
         return Boolean.parseBoolean(response.toString());
     }
 
 
     public void incomingPacket(byte[] data) {
-        if (currentChannelNo == request.getNumParallelSockets()) currentChannelNo = 0;
+        if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
         log.debug("Trying to write packet with size {} & seq {} on channel no {}", data.length,
                 ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
                 currentChannelNo);
@@ -124,7 +143,9 @@ public class AgentClient implements DataPipelineListener {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
-                                    .addLast("bytesDecoder", new ByteArrayDecoder())
+                                    .addLast("lengthdecorder",
+                                            new LengthFieldBasedFrameDecoder(65548, 0, 4, 0, 4))
+                                    .addLast("4blengthdec", new ByteArrayDecoder())
                                     .addLast("agentClient", new AgentClientHandler())
                                     .addLast("4blength", new LengthFieldPrepender(4))
                                     .addLast("bytesEncoder", new ByteArrayEncoder());
@@ -158,7 +179,7 @@ public class AgentClient implements DataPipelineListener {
    //     return bootStrap(eventLoopGroup, remoteIP);
    // }
 
-   @Override
+   //@Override
     public void hostConnected(ControllerRequestMapper request, Object callBackObject) {
   /*       dataPipelineInitiator = new DataPipelineInitiator();
         dataPipelineInitiator.addListener((HostServer) callBackObject);
@@ -166,7 +187,7 @@ public class AgentClient implements DataPipelineListener {
         start(request.getServerAgentIP());
   */  }
 
-    @Override
+ //   @Override
     public void packetArrived(Object msg) { //write this packet
    /*     log.debug("Received new packet from host");
         if (myChannel == null) log.error("Current channel is null, wont be forwarding packet to other agent");
@@ -179,7 +200,7 @@ public class AgentClient implements DataPipelineListener {
         }*/
     }
 
-    @Override
+   // @Override
     public void hostDisconnected(String hostIP, int hostPort) {
 
     }
