@@ -1,6 +1,6 @@
-package edu.clemson.openflow.sos.agent2host;
+package edu.clemson.openflow.sos.agent;
 
-import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
+import edu.clemson.openflow.sos.rest.RequestMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +14,7 @@ public class AgentToHostManager {
         log.debug("Setting up Agent2Host manager");
     }
 
-    private AgentToHost getAgentToHost(IncomingRequestMapper request) {
+    private AgentToHost getAgentToHost(RequestMapper request) {
         for (AgentToHost host : hosts
                 ) {
             if (host.equals(request)) return host;
@@ -22,7 +22,7 @@ public class AgentToHostManager {
         return null;
     }
 
-    public synchronized AgentToHost addAgentToHost(IncomingRequestMapper request) {
+    public synchronized AgentToHost addAgentToHost(RequestMapper request) {
         AgentToHost host = getAgentToHost(request);
         if (host == null) {
             log.debug("Creating new host handler for server {} port {}",

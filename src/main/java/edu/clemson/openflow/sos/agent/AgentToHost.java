@@ -1,10 +1,8 @@
-package edu.clemson.openflow.sos.agent2host;
+package edu.clemson.openflow.sos.agent;
 
-import edu.clemson.openflow.sos.agent.HostPacketListener;
-import edu.clemson.openflow.sos.agent.OrderedPacketListener;
-import edu.clemson.openflow.sos.host.netty.HostClient;
-import edu.clemson.openflow.sos.host.netty.HostServer;
-import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
+import edu.clemson.openflow.sos.buf.OrderedPacketListener;
+import edu.clemson.openflow.sos.host.HostClient;
+import edu.clemson.openflow.sos.rest.RequestMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -16,12 +14,12 @@ import java.util.ArrayList;
 public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private static final Logger log = LoggerFactory.getLogger(AgentToHost.class);
 
-    private IncomingRequestMapper request;
+    private RequestMapper request;
     private ArrayList<Channel> channels;
     private HostClient hostClient;
     private int currentChannelNo = 0;
 
-    public AgentToHost(IncomingRequestMapper request) {
+    public AgentToHost(RequestMapper request) {
         this.request = request;
         channels = new ArrayList<>();
         hostClient = new HostClient();
@@ -34,7 +32,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     }
 
     @Override
-    public void orderedPacket(ByteBuf packet, IncomingRequestMapper request) { //TODO: remove incoming request
+    public void orderedPacket(ByteBuf packet, RequestMapper request) { //TODO: remove incoming request
         log.debug("Got new sorted packet");
         byte[] bytes = new byte[packet.capacity() - 4 ];
         packet.getBytes(4, bytes);
@@ -56,7 +54,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         if (this == o) return true;
       //  if (o == null || getClass() != o.getClass()) return false;
 
-        IncomingRequestMapper host = (IncomingRequestMapper) o;
+        RequestMapper host = (RequestMapper) o;
 
         if (request.getRequest().getServerPort() != host.getRequest().getServerPort()) return false;
         return request.getRequest().getServerIP().equals(host.getRequest().getServerIP());

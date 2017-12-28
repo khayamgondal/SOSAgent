@@ -1,7 +1,7 @@
 package edu.clemson.openflow.sos;
 
-import edu.clemson.openflow.sos.agent.netty.AgentServer;
-import edu.clemson.openflow.sos.host.netty.HostServer;
+import edu.clemson.openflow.sos.agent.AgentServer;
+import edu.clemson.openflow.sos.host.HostServer;
 import edu.clemson.openflow.sos.rest.RestServer;
 import edu.clemson.openflow.sos.utils.PrefsSetup;
 

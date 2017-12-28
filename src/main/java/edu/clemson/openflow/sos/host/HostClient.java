@@ -1,13 +1,8 @@
-package edu.clemson.openflow.sos.host.netty;
+package edu.clemson.openflow.sos.host;
 
-import edu.clemson.openflow.sos.agent.DataPipelineInitiator;
-import edu.clemson.openflow.sos.agent.DataPipelineListener;
 import edu.clemson.openflow.sos.agent.HostPacketInitiator;
-import edu.clemson.openflow.sos.agent.HostPacketListener;
-import edu.clemson.openflow.sos.agent.netty.AgentServer;
-import edu.clemson.openflow.sos.agent2host.AgentToHost;
+import edu.clemson.openflow.sos.agent.AgentToHost;
 import edu.clemson.openflow.sos.buf.SeqGen;
-import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -19,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 public class HostClient {
     private static final Logger log = LoggerFactory.getLogger(HostClient.class);
-    private DataPipelineInitiator dataPipelineInitiator;
     private Channel myChannel;
     private SeqGen seqGen;
 
@@ -36,7 +30,6 @@ public class HostClient {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             log.debug("Reading from host");
-         //   dataPipelineInitiator.packetArrived(msg); // send back to host side
             byte[] packet = seqGen.incomingPacket((byte[]) msg);
             initiator.hostPacket(packet); //notify the listener
         }
@@ -73,25 +66,5 @@ public class HostClient {
         return myChannel;
     }
 
-  //  @Override
-    public void hostConnected(ControllerRequestMapper request, Object callBackObject) {
-        start(request.getServerIP(), request.getServerPort());
-        dataPipelineInitiator = new DataPipelineInitiator();
-        dataPipelineInitiator.addListener((AgentServer) callBackObject);
-        log.debug("new connection from agent {} port {}", request.getClientAgentIP(), request.getClientPort());
-
-    }
-
-  //  @Override
-    public void packetArrived(Object msg) { //write this packet
-        log.debug("Received new packet from remote agent");
-        if (myChannel == null) log.error("Current channel is null, wont be forwarding packet to other agent");
-        else myChannel.writeAndFlush(msg);
-    }
-
-  //  @Override
-    public void hostDisconnected(String hostIP, int hostPort) {
-
-    }
 }
 

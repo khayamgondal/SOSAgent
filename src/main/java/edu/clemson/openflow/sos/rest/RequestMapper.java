@@ -5,18 +5,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class IncomingRequestMapper {
+public class RequestMapper {
 
-    private ControllerRequestMapper request;
+    private RequestTemplate request;
     private List<Integer> ports;
 
-    public IncomingRequestMapper(@JsonProperty("request") ControllerRequestMapper request,
-                                 @JsonProperty("ports") List<Integer> ports) {
+    public RequestMapper(@JsonProperty("request") RequestTemplate request,
+                         @JsonProperty("ports") List<Integer> ports) {
         this.request = request;
         this.ports = ports;
     }
 
-    public ControllerRequestMapper getRequest() {
+    public RequestTemplate getRequest() {
         return request;
     }
 
@@ -26,7 +26,7 @@ public class IncomingRequestMapper {
 
     @Override
     public String toString() {
-        return "IncomingRequestMapper{" +
+        return "RequestMapper{" +
                 "request=" + request.toString() +
                 ", ports=" + ports +
                 '}';

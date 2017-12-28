@@ -1,25 +1,17 @@
-package edu.clemson.openflow.sos.agent.netty;
+package edu.clemson.openflow.sos.agent;
 
-import edu.clemson.openflow.sos.agent.DataPipelineInitiator;
-import edu.clemson.openflow.sos.agent.DataPipelineListener;
-import edu.clemson.openflow.sos.agent.IncomingRequestListener;
-import edu.clemson.openflow.sos.agent.OrderedPacketListener;
-import edu.clemson.openflow.sos.agent2host.AgentToHost;
-import edu.clemson.openflow.sos.agent2host.AgentToHostManager;
 import edu.clemson.openflow.sos.buf.*;
 import edu.clemson.openflow.sos.manager.ISocketServer;
-import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
-import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
+import edu.clemson.openflow.sos.rest.RequestListener;
+import edu.clemson.openflow.sos.rest.RequestMapper;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
@@ -29,26 +21,19 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AgentServer implements ISocketServer, DataPipelineListener, IncomingRequestListener {
+public class AgentServer implements ISocketServer, RequestListener {
     private static final int AGENT_DATA_PORT = 9878;
     private static final Logger log = LoggerFactory.getLogger(AgentServer.class);
-    //private ControllerRequestMapper request;
-    private Channel myChannel;
-    private DataPipelineInitiator dataPipelineInitiator;
-    private IncomingRequestMapper request;
-    //private RequestPool requestPool;
 
-    private PacketFilter packetFilter;
-
+    private RequestMapper request;
     private BufferManager bufferManager;
     private AgentToHostManager hostManager;
 
-    private List<IncomingRequestMapper> incomingRequests;
-    private List<PacketBuffer> packetBuffers = new ArrayList<>();
+    private List<RequestMapper> incomingRequests;
 
     public AgentServer() {
         incomingRequests = new ArrayList<>();
-        EventListenersLists.incomingRequestListeners.add(this);
+        EventListenersLists.requestListeners.add(this);
         bufferManager = new BufferManager(); //setup buffer manager.
         hostManager = new AgentToHostManager();
     }
@@ -74,17 +59,6 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
             myHost.addChannel(ctx.channel());
             myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
 
-           // myChannel = ctx.channel();
-
-            // if (request != null) {
-            //dataPipelineInitiator = new DataPipelineInitiator();
-            //HostClient hostClient = new HostClient(); // we are passing our channel to HostClient so It can write back the response messages
-
-            //dataPipelineInitiator.addListener(hostClient);
-            //dataPipelineInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
-            //   }
-            //   else log.error("Couldn't find the request {} in request pool. wont be acting",
-            //           request.toString());
         }
 
         @Override
@@ -92,31 +66,20 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
 
             if (request == null) {
                 ReferenceCountUtil.release(msg);
-                log.debug("No request found .. releasing received packets");
+                log.error("No request found .. releasing received packets");
                 return;
             }
-            ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
-            //log.debug("" + ((byte[]) msg).length);
-            log.debug("Got packet with seq {} & size {}", bytes.getInt(0), ((byte[]) msg).length);
+       //     ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
+            ByteBuf bytes = (ByteBuf) msg;
+            log.debug("Got packet with seq {} & size {}", bytes.getInt(0), bytes.capacity());
             myBuffer.incomingPacket(bytes);
-
-            //packetFilter.packetToFilter(bytes);
-            // log.debug("seq no: is {}", bytes[0] & 0xff);
-            //  if (request != null) {
-            //     dataPipelineInitiator.packetArrived(msg); //notify handlers
-            // }
-            // else log.error("Couldn't find the request {} in request pool. " +
-            //        "Not forwarding packet", request.toString());
-            ReferenceCountUtil.release(msg);
+            ReferenceCountUtil.release(bytes);
         }
 
 
     }
 
-    /*   public AgentServer(RequestPool requestPool) {
-           this.requestPool = requestPool;
-       }
-   */
+
     private boolean startSocket(int port) {
         NioEventLoopGroup group = new NioEventLoopGroup();
         try {
@@ -129,11 +92,12 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
                                       protected void initChannel(Channel channel) throws Exception {
                                           channel.pipeline()
                                                   .addLast("lengthdecorder",
-                                                          new LengthFieldBasedFrameDecoder(65548, 0, 4, 0, 4))
-                                                  .addLast("bytesDecoder", new ByteArrayDecoder())
+                                                          new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
+                                                 // .addLast("bytesDecoder", new ByteArrayDecoder())
                                                   .addLast(new AgentServerHandler())
                                                   .addLast("4blength", new LengthFieldPrepender(4))
-                                                  .addLast("bytesEncoder", new ByteArrayEncoder());
+                                                  .addLast("bytesEncoder", new ByteArrayEncoder())
+                                          ;
                                       }
                                   }
                     );
@@ -153,23 +117,14 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
         }
     }
 
-    private PacketBuffer getMyPacketBuffer(IncomingRequestMapper request) {
-        for (PacketBuffer buffer : packetBuffers
-                ) {
-            if (buffer.getRequest().equals(request)) return buffer;
-        }
-        return null;
-    }
-
-    private IncomingRequestMapper getMyRequestByClientAgentPort(String remoteIP, int remotePort) {
-        for (IncomingRequestMapper incomingRequest : incomingRequests) {
+    private RequestMapper getMyRequestByClientAgentPort(String remoteIP, int remotePort) {
+        for (RequestMapper incomingRequest : incomingRequests) {
             if (incomingRequest.getRequest().getClientAgentIP().equals(remoteIP)) {
                 for (int port : incomingRequest.getPorts()
                         ) {
                     if (port == remotePort) return incomingRequest;
                 }
             }
-            //incomingRequest.getPorts().stream().filter(o -> o.equals(socketAddress.getPort())).findFirst().isPresent();
         }
         return null;
     }
@@ -179,25 +134,10 @@ public class AgentServer implements ISocketServer, DataPipelineListener, Incomin
         return startSocket(AGENT_DATA_PORT);
     }
 
-    @Override
-    public void hostConnected(ControllerRequestMapper request, Object hostStatusInitiater) {
 
-    }
 
     @Override
-    public void packetArrived(Object msg) {
-        log.debug("Received new packet from host sending back to agent");
-        if (myChannel == null) log.error("Current context is null, wont be sending packet back to host");
-        else myChannel.writeAndFlush(msg);
-    }
-
-    @Override
-    public void hostDisconnected(String hostIP, int hostPort) {
-
-    }
-
-    @Override
-    public void newIncomingRequest(IncomingRequestMapper request) {
+    public void newIncomingRequest(RequestMapper request) {
         incomingRequests.add(request);
         // packetBuffers.add(packetBuffer);
         log.debug("Received new request from client agent {}", request.toString());

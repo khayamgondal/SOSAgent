@@ -1,14 +1,10 @@
-package edu.clemson.openflow.sos.host.netty;
+package edu.clemson.openflow.sos.host;
 
-import edu.clemson.openflow.sos.agent.DataPipelineInitiator;
-import edu.clemson.openflow.sos.agent.DataPipelineListener;
-import edu.clemson.openflow.sos.agent.IncomingRequestListener;
-import edu.clemson.openflow.sos.agent.netty.AgentClient;
+import edu.clemson.openflow.sos.rest.RequestListener;
+import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.manager.ISocketServer;
-import edu.clemson.openflow.sos.manager.RequestManager;
-import edu.clemson.openflow.sos.rest.ControllerRequestMapper;
-import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
+import edu.clemson.openflow.sos.rest.RequestMapper;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -29,20 +25,18 @@ import java.util.List;
  * @author Khayam Anjam kanjam@g.clemson.edu
  * this class will start a new thread for every incoming connection from clients
  */
-public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, IncomingRequestListener {
+public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, RequestListener {
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
     private static final int DATA_PORT = 9877;
-    private IncomingRequestMapper request;
-    private DataPipelineInitiator dataPipelineInitiator;
-    //private AgentClient agentClient;
+    private RequestMapper request;
     private Channel myChannel;
     //PacketBuffer packetBuffer;
     private SeqGen seqGen;
     private AgentClient agentClient;
-    private List<IncomingRequestMapper> incomingRequests = new ArrayList<>();
+    private List<RequestMapper> incomingRequests = new ArrayList<>();
 
     public HostServer() {
-        EventListenersLists.incomingRequestListeners.add(this);
+        EventListenersLists.requestListeners.add(this);
     }
 
     public class HostServerHandler extends ChannelInboundHandlerAdapter {
@@ -53,10 +47,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                     socketAddress.getHostName(),
                     socketAddress.getPort());
 
-            //   RequestManager requestManager = RequestManager.INSTANCE;
-            //   this.request = requestManager.getRequest(socketAddress.getHostName(),
-            //
-            //       socketAddress.getPort(), true);
             request = getClientRequest(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
             if (request == null) {
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
@@ -66,12 +56,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
 
             if (request != null) {
-                //       dataPipelineInitiator = new DataPipelineInitiator();
-                //agentClient = new AgentClient();
-                //dataPipelineInitiator.addListener(agentClient);
-                //dataPipelineInitiator.hostConnected(request, this); //also pass the call back handler so It can respond back
-
-                //packetBuffer  = new PacketBuffer(request);
                 seqGen = new SeqGen();
                 agentClient = new AgentClient(request);
                 agentClient.setChannel(ctx.channel());
@@ -85,10 +69,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             log.debug("Received new packet from host of size {}, will be forwarding to seqGen", ((byte[]) msg).length  ) ;
-            //log.debug("content is {}", new String((byte[]) msg));
 
             if (request != null) {
-                //dataPipelineInitiator.packetArrived(msg); //notify handlers
                 if (seqGen != null) {
                     agentClient.incomingPacket(seqGen.incomingPacket((byte[]) msg)); // put packet on buffer
                 }
@@ -130,8 +112,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             //group.shutdownGracefully().sync();
         }
     }
-    private IncomingRequestMapper getClientRequest(String remoteIP, int remotePort) {
-        for (IncomingRequestMapper incomingRequest : incomingRequests) {
+    private RequestMapper getClientRequest(String remoteIP, int remotePort) {
+        for (RequestMapper incomingRequest : incomingRequests) {
             if (incomingRequest.getRequest().getClientIP().equals(remoteIP) &&
                     incomingRequest.getRequest().getClientPort() == remotePort) return incomingRequest;
         }
@@ -157,25 +139,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     }
 
 
-//    @Override
-    public void hostConnected(ControllerRequestMapper request, Object o) {
-
-    }
-
-//    @Override
-    public void packetArrived(Object msg) {
-        log.debug("Received new packet from agent sending to host");
-        if (myChannel == null) log.error("Current context is null, wont be sending packet back to host");
-        else myChannel.writeAndFlush(msg);
-    }
-
- //   @Override
-    public void hostDisconnected(String hostIP, int hostPort) {
-
-    }
-
     @Override
-    public void newIncomingRequest(IncomingRequestMapper request) {
+    public void newIncomingRequest(RequestMapper request) {
         incomingRequests.add(request);
 
     }

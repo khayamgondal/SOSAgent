@@ -1,7 +1,6 @@
 package edu.clemson.openflow.sos.buf;
 
-import edu.clemson.openflow.sos.rest.IncomingRequestHandler;
-import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
+import edu.clemson.openflow.sos.rest.RequestMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +11,7 @@ public class BufferManager {
     private ArrayList<Buffer> buffers = new ArrayList<>();
 
 
-    private Buffer getBuffer(IncomingRequestMapper request) { // we will use client IP + client port to decide buffer
+    private Buffer getBuffer(RequestMapper request) { // we will use client IP + client port to decide buffer
         for (Buffer buffer: buffers
              ) {
             if (buffer.equals(new Buffer(request))) {
@@ -21,7 +20,7 @@ public class BufferManager {
         }
         return null;
     }
-    public synchronized Buffer addBuffer(IncomingRequestMapper request, Object callBackHandler) {
+    public synchronized Buffer addBuffer(RequestMapper request, Object callBackHandler) {
        Buffer buffer = getBuffer(request);
         if (buffer == null) {
             buffer = new Buffer(request, callBackHandler);

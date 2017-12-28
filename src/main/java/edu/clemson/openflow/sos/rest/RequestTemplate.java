@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ControllerRequestMapper {
+public class RequestTemplate {
     private boolean isClientAgent;
     private String transferID;
     private String clientIP;
@@ -23,17 +23,17 @@ public class ControllerRequestMapper {
     private String serverIP;
     private int serverPort;
 
-    public ControllerRequestMapper(@JsonProperty("is-client-agent") boolean isClientAgent,
-                                   @JsonProperty("transfer-id") String transferID,
-                                   @JsonProperty("client-ip") String clientIP,
-                                   @JsonProperty("client-port") int clientPort,
-                                   @JsonProperty("server-agent-ip") String serverAgentIP,
-                                   @JsonProperty("client-agent-ip") String clientAgentIP,
-                                   @JsonProperty("num-parallel-socks") int numParallelSockets,
-                                   @JsonProperty("buffer-size") int bufferSize,
-                                   @JsonProperty("queue-capacity") int queueCapacity,
-                                   @JsonProperty("server-ip") String serverIP,
-                                   @JsonProperty("server-port") int serverPort) {
+    public RequestTemplate(@JsonProperty("is-client-agent") boolean isClientAgent,
+                           @JsonProperty("transfer-id") String transferID,
+                           @JsonProperty("client-ip") String clientIP,
+                           @JsonProperty("client-port") int clientPort,
+                           @JsonProperty("server-agent-ip") String serverAgentIP,
+                           @JsonProperty("client-agent-ip") String clientAgentIP,
+                           @JsonProperty("num-parallel-socks") int numParallelSockets,
+                           @JsonProperty("buffer-size") int bufferSize,
+                           @JsonProperty("queue-capacity") int queueCapacity,
+                           @JsonProperty("server-ip") String serverIP,
+                           @JsonProperty("server-port") int serverPort) {
         this.isClientAgent = isClientAgent;
         this.transferID = transferID;
         this.clientIP = clientIP;
@@ -94,7 +94,7 @@ public class ControllerRequestMapper {
 
     @Override
     public String toString() {
-        return "ControllerRequestMapper{" +
+        return "RequestTemplate{" +
                 "isClientAgent=" + isClientAgent +
                 ", transferID='" + transferID + '\'' +
                 ", clientIP='" + clientIP + '\'' +

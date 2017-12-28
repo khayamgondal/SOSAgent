@@ -1,6 +1,6 @@
-package edu.clemson.openflow.sos.agent;
+package edu.clemson.openflow.sos.buf;
 
-import edu.clemson.openflow.sos.rest.IncomingRequestMapper;
+import edu.clemson.openflow.sos.rest.RequestMapper;
 import io.netty.buffer.ByteBuf;
 
 import java.util.ArrayList;
@@ -11,7 +11,7 @@ public class OrderedPacketInitiator {
     public void addListener(OrderedPacketListener toAdd) {
         listeners.add(toAdd);
     }
-    public void orderedPacket(ByteBuf packet, IncomingRequestMapper request) {
+    public void orderedPacket(ByteBuf packet, RequestMapper request) {
         for (OrderedPacketListener listener: listeners
              ) {
             if (listener!=null) listener.orderedPacket(packet, request);
