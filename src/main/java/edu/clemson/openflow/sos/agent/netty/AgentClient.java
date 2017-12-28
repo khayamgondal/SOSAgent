@@ -51,7 +51,11 @@ public class AgentClient implements OrderedPacketListener {
 
     @Override
     public void orderedPacket(ByteBuf packet, IncomingRequestMapper request) {
-        //log.info(new String(packet.array()));
+        byte[] bytes = new byte[packet.capacity() - 4 ];
+        packet.getBytes(4, bytes);
+        ChannelFuture cf = hostChannel.writeAndFlush(bytes);
+
+      //  if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
 
     }
 

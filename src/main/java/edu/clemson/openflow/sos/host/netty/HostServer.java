@@ -29,7 +29,7 @@ import java.util.List;
  * @author Khayam Anjam kanjam@g.clemson.edu
  * this class will start a new thread for every incoming connection from clients
  */
-public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, IncomingRequestListener, DataPipelineListener {
+public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, IncomingRequestListener {
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
     private static final int DATA_PORT = 9877;
     private IncomingRequestMapper request;
@@ -157,19 +157,19 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     }
 
 
-    @Override
+//    @Override
     public void hostConnected(ControllerRequestMapper request, Object o) {
 
     }
 
-    @Override
+//    @Override
     public void packetArrived(Object msg) {
         log.debug("Received new packet from agent sending to host");
         if (myChannel == null) log.error("Current context is null, wont be sending packet back to host");
         else myChannel.writeAndFlush(msg);
     }
 
-    @Override
+ //   @Override
     public void hostDisconnected(String hostIP, int hostPort) {
 
     }
