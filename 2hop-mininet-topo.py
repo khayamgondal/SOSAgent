@@ -118,7 +118,7 @@ def multiControllerNet():
     net.addLink(s1, s4)
     net.addLink(s4, agent1)
 
-    net.addLink( s1, s2 , delay='500ms')
+    net.addLink( s1, s2 , delay='50ms')
     net.addLink(s2,server1)
     net.addLink(s2, s5)
     net.addLink(s5,agent2)

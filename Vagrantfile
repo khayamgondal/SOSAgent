@@ -8,8 +8,8 @@ Vagrant.configure("2") do |config|
   config.vm.box = "geddings/mininext"
 
   config.vm.provider "virtualbox" do |v|
-      v.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]
-      v.customize ["modifyvm", :id, "--memory", "2048"]
+      v.customize ["modifyvm", :id, "--cpuexecutioncap", "100"]
+      v.customize ["modifyvm", :id, "--memory", "4096"]
   end
 
   ## Guest config

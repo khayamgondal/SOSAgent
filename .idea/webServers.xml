@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="5b93ea5a-c31c-46eb-a78f-cbdeaacb15e9" name="AgentRemote" url="http://clnode132.clemson.cloudlab.us">
+        <fileTransfer host="clnode132.clemson.cloudlab.us" port="22" privateKey="$USER_HOME$/.ssh/id_rsa" rootFolder="/users/khayam" accessType="SFTP" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
