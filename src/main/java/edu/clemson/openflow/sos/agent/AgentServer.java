@@ -41,7 +41,8 @@ public class AgentServer implements ISocketServer, RequestListener {
     public class AgentServerHandler extends ChannelInboundHandlerAdapter {
         private Buffer myBuffer;
         private AgentToHost myHost;
-
+        private String remoteAgentIP;
+        private int remoteAgentPort;
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
@@ -49,21 +50,30 @@ public class AgentServer implements ISocketServer, RequestListener {
                     socketAddress.getHostName(),
                     socketAddress.getPort());
 
-            request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
-            if (request == null) {
-                log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
-                return;
-            }
+            remoteAgentIP = socketAddress.getHostName();
+            remoteAgentPort = socketAddress.getPort();
 
-            myHost = hostManager.addAgentToHost(request);
-            myHost.addChannel(ctx.channel());
-            myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+           // request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
+        //    if (request == null) {
+         //       log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
+         //       return;
+          //  }
+
+          //  myHost = hostManager.addAgentToHost(request);
+          //  myHost.addChannel(ctx.channel());
+           // myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
 
         }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            if (request == null) {
+                request = getMyRequestByClientAgentPort(remoteAgentIP, remoteAgentPort); // go through the list and find related request
+                myHost = hostManager.addAgentToHost(request);
+                myHost.addChannel(ctx.channel());
+                myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
 
+            }
             if (request == null) {
                 ReferenceCountUtil.release(msg);
                 log.error("No request found .. releasing received packets");
@@ -140,6 +150,7 @@ public class AgentServer implements ISocketServer, RequestListener {
     public void newIncomingRequest(RequestMapper request) {
         incomingRequests.add(request);
         // packetBuffers.add(packetBuffer);
+
         log.debug("Received new request from client agent {}", request.toString());
     }
 }

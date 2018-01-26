@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class AgentClient implements OrderedPacketListener {
     private static final Logger log = LoggerFactory.getLogger(AgentClient.class);
@@ -113,8 +114,8 @@ public class AgentClient implements OrderedPacketListener {
         log.debug("JSON Object to sent {}", portMapString);
         HttpResponse response = httpClient.execute(httpRequest);
 
-        log.info("Sending HTTP request to remote agent with port info{}", request.getRequest().getServerAgentIP());
-        log.debug("Agent returned {}", response.toString());
+        log.info("Sending HTTP request to remote agent with port info {}", request.getRequest().getServerAgentIP());
+        log.info("Agent returned {}", response.getStatusLine().getStatusCode());
         return Boolean.parseBoolean(response.toString());
     }
 

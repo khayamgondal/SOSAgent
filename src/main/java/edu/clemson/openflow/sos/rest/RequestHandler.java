@@ -27,24 +27,15 @@ public class RequestHandler extends ServerResource{
             if (incomingRequest.getPorts() != null)log.debug("New ports info from client- agent {}.", incomingRequest.getRequest().getClientAgentIP());
             log.debug("Request Object {}", request.toString());
 
-           // IncomingRequestManager incomingRequestManager = IncomingRequestManager.INSTANCE;
-           // incomingRequestManager.addToPool(incomingRequest);
-           // log.debug("Added {} to the Ports Pool", incomingRequest.toString()); // need to override tostring yet
-
-            // Also notify the listeners about this new request
-            //= AgentServer.class;
-
-          //  PacketBuffer packetBuffer = new PacketBuffer(incomingRequest);
-        //    log.debug("Buffer assigned for this client request");
             for (RequestListener requestListener : EventListenersLists.requestListeners) {
                 if (requestListener != null) {
                     requestListener.newIncomingRequest(incomingRequest); //notify the packet receiver about new incoming connection && and also assign a buffer to it.
-                    log.debug("Notified the server about request ");
+                    log.debug("Notified the agent server handler about request ");
                 } else log.warn("Event listener is null.. wont be notifying server about new connection");
             }
 
             Representation response = new StringRepresentation("TRUE");
-            setStatus(Status.SUCCESS_ACCEPTED);
+            setStatus(Status.SUCCESS_OK);
             return response;
 
         }catch (IOException e) {
