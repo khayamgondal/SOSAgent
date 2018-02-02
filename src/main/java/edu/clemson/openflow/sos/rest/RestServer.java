@@ -27,9 +27,14 @@ public class RestServer {
         return restRoutes.getRoutes();
     }
 
-    public void startComponent() throws Exception {
-        log.info("Rest Server started on port {}", REST_SERVER_PORT);
-        component.start();
+    public void startComponent()  {
+        try {
+            component.start();
+            log.info("Rest Server started on port {}", REST_SERVER_PORT);
+        } catch (Exception e) {
+            log.error("Failed to start Rest Server");
+            e.printStackTrace();
+        }
 
     }
 

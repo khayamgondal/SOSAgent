@@ -1,5 +1,10 @@
 package edu.clemson.openflow.sos.agent;
 
+/**
+ *  @author khayam anjam kanjam@g.clemson.edu
+ *  This class receives data form AgentClient and writes into Buffer
+ */
+
 import edu.clemson.openflow.sos.buf.*;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestListener;
@@ -67,7 +72,7 @@ public class AgentServer implements ISocketServer, RequestListener {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            if (request == null) {
+            if (request == null) { //this could be moved to active. need to check performance
                 request = getMyRequestByClientAgentPort(remoteAgentIP, remoteAgentPort); // go through the list and find related request
                 myHost = hostManager.addAgentToHost(request);
                 myHost.addChannel(ctx.channel());

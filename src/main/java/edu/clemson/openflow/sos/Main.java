@@ -12,17 +12,15 @@ import edu.clemson.openflow.sos.utils.PrefsSetup;
 public class Main {
 
     public static void main(String[] args) {
-        PrefsSetup prefsSetup = new PrefsSetup();
-        prefsSetup.loadDefault(); //load default settings
+      //  PrefsSetup prefsSetup = new PrefsSetup();
+      //  prefsSetup.loadDefault(); //load default settings
 
-        try { //Start rest server
-            RestServer restServer = new RestServer();
-            restServer.startComponent();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        HostServer hostServer = new HostServer(); //Start hostServer
+        RestServer restServer = new RestServer();
+        restServer.startComponent();
+
+        HostServer hostServer = new HostServer();
         hostServer.start();
+
         AgentServer agentServer = new AgentServer();
         agentServer.start();
 
