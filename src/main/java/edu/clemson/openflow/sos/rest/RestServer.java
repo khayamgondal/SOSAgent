@@ -27,19 +27,29 @@ public class RestServer {
         return restRoutes.getRoutes();
     }
 
-    public void startComponent()  {
+    public boolean startComponent()  {
         try {
             component.start();
             log.info("Rest Server started on port {}", REST_SERVER_PORT);
+            return true;
         } catch (Exception e) {
             log.error("Failed to start Rest Server");
             e.printStackTrace();
+            return false;
         }
 
     }
 
-    public void stopComponent() throws Exception {
-        component.stop();
+    public boolean stopComponent()  {
+        try {
+            component.stop();
+            log.info("Rest Server stopped");
+            return true;
+        } catch (Exception e) {
+            log.error("Error stopping Rest Server");
+            e.printStackTrace();
+            return false;
+        }
     }
 
 

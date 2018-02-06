@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Map;
 
 /**
  * @author Khayam Anjam kanjam@g.clemson.edu
@@ -47,23 +48,35 @@ public class HealthStatus extends ServerResource {
         return super.post(entity);
     }
 
-    private HealthMapper getSystemStats() {
-        HealthMapper healthStatus = null;
+    private String getComputerName()
+    {
+        Map<String, String> env = System.getenv();
+        if (env.containsKey("COMPUTERNAME"))
+            return env.get("COMPUTERNAME");
+        else if (env.containsKey("HOSTNAME"))
+            return env.get("HOSTNAME");
+        else
+            return "Unknown Computer";
+    }
+
+    private String getHostName() {
         try {
-            String hostName = InetAddress.getLocalHost().getHostName();
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.error("Error retrieving hostname");
+            e.printStackTrace();
+            return null;
+        }
+    }
+    private HealthMapper getSystemStats() {
             OperatingSystemMXBean operatingSystemMXBean =
                     (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            healthStatus = new HealthMapper(hostName,
+        HealthMapper healthStatus = new HealthMapper(getHostName(),
                     operatingSystemMXBean.getProcessCpuLoad(),
                     operatingSystemMXBean.getSystemCpuLoad(),
                     operatingSystemMXBean.getFreePhysicalMemorySize(),
                     operatingSystemMXBean.getTotalPhysicalMemorySize(),
                     operatingSystemMXBean.getCommittedVirtualMemorySize());
             return healthStatus;
-        } catch (UnknownHostException e) {
-            log.error("Unable to retrieve hostname");
-            e.printStackTrace();
-        }
-        return healthStatus;
     }
 }

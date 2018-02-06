@@ -11,5 +11,5 @@ public interface ISocketServer {
      You can have your own strategies on how to handle the traffic i.e. types of sockets you wanna use.
      **/
     boolean start();
-
+    boolean stop();
 }

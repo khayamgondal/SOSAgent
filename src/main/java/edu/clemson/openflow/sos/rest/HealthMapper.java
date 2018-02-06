@@ -23,4 +23,28 @@ public class HealthMapper {
         this.totalPhyMemSize = totalPhyMemSize;
         this.committedVirtualMemSize = committedVirtualMemSize;
     }
+
+    public String getHostName() {
+        return hostName;
+    }
+
+    public double getProcessCPULoad() {
+        return processCPULoad;
+    }
+
+    public double getSystemCPULoad() {
+        return systemCPULoad;
+    }
+
+    public long getFreePhyMemSize() {
+        return freePhyMemSize;
+    }
+
+    public long getTotalPhyMemSize() {
+        return totalPhyMemSize;
+    }
+
+    public long getCommittedVirtualMemSize() {
+        return committedVirtualMemSize;
+    }
 }

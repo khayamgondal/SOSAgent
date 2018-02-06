@@ -1,8 +1,8 @@
 package edu.clemson.openflow.sos.agent;
 
 /**
- *  @author khayam anjam kanjam@g.clemson.edu
- *  This class receives data form AgentClient and writes into Buffer
+ * @author khayam anjam kanjam@g.clemson.edu
+ * This class receives data form AgentClient and writes into Buffer
  */
 
 import edu.clemson.openflow.sos.buf.*;
@@ -35,6 +35,7 @@ public class AgentServer implements ISocketServer, RequestListener {
     private AgentToHostManager hostManager;
 
     private List<RequestMapper> incomingRequests;
+    private NioEventLoopGroup group;
 
     public AgentServer() {
         incomingRequests = new ArrayList<>();
@@ -48,25 +49,16 @@ public class AgentServer implements ISocketServer, RequestListener {
         private AgentToHost myHost;
         private String remoteAgentIP;
         private int remoteAgentPort;
+
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
-            log.info("New agent-side connection from agent {} at Port {}",
+            log.debug("New agent-side connection from agent {} at Port {}",
                     socketAddress.getHostName(),
                     socketAddress.getPort());
 
             remoteAgentIP = socketAddress.getHostName();
             remoteAgentPort = socketAddress.getPort();
-
-           // request = getMyRequestByClientAgentPort(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
-        //    if (request == null) {
-         //       log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
-         //       return;
-          //  }
-
-          //  myHost = hostManager.addAgentToHost(request);
-          //  myHost.addChannel(ctx.channel());
-           // myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
 
         }
 
@@ -84,10 +76,11 @@ public class AgentServer implements ISocketServer, RequestListener {
                 log.error("No request found .. releasing received packets");
                 return;
             }
-       //     ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
+            //     ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
             ByteBuf bytes = (ByteBuf) msg;
             log.debug("Got packet with seq {} & size {}", bytes.getInt(0), bytes.capacity());
-            myBuffer.incomingPacket(bytes);
+            if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
+            else myBuffer.incomingPacket(bytes);
             ReferenceCountUtil.release(bytes);
         }
 
@@ -96,7 +89,7 @@ public class AgentServer implements ISocketServer, RequestListener {
 
 
     private boolean startSocket(int port) {
-        NioEventLoopGroup group = new NioEventLoopGroup();
+        group = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(group)
@@ -108,7 +101,7 @@ public class AgentServer implements ISocketServer, RequestListener {
                                           channel.pipeline()
                                                   .addLast("lengthdecorder",
                                                           new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
-                                                 // .addLast("bytesDecoder", new ByteArrayDecoder())
+                                                  // .addLast("bytesDecoder", new ByteArrayDecoder())
                                                   .addLast(new AgentServerHandler())
                                                   .addLast("4blength", new LengthFieldPrepender(4))
                                                   .addLast("bytesEncoder", new ByteArrayEncoder())
@@ -149,6 +142,12 @@ public class AgentServer implements ISocketServer, RequestListener {
         return startSocket(AGENT_DATA_PORT);
     }
 
+    @Override
+    public boolean stop() {
+        group.shutdownGracefully();
+        log.info("Shutting down AgentServer");
+        return true;
+    }
 
 
     @Override
@@ -156,6 +155,6 @@ public class AgentServer implements ISocketServer, RequestListener {
         incomingRequests.add(request);
         // packetBuffers.add(packetBuffer);
 
-        log.debug("Received new request from client agent {}", request.toString());
+        log.debug("Received ports info from client agent {}", request.toString());
     }
 }

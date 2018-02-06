@@ -81,7 +81,7 @@ public class AgentClient implements OrderedPacketListener {
         myBuffer = new Buffer();
         myBuffer.setListener(this);
         EventLoopGroup eventLoopGroup = createEventLoopGroup();
-        log.debug("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
+        log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
         for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++)
             channels.add(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()));
         // TODO: Notify the agent-server about the ports so It can use it to filter out

@@ -34,6 +34,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private SeqGen seqGen;
     private AgentClient agentClient;
     private List<RequestMapper> incomingRequests = new ArrayList<>();
+    private NioEventLoopGroup group;
 
     public HostServer() {
         EventListenersLists.requestListeners.add(this);
@@ -81,7 +82,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     }
 
     private boolean startSocket(int port) {
-        NioEventLoopGroup group = new NioEventLoopGroup();
+        group = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(group)
@@ -125,6 +126,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         return startSocket(DATA_PORT);
     }
 
+    @Override
+    public boolean stop() {
+        group.shutdownGracefully();
+        log.info("Host Server shutting down");
+        return true;
+    }
 
 
     @Override

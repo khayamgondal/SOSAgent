@@ -38,7 +38,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostClient.getMyChannel().writeAndFlush(bytes);
 
-        if (!cf.isSuccess()) log.error("write not successful {}", cf.cause());
+      //  if (!cf.isSuccess()) log.error("write not successful {}", cf.cause());
     }
     public void addChannel(Channel channel) {
         channels.add(channel);
