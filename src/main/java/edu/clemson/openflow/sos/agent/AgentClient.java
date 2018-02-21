@@ -72,6 +72,11 @@ public class AgentClient implements OrderedPacketListener {
             ReferenceCountUtil.release(msg);
         }
 
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) {
+            log.info("Channel is inactive");
+        }
+
     }
 
     public AgentClient(RequestMapper request) {

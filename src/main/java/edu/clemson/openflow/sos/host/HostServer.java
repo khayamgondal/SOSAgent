@@ -68,7 +68,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         }
 
         @Override
-        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        public void channelInactive(ChannelHandlerContext ctx) {
             log.info("Channel is inactive");
         }
 

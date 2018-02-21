@@ -84,6 +84,11 @@ public class AgentServer implements ISocketServer, RequestListener {
             ReferenceCountUtil.release(bytes);
         }
 
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) {
+            log.info("Channel is inactive");
+        }
+
 
     }
 
