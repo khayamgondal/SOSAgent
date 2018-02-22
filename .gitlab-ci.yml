@@ -1,0 +1,19 @@
+
+stages:
+  - build
+  - test
+
+build_job:
+  stage: build
+  script:
+    - cd SOSAgent
+    - mvn package -Dmaven.test.skip=true
+  artifacts:
+    paths:
+      - ./SOSAgent/target/floodlight.jar
+    expire_in: 1 day
+
+test_job:
+  stage: test
+  script:
+   
