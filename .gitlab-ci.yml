@@ -5,12 +5,10 @@ stages:
 build_job:
   stage: build
   script:
-    - pwd
-    - cd SOSAgent
     - mvn package -Dmaven.test.skip=true
   artifacts:
     paths:
-      - ./SOSAgent/target/sosagent.jar
+      - target/sosagent.jar
     expire_in: 1 day
 
 test_job:
