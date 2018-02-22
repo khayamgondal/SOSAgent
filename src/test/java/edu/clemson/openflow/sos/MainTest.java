@@ -5,6 +5,7 @@ import edu.clemson.openflow.sos.host.HostServer;
 import edu.clemson.openflow.sos.rest.RestServer;
 import org.junit.jupiter.api.Test;
 
+import static junit.framework.TestCase.assertEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MainTest {
