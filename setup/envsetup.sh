@@ -13,7 +13,7 @@ sudo apt install openjdk-8-jdk
 sudo apt install tmux
 sudo apt install xterm
 
-git clone git://github.com/mininet/mininet
+git clone git://github.com/mininet/mininet ~/mininet
 cd mininet
 git checkout 2.2.2
 ~/mininet/util/install.sh -a

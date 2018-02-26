@@ -2,6 +2,7 @@ package edu.clemson.openflow.sos;
 
 import edu.clemson.openflow.sos.agent.AgentServer;
 import edu.clemson.openflow.sos.host.HostServer;
+import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RestServer;
 import edu.clemson.openflow.sos.utils.PrefsSetup;
 
@@ -18,10 +19,10 @@ public class Main {
         RestServer restServer = new RestServer();
         restServer.startComponent();
 
-        HostServer hostServer = new HostServer();
+        ISocketServer hostServer = new HostServer();
         hostServer.start();
 
-        AgentServer agentServer = new AgentServer();
+        ISocketServer agentServer = new AgentServer();
         agentServer.start();
 
     }
