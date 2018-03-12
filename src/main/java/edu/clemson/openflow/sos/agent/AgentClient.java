@@ -3,6 +3,7 @@ package edu.clemson.openflow.sos.agent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.buf.Buffer;
 import edu.clemson.openflow.sos.buf.OrderedPacketListener;
+import edu.clemson.openflow.sos.host.HostStatusListener;
 import edu.clemson.openflow.sos.rest.RequestMapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import io.netty.bootstrap.Bootstrap;
@@ -29,7 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class AgentClient implements OrderedPacketListener {
+public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private static final Logger log = LoggerFactory.getLogger(AgentClient.class);
 
     private static final String PORTMAP_PATH = "/portmap";
@@ -46,46 +47,15 @@ public class AgentClient implements OrderedPacketListener {
     private ArrayList<Channel> channels;
     private Buffer myBuffer;
     private Channel hostChannel;
-
-    @Override
-    public void orderedPacket(ByteBuf packet, RequestMapper request) {
-        byte[] bytes = new byte[packet.capacity() - 4 ];
-        packet.getBytes(4, bytes);
-        ChannelFuture cf = hostChannel.writeAndFlush(bytes);
-
-      //  if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
-
-    }
-
-    public void setChannel(Channel channel) {
-        this.hostChannel = channel;
-    }
-
-    public class AgentClientHandler extends ChannelInboundHandlerAdapter {
-
-
-        @Override
-        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            log.debug("Reading from remote agent");
-          //  log.info(new String((byte[]) msg));
-               myBuffer.incomingPacket((ByteBuf) msg);
-            ReferenceCountUtil.release(msg);
-        }
-
-        @Override
-        public void channelInactive(ChannelHandlerContext ctx) {
-            log.info("Channel is inactive");
-        }
-
-    }
+    private EventLoopGroup eventLoopGroup;
 
     public AgentClient(RequestMapper request) {
-       // agentClientHandler = new AgentClientHandler();
+        // agentClientHandler = new AgentClientHandler();
         this.request = request;
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
         myBuffer = new Buffer();
         myBuffer.setListener(this);
-        EventLoopGroup eventLoopGroup = createEventLoopGroup();
+        eventLoopGroup = createEventLoopGroup();
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
         for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++)
             channels.add(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()));
@@ -104,6 +74,46 @@ public class AgentClient implements OrderedPacketListener {
         }
     }
 
+    @Override
+    public void orderedPacket(ByteBuf packet, RequestMapper request) {
+        byte[] bytes = new byte[packet.capacity() - 4 ];
+        packet.getBytes(4, bytes);
+        ChannelFuture cf = hostChannel.writeAndFlush(bytes);
+
+      //  if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
+
+    }
+
+    public void setChannel(Channel channel) {
+        this.hostChannel = channel;
+    }
+
+    @Override
+    public void HostStatusChanged(HostStatus hostStatus) {
+        log.info("Shutting down all channels. ");
+        eventLoopGroup.shutdownGracefully();
+    }
+
+    public class AgentClientHandler extends ChannelInboundHandlerAdapter {
+
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        //    log.debug("Reading from remote agent");
+          //  log.info(new String((byte[]) msg));
+               myBuffer.incomingPacket((ByteBuf) msg);
+            ReferenceCountUtil.release(msg);
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) {
+            log.info("Channel is inactive");
+        }
+
+    }
+
+
+
     //TODO: apache is deprecated webclient...
     private boolean notifyRemoteAgent(List<Integer> ports) throws IOException {
         String uri = RestRoutes.URIBuilder(request.getRequest().getServerAgentIP(), REST_PORT, PORTMAP_PATH);
@@ -119,19 +129,24 @@ public class AgentClient implements OrderedPacketListener {
         log.debug("JSON Object to sent {}", portMapString);
         HttpResponse response = httpClient.execute(httpRequest);
 
-        log.info("Sending HTTP request to remote agent with port info {}", request.getRequest().getServerAgentIP());
-        log.info("Agent returned {}", response.getStatusLine().getStatusCode());
+        log.debug("Sending HTTP request to remote agent with port info {}", request.getRequest().getServerAgentIP());
+        log.debug("Agent returned {}", response.getStatusLine().getStatusCode());
         return Boolean.parseBoolean(response.toString());
     }
 
 
     public void incomingPacket(byte[] data) {
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
-        log.debug("Trying to write packet with size {} & seq {} on channel no {}", data.length,
+        log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,
                 ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
                 currentChannelNo);
         writeToAgentChannel(channels.get(currentChannelNo), data);
         currentChannelNo++;
+    }
+
+    //TODO: might write an event listener and this calss register for the event ???
+    public void hostStatus() {
+
     }
 
     private void writeToAgentChannel(Channel channel, byte[] data) {

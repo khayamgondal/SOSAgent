@@ -15,9 +15,9 @@
     <logger name="edu.clemson.openflow.sos.buf.Buffer" level="info"/>
     <logger name="edu.clemson.openflow.sos.agent.AgentServer" level="info" />
     <logger name="edu.clemson.openflow.sos.rest.RequestHandler" level="info" />
-    <logger name="edu.clemson.openflow.sos.agent.AgentClient" level="info" />
+    <logger name="edu.clemson.openflow.sos.agent.AgentClient" level="debug" />
     <logger name="edu.clemson.openflow.sos.host.HostClient" level="info" />
-    <logger name="edu.clemson.openflow.sos.agent2host" level="info" />
+    <logger name="edu.clemson.openflow.sos.agent.AgentToHost" level="info" />
 
     <logger name="edu.clemson.openflow.sos.buf.SeqGen" level="info"/>
 

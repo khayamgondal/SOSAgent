@@ -30,12 +30,12 @@ public class AgentServer implements ISocketServer, RequestListener {
     private static final int AGENT_DATA_PORT = 9878;
     private static final Logger log = LoggerFactory.getLogger(AgentServer.class);
 
-    private RequestMapper request;
     private BufferManager bufferManager;
     private AgentToHostManager hostManager;
 
     private List<RequestMapper> incomingRequests;
     private NioEventLoopGroup group;
+    private List<Channel> myChannels = new ArrayList<>(); // size should be no. of parallel conns. // plus this is wrong.
 
     public AgentServer() {
         incomingRequests = new ArrayList<>();
@@ -45,6 +45,8 @@ public class AgentServer implements ISocketServer, RequestListener {
     }
 
     public class AgentServerHandler extends ChannelInboundHandlerAdapter {
+        private RequestMapper request;
+
         private Buffer myBuffer;
         private AgentToHost myHost;
         private String remoteAgentIP;
@@ -59,6 +61,7 @@ public class AgentServer implements ISocketServer, RequestListener {
 
             remoteAgentIP = socketAddress.getHostName();
             remoteAgentPort = socketAddress.getPort();
+            myChannels.add(ctx.channel());
 
         }
 
@@ -67,7 +70,12 @@ public class AgentServer implements ISocketServer, RequestListener {
             if (request == null) { //this could be moved to active. need to check performance
                 request = getMyRequestByClientAgentPort(remoteAgentIP, remoteAgentPort); // go through the list and find related request
                 myHost = hostManager.addAgentToHost(request);
-                myHost.addChannel(ctx.channel());
+               // myHost.addChannel(ctx.channel());
+                for (Channel ch: myChannels
+                     ) {
+                    myHost.addChannel(ch);
+                }
+
                 myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
 
             }
@@ -78,7 +86,7 @@ public class AgentServer implements ISocketServer, RequestListener {
             }
             //     ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
             ByteBuf bytes = (ByteBuf) msg;
-            log.debug("Got packet with seq {} & size {}", bytes.getInt(0), bytes.capacity());
+            log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
             if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
             else myBuffer.incomingPacket(bytes);
             ReferenceCountUtil.release(bytes);
@@ -135,11 +143,18 @@ public class AgentServer implements ISocketServer, RequestListener {
             if (incomingRequest.getRequest().getClientAgentIP().equals(remoteIP)) {
                 for (int port : incomingRequest.getPorts()
                         ) {
-                    if (port == remotePort) return incomingRequest;
+                    if (port == remotePort) {
+                        deleteRequestFromList(incomingRequest); // also delete this request from pool. we wont be needing it.
+                        return incomingRequest;
+                    }
                 }
             }
         }
         return null;
+    }
+
+    private void deleteRequestFromList(RequestMapper request) {
+        incomingRequests.remove(request);
     }
 
     @Override

@@ -51,19 +51,20 @@ public class Buffer {
         orderedPacketInitiator.addListener((AgentClient)listener);
     }
 
-    public void incomingPacket(ByteBuf data) { // need to check performance of this method
+    public synchronized void incomingPacket(ByteBuf data) { // need to check performance of this method
         if (expecting == MAX_SEQ) expecting = 0;
+        log.info("DDDDDDDDD {}", expecting);
         int currentSeqNo = data.getInt(0);
         if (currentSeqNo == expecting) {
             sendData(data);
-            log.debug("Sending seq no: back{}", expecting);
+            log.debug("Sending to Host seq no: {} ", expecting);
             // check how much we have in buffer
             expecting++; //TODO: circular increment
                 while (true) {
                     if (status.get(expecting) != null && status.get(expecting) != false) {
                         sendData(data);
                         status.put(expecting, false);
-                        log.debug("Sending seq no: back{}", expecting);
+                        log.debug("Sending to Host seq no. {}", expecting);
                         expecting++; //TODO: circular loop
                     } else break;
                 }
@@ -72,13 +73,16 @@ public class Buffer {
             if (status.get(currentSeqNo) == null ||status.get(currentSeqNo) == false) {
                 bufs.put(currentSeqNo, data);
                 status.put(currentSeqNo, true);
+                log.debug("Putting seq no. {} in buffer", currentSeqNo);
             }
             else log.error("Still unsent packets in buffer.. droping this packet");
         }
     }
 
     private void sendData(ByteBuf data) {
-        if (orderedPacketInitiator !=null) orderedPacketInitiator.orderedPacket(data, request); //notify the listener
+       // if (orderedPacketInitiator !=null)
+        //TODO: remove request from here
+            orderedPacketInitiator.orderedPacket(data, request); //notify the listener
     }
 
     @Override

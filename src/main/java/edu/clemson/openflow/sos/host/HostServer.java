@@ -35,6 +35,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private AgentClient agentClient;
     private List<RequestMapper> incomingRequests = new ArrayList<>();
     private NioEventLoopGroup group;
+    private HostStatusInitiator hostStatusInitiator;
+
 
     public HostServer() {
         EventListenersLists.requestListeners.add(this);
@@ -61,6 +63,9 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 agentClient = new AgentClient(request);
                 agentClient.setChannel(ctx.channel());
 
+                hostStatusInitiator = new HostStatusInitiator();
+                hostStatusInitiator.addListener(agentClient);
+
             }
             else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                     request.toString());
@@ -69,18 +74,16 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            log.info("Channel is inactive");
+            log.debug("Channel is inactive.. means host is done sending.. notifying agent client");
+            hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
         }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            log.debug("Received new packet from host of size {}, will be forwarding to seqGen", ((byte[]) msg).length  ) ;
 
-            if (request != null) {
-                if (seqGen != null) {
+            if (request != null && seqGen != null) {
                     agentClient.incomingPacket(seqGen.incomingPacket((byte[]) msg)); // put packet on buffer
-                }
-            }
+                 }
             else log.error("Couldn't find the request. Not forwarding packet");
             ReferenceCountUtil.release(msg);
         }

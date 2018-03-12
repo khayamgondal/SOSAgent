@@ -139,7 +139,7 @@ def multiControllerNet():
     subprocess.Popen('sudo ifconfig s3 192.168.100.10/24 up', shell=True)
 
     remote = RemoteController( 'remotectl', ip='192.168.100.10',
-                               port=6653 ) #controller for data network (floodlight IP)
+                               port=6663 ) #controller for data network (floodlight IP)
     remote.start()
     s1.start( [ remote ] )
     s2.start( [ remote] )
