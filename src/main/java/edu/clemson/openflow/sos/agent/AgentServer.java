@@ -26,7 +26,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AgentServer implements ISocketServer, RequestListener {
+public class AgentServer implements ISocketServer {
     private static final int AGENT_DATA_PORT = 9878;
     private static final Logger log = LoggerFactory.getLogger(AgentServer.class);
 
@@ -35,16 +35,17 @@ public class AgentServer implements ISocketServer, RequestListener {
 
     private List<RequestMapper> incomingRequests;
     private NioEventLoopGroup group;
-    private List<Channel> myChannels = new ArrayList<>(); // size should be no. of parallel conns. // plus this is wrong.
+
+
+    private List<Channel> channelPool = new ArrayList<>(); // size should be no. of parallel conns. // plus this is wrong.
 
     public AgentServer() {
         incomingRequests = new ArrayList<>();
-        EventListenersLists.requestListeners.add(this);
         bufferManager = new BufferManager(); //setup buffer manager.
         hostManager = new AgentToHostManager();
     }
 
-    public class AgentServerHandler extends ChannelInboundHandlerAdapter {
+    public class AgentServerHandler extends ChannelInboundHandlerAdapter implements RequestListener {
         private RequestMapper request;
 
         private Buffer myBuffer;
@@ -61,13 +62,26 @@ public class AgentServer implements ISocketServer, RequestListener {
 
             remoteAgentIP = socketAddress.getHostName();
             remoteAgentPort = socketAddress.getPort();
-            myChannels.add(ctx.channel());
+            channelPool.add(ctx.channel());
+            EventListenersLists.requestListeners.add(this);
 
         }
 
         @Override
+        public void newIncomingRequest(RequestMapper request) {
+            //incomingRequests.add(request); 
+            // packetBuffers.add(packetBuffer);
+            request = getMyRequestByClientAgentPort(remoteAgentIP, remoteAgentPort); // go through the list and find related request
+            myHost = hostManager.addAgentToHost(request);
+            myHost.addChannel(xxxxxxxxxxx);
+            myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+
+            log.debug("Received ports info from client agent {}", request.toString());
+        }
+
+        @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            if (request == null) { //this could be moved to active. need to check performance
+    /*        if (request == null) { //this could be moved to active. need to check performance
                 request = getMyRequestByClientAgentPort(remoteAgentIP, remoteAgentPort); // go through the list and find related request
                 myHost = hostManager.addAgentToHost(request);
                // myHost.addChannel(ctx.channel());
@@ -78,7 +92,7 @@ public class AgentServer implements ISocketServer, RequestListener {
 
                 myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
 
-            }
+            }*/
             if (request == null) {
                 ReferenceCountUtil.release(msg);
                 log.error("No request found .. releasing received packets");
@@ -170,11 +184,5 @@ public class AgentServer implements ISocketServer, RequestListener {
     }
 
 
-    @Override
-    public void newIncomingRequest(RequestMapper request) {
-        incomingRequests.add(request);
-        // packetBuffers.add(packetBuffer);
 
-        log.debug("Received ports info from client agent {}", request.toString());
-    }
 }
