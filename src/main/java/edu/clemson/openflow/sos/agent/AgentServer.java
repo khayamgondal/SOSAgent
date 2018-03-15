@@ -37,7 +37,7 @@ public class AgentServer implements ISocketServer {
     private NioEventLoopGroup group;
 
 
-    private List<Channel> channelPool = new ArrayList<>(); // size should be no. of parallel conns. // plus this is wrong.
+    // private List<Channel> channelPool = new ArrayList<>(); // size should be no. of parallel conns. // plus this is wrong.
 
     public AgentServer() {
         incomingRequests = new ArrayList<>();
@@ -52,6 +52,7 @@ public class AgentServer implements ISocketServer {
         private AgentToHost myHost;
         private String remoteAgentIP;
         private int remoteAgentPort;
+        private Channel myChannel;
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -62,21 +63,27 @@ public class AgentServer implements ISocketServer {
 
             remoteAgentIP = socketAddress.getHostName();
             remoteAgentPort = socketAddress.getPort();
-            channelPool.add(ctx.channel());
+            //     channelPool.add(ctx.channel());
+            myChannel = ctx.channel();
             EventListenersLists.requestListeners.add(this);
 
         }
 
         @Override
         public void newIncomingRequest(RequestMapper request) {
+            log.info("FUCKED REWQUER");
             //incomingRequests.add(request); 
             // packetBuffers.add(packetBuffer);
-            request = getMyRequestByClientAgentPort(remoteAgentIP, remoteAgentPort); // go through the list and find related request
-            myHost = hostManager.addAgentToHost(request);
-            myHost.addChannel(xxxxxxxxxxx);
-            myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+            if (this.request == null) {
+                //request = getMyRequestByClientAgentPort(remoteAgentIP, remoteAgentPort); // go through the list and find related request
+                this.request = request;
+                myHost = hostManager.addAgentToHost(request);
+                myHost.addChannel(myChannel);
 
-            log.debug("Received ports info from client agent {}", request.toString());
+                myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+
+                log.debug("Received ports info from client agent {}", request.toString());
+            }
         }
 
         @Override
@@ -93,11 +100,11 @@ public class AgentServer implements ISocketServer {
                 myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
 
             }*/
-            if (request == null) {
+   /*         if (request == null) {
                 ReferenceCountUtil.release(msg);
                 log.error("No request found .. releasing received packets");
                 return;
-            }
+            }*/
             //     ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
             ByteBuf bytes = (ByteBuf) msg;
             log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
@@ -182,7 +189,6 @@ public class AgentServer implements ISocketServer {
         log.info("Shutting down AgentServer");
         return true;
     }
-
 
 
 }

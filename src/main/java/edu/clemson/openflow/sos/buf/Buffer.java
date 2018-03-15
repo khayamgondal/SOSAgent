@@ -53,7 +53,6 @@ public class Buffer {
 
     public synchronized void incomingPacket(ByteBuf data) { // need to check performance of this method
         if (expecting == MAX_SEQ) expecting = 0;
-        log.info("DDDDDDDDD {}", expecting);
         int currentSeqNo = data.getInt(0);
         if (currentSeqNo == expecting) {
             sendData(data);

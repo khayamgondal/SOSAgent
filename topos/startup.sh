@@ -1,5 +1,5 @@
     #!/usr/bin/env bash
-#This script will start controller and mininet topology. make sure you have ran evnsetup.sh before you run this file
+#This script will start controller and mininet topology. make sure you have ran evnsetup.sh before you run this file from SOSAgent folder
 #author Khayam Anjam kanjam@g.clemson.edu
 
 if [ "$(id -u)" != "0" ]; then
@@ -7,7 +7,7 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-cd ..
+
 tmux new-session -d -s sos -n floodlight 'sudo service openvswitch-switch start && sudo python topos/2hop-mininet-topo.py'
 tmux split-window -h -p 70 -d -t sos:floodlight 'cd ../floodlight/  && java -jar target/floodlight.jar'
 tmux split-window -p 30 -d -t sos:floodlight  'cd ../floodlight/  && bash'
