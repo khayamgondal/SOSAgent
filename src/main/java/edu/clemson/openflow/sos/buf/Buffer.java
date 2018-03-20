@@ -24,8 +24,8 @@ public class Buffer {
     private static final int MAX_SEQ = Integer.MAX_VALUE;
     private OrderedPacketInitiator orderedPacketInitiator;
 
-    private HashMap<Integer, ByteBuf> bufs = new HashMap<>(1000); // to improve performance
-    private HashMap<Integer, Boolean> status = new HashMap<>(1000); // to improve performance
+    private HashMap<Integer, ByteBuf> bufs = new HashMap<>(Integer.MAX_VALUE);
+    private HashMap<Integer, Boolean> status = new HashMap<>(Integer.MAX_VALUE);
 
     public Buffer() {
         orderedPacketInitiator = new OrderedPacketInitiator();
@@ -52,36 +52,51 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) { // need to check performance of this method
+        //sendData(data);
         if (expecting == MAX_SEQ) expecting = 0;
-        int currentSeqNo = data.getInt(0);
+       // log.info("Expecting {}", expecting);
+        int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
         if (currentSeqNo == expecting) {
             sendData(data);
             log.debug("Sending to Host seq no: {} ", expecting);
+            log.info("Sending Directly {}", currentSeqNo );
+
             // check how much we have in buffer
-            expecting++; //TODO: circular increment
-                while (true) {
-                    if (status.get(expecting) != null && status.get(expecting) != false) {
-                        sendData(data);
+            expecting++;
+                while (true) { //also check our buffer. do we have some unsent packets there too.
+                    if (status.get(expecting) != null && status.get(expecting)) {
+                        sendData(bufs.get(expecting));
                         status.put(expecting, false);
                         log.debug("Sending to Host seq no. {}", expecting);
-                        expecting++; //TODO: circular loop
+               //         log.info("Sending from buffer {}", expecting );
+
+                        expecting++;
                     } else break;
                 }
 
         } else {
-            if (status.get(currentSeqNo) == null ||status.get(currentSeqNo) == false) {
+            if (status.get(currentSeqNo) == null || !status.get(currentSeqNo)) {
                 bufs.put(currentSeqNo, data);
                 status.put(currentSeqNo, true);
                 log.debug("Putting seq no. {} in buffer", currentSeqNo);
+                log.info("BUffering {}", currentSeqNo );
+                while (true) { //also check our buffer. do we have some unsent packets there too.
+                    if (status.get(expecting) != null && status.get(expecting)) {
+                        sendData(bufs.get(expecting));
+                        status.put(expecting, false);
+                        log.debug("Sending to Host seq no. {}", expecting);
+               //         log.info("Sending from buffer {}", expecting );
+
+                        expecting++;
+                    } else break;
+                }
             }
-            else log.error("Still unsent packets in buffer.. droping this packet");
+            else log.error("Still unsent packets in buffer.. droping seq. {}", currentSeqNo);
         }
     }
 
     private void sendData(ByteBuf data) {
-       // if (orderedPacketInitiator !=null)
-        //TODO: remove request from here
-            orderedPacketInitiator.orderedPacket(data, request); //notify the listener
+            orderedPacketInitiator.orderedPacket(data); //notify the listener
     }
 
     @Override

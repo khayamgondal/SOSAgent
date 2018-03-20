@@ -54,7 +54,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         this.request = request;
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
         myBuffer = new Buffer();
-        myBuffer.setListener(this);
+        myBuffer.setListener(this); // notify me when you have sorted packs
         eventLoopGroup = createEventLoopGroup();
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
         for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++)
@@ -75,11 +75,16 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     }
 
     @Override
-    public void orderedPacket(ByteBuf packet, RequestMapper request) {
+    public void orderedPacket(ByteBuf packet) {
+        byte[] res = new byte[packet.capacity()];
+        //packet.getBytes(0, res);
+    //    log.info(packet.getInt(0) +"");
+
+
         byte[] bytes = new byte[packet.capacity() - 4 ];
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostChannel.writeAndFlush(bytes);
-
+        ReferenceCountUtil.release(packet);
       //  if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
 
     }
@@ -102,7 +107,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         //    log.debug("Reading from remote agent");
           //  log.info(new String((byte[]) msg));
                myBuffer.incomingPacket((ByteBuf) msg);
-            ReferenceCountUtil.release(msg);
+
+            //ReferenceCountUtil.release(msg);
         }
 
         @Override

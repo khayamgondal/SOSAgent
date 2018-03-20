@@ -32,7 +32,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     }
 
     @Override
-    public void orderedPacket(ByteBuf packet, RequestMapper request) { //TODO: remove incoming request
+    public void orderedPacket(ByteBuf packet) { //TODO: remove incoming request
         log.debug("Got new sorted packet");
         byte[] bytes = new byte[packet.capacity() - 4 ];
         packet.getBytes(4, bytes);

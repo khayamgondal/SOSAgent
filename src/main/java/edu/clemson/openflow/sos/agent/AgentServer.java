@@ -37,8 +37,6 @@ public class AgentServer implements ISocketServer {
     private NioEventLoopGroup group;
 
 
-    // private List<Channel> channelPool = new ArrayList<>(); // size should be no. of parallel conns. // plus this is wrong.
-
     public AgentServer() {
         incomingRequests = new ArrayList<>();
         bufferManager = new BufferManager(); //setup buffer manager.
@@ -46,7 +44,6 @@ public class AgentServer implements ISocketServer {
     }
 
     public class AgentServerHandler extends ChannelInboundHandlerAdapter implements RequestListener {
-        private RequestMapper request;
 
         private Buffer myBuffer;
         private AgentToHost myHost;
@@ -63,7 +60,6 @@ public class AgentServer implements ISocketServer {
 
             remoteAgentIP = socketAddress.getHostName();
             remoteAgentPort = socketAddress.getPort();
-            //     channelPool.add(ctx.channel());
             myChannel = ctx.channel();
             EventListenersLists.requestListeners.add(this);
 
@@ -71,41 +67,18 @@ public class AgentServer implements ISocketServer {
 
         @Override
         public void newIncomingRequest(RequestMapper request) {
-            log.info("FUCKED REWQUER");
-            //incomingRequests.add(request); 
-            // packetBuffers.add(packetBuffer);
-            if (this.request == null) {
-                //request = getMyRequestByClientAgentPort(remoteAgentIP, remoteAgentPort); // go through the list and find related request
-                this.request = request;
-                myHost = hostManager.addAgentToHost(request);
-                myHost.addChannel(myChannel);
 
-                myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
-
-                log.debug("Received ports info from client agent {}", request.toString());
+                if (myHost == null) {
+                    log.debug("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
+                    myHost = hostManager.addAgentToHost(request);
+                    myHost.addChannel(myChannel);
+                    myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+                }
             }
-        }
+
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-    /*        if (request == null) { //this could be moved to active. need to check performance
-                request = getMyRequestByClientAgentPort(remoteAgentIP, remoteAgentPort); // go through the list and find related request
-                myHost = hostManager.addAgentToHost(request);
-               // myHost.addChannel(ctx.channel());
-                for (Channel ch: myChannels
-                     ) {
-                    myHost.addChannel(ch);
-                }
-
-                myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
-
-            }*/
-   /*         if (request == null) {
-                ReferenceCountUtil.release(msg);
-                log.error("No request found .. releasing received packets");
-                return;
-            }*/
-            //     ByteBuf bytes = Unpooled.wrappedBuffer((byte[]) msg); //PERFORMANCE
             ByteBuf bytes = (ByteBuf) msg;
             log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
             if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
@@ -115,7 +88,11 @@ public class AgentServer implements ISocketServer {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            log.info("Channel is inactive");
+            hostManager.removeAgentToHost(myHost);
+            bufferManager.removeBuffer(myBuffer);
+            ctx.close(); //close this channel
+            log.debug("Channel is inactive... Closing it");
+
         }
 
 

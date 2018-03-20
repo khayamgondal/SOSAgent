@@ -4,6 +4,6 @@ import edu.clemson.openflow.sos.rest.RequestMapper;
 import io.netty.buffer.ByteBuf;
 
 public interface OrderedPacketListener {
-    void orderedPacket(ByteBuf packet, RequestMapper request); // need to remove RequestMapper, we don't need request info with each packet.
+    void orderedPacket(ByteBuf packet); // need to remove RequestMapper, we don't need request info with each packet.
 
 }

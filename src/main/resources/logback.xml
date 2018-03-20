@@ -6,6 +6,9 @@
         </encoder>
     </appender>
 
+    <CustomLevels>
+        <CustomLevel name="DEBUG2" intLevel="550" />
+    </CustomLevels>
 
     <root level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
@@ -15,7 +18,7 @@
     <logger name="edu.clemson.openflow.sos.buf.Buffer" level="info"/>
     <logger name="edu.clemson.openflow.sos.agent.AgentServer" level="info" />
     <logger name="edu.clemson.openflow.sos.rest.RequestHandler" level="info" />
-    <logger name="edu.clemson.openflow.sos.agent.AgentClient" level="debug" />
+    <logger name="edu.clemson.openflow.sos.agent.AgentClient" level="info" />
     <logger name="edu.clemson.openflow.sos.host.HostClient" level="info" />
     <logger name="edu.clemson.openflow.sos.agent.AgentToHost" level="info" />
 

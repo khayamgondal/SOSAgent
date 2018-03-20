@@ -11,10 +11,10 @@ public class OrderedPacketInitiator {
     public void addListener(OrderedPacketListener toAdd) {
         listeners.add(toAdd);
     }
-    public void orderedPacket(ByteBuf packet, RequestMapper request) {
+    public void orderedPacket(ByteBuf packet) {
         for (OrderedPacketListener listener: listeners
              ) {
-            if (listener!=null) listener.orderedPacket(packet, request);
+            if (listener!=null) listener.orderedPacket(packet);
         }
     }
 }
