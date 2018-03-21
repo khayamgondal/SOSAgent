@@ -13,90 +13,99 @@ public class Buffer {
 
     private static final Logger log = LoggerFactory.getLogger(Buffer.class);
 
-    private String clientIP; //remove these
-    private int clientPort; //remove these
-    private RequestMapper request;
+    private String clientIP;
+    private int clientPort;
 
-    private int lastSent = -1;
     private int expecting = 0;
-    private int sendFrom = 0;
-    private int sendTill = 0;
     private static final int MAX_SEQ = Integer.MAX_VALUE;
+
+
     private OrderedPacketInitiator orderedPacketInitiator;
 
-    private HashMap<Integer, ByteBuf> bufs = new HashMap<>(Integer.MAX_VALUE);
-    private HashMap<Integer, Boolean> status = new HashMap<>(Integer.MAX_VALUE);
+    private HashMap<Integer, ByteBuf> packetHolder;
+    private HashMap<Integer, Boolean> status;
 
     public Buffer() {
         orderedPacketInitiator = new OrderedPacketInitiator();
     }
 
     public Buffer(RequestMapper request) {
-        this.clientIP = request.getRequest().getClientIP();
-        this.clientPort = request.getRequest().getClientPort();
-        this.request = request;
+        clientIP = request.getRequest().getClientIP();
+        clientPort = request.getRequest().getClientPort();
+
+        status = new HashMap<>(request.getRequest().getBufferSize());
+        packetHolder = new HashMap<>(request.getRequest().getBufferSize());
+
     }
 
+    /*
+        packetHolder and status are initialized with BufferSize received in request from controller.
+        HashMap is capable of auto increasing the capacity if it hits the limit but its expensice on resources cause JVM
+        need to create a new HashMap and than copy all of values from old map to new one.
+        If you have specified really small buffersize and you are seeing alot of CPU usage, this could be the issue
+     */
     public Buffer(RequestMapper request, Object callBackHandler) {
-        this.clientIP = request.getRequest().getClientIP();
-        this.clientPort = request.getRequest().getClientPort();
+        clientIP = request.getRequest().getClientIP();
+        clientPort = request.getRequest().getClientPort();
+        status = new HashMap<>(request.getRequest().getBufferSize());
+        packetHolder = new HashMap<>(request.getRequest().getBufferSize());
 
         if (callBackHandler != null) {
             orderedPacketInitiator = new OrderedPacketInitiator();
-            orderedPacketInitiator.addListener((AgentToHost)callBackHandler);
+            orderedPacketInitiator.addListener((AgentToHost) callBackHandler);
         }
     }
 
     public void setListener(Object listener) {
-        orderedPacketInitiator.addListener((AgentClient)listener);
+        orderedPacketInitiator.addListener((AgentClient) listener);
     }
 
     public synchronized void incomingPacket(ByteBuf data) { // need to check performance of this method
         //sendData(data);
+        //log.info("SIZE   {}", data.capacity());
         if (expecting == MAX_SEQ) expecting = 0;
-       // log.info("Expecting {}", expecting);
+        // log.info("Expecting {}", expecting);
         int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
         if (currentSeqNo == expecting) {
             sendData(data);
             log.debug("Sending to Host seq no: {} ", expecting);
-            log.info("Sending Directly {}", currentSeqNo );
+            //log.info("Sending Directly {}", currentSeqNo );
 
             // check how much we have in buffer
             expecting++;
-                while (true) { //also check our buffer. do we have some unsent packets there too.
-                    if (status.get(expecting) != null && status.get(expecting)) {
-                        sendData(bufs.get(expecting));
-                        status.put(expecting, false);
-                        log.debug("Sending to Host seq no. {}", expecting);
-               //         log.info("Sending from buffer {}", expecting );
+            while (true) { //also check our buffer. do we have some unsent packets there too.
+                if (status.get(expecting) != null && status.get(expecting)) {
+                    sendData(packetHolder.get(expecting));
+                    status.put(expecting, false);
+                    log.debug("Sending to Host seq no. {}", expecting);
+                    //         log.info("Sending from buffer {}", expecting );
 
-                        expecting++;
-                    } else break;
-                }
+                    expecting++;
+                } else break;
+            }
 
         } else {
             if (status.get(currentSeqNo) == null || !status.get(currentSeqNo)) {
-                bufs.put(currentSeqNo, data);
+                packetHolder.put(currentSeqNo, data);
                 status.put(currentSeqNo, true);
                 log.debug("Putting seq no. {} in buffer", currentSeqNo);
-                log.info("BUffering {}", currentSeqNo );
+                // log.info("BUffering {}", currentSeqNo );
                 while (true) { //also check our buffer. do we have some unsent packets there too.
                     if (status.get(expecting) != null && status.get(expecting)) {
-                        sendData(bufs.get(expecting));
+                        sendData(packetHolder.get(expecting));
                         status.put(expecting, false);
                         log.debug("Sending to Host seq no. {}", expecting);
-               //         log.info("Sending from buffer {}", expecting );
+                        //         log.info("Sending from buffer {}", expecting );
 
                         expecting++;
                     } else break;
                 }
-            }
-            else log.error("Still unsent packets in buffer.. droping seq. {}", currentSeqNo);
+            } else log.error("Still unsent packets in buffer.. droping seq. {}", currentSeqNo);
         }
     }
 
     private void sendData(ByteBuf data) {
-            orderedPacketInitiator.orderedPacket(data); //notify the listener
+        orderedPacketInitiator.orderedPacket(data); //notify the listener
     }
 
     @Override

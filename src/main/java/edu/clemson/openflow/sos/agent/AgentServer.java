@@ -18,7 +18,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
-import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +45,7 @@ public class AgentServer implements ISocketServer {
     public class AgentServerHandler extends ChannelInboundHandlerAdapter implements RequestListener {
 
         private Buffer myBuffer;
-        private AgentToHost myHost;
+        private AgentToHost myEndHost;
         private String remoteAgentIP;
         private int remoteAgentPort;
         private Channel myChannel;
@@ -66,13 +65,25 @@ public class AgentServer implements ISocketServer {
         }
 
         @Override
+        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+            ctx.flush();
+        }
+
+        /*
+                    Whenever AgentServer recevies new port request from AgentClient. This method will be called and all the open channels
+                    will be notified. So considering there is are previous open connections and AS receives new request it will also notify
+                    those old channels but they have a null check on myEndHost which will prevent them from using new request.
+                    However if two client try to connect at same time it can show undesired behaviour
+                    TODO: Do something better
+                 */
+        @Override
         public void newIncomingRequest(RequestMapper request) {
 
-                if (myHost == null) {
+                if (myEndHost == null) {
                     log.debug("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
-                    myHost = hostManager.addAgentToHost(request);
-                    myHost.addChannel(myChannel);
-                    myBuffer = bufferManager.addBuffer(request, myHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+                    myEndHost = hostManager.addAgentToHost(request);
+                    myEndHost.addChannel(myChannel);
+                    myBuffer = bufferManager.addBuffer(request, myEndHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
                 }
             }
 
@@ -83,12 +94,12 @@ public class AgentServer implements ISocketServer {
             log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
             if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
             else myBuffer.incomingPacket(bytes);
-            ReferenceCountUtil.release(bytes);
+            //ReferenceCountUtil.release(bytes);
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            hostManager.removeAgentToHost(myHost);
+            hostManager.removeAgentToHost(myEndHost);
             bufferManager.removeBuffer(myBuffer);
             ctx.close(); //close this channel
             log.debug("Channel is inactive... Closing it");

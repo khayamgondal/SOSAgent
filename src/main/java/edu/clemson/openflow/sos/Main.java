@@ -16,13 +16,13 @@ public class Main {
       //  PrefsSetup prefsSetup = new PrefsSetup();
       //  prefsSetup.loadDefault(); //load default settings
 
-        RestServer restServer = new RestServer();
+        RestServer restServer = new RestServer(); // port 8002
         restServer.startComponent();
 
-        ISocketServer hostServer = new HostServer();
+        ISocketServer hostServer = new HostServer(); // port 9877
         hostServer.start();
 
-        ISocketServer agentServer = new AgentServer();
+        ISocketServer agentServer = new AgentServer(); // port 9878
         agentServer.start();
 
     }

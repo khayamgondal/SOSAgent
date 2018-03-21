@@ -20,11 +20,11 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * @author Khayam Anjam kanjam@g.clemson.edu
- * this class will start a new thread for every incoming connection from clients
+ * Listens for connections from client on port 9877
  */
+
 public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, RequestListener {
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
     private static final int DATA_PORT = 9877;
@@ -39,7 +39,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
 
     public HostServer() {
-        EventListenersLists.requestListeners.add(this);
+        EventListenersLists.requestListeners.add(this); //we register for incoming requests
     }
 
     public class HostServerHandler extends ChannelInboundHandlerAdapter {
@@ -75,14 +75,14 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
             log.debug("Channel is inactive.. means host is done sending.. notifying agent client");
-            hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
+            hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
         }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
 
             if (request != null && seqGen != null) {
-                    agentClient.incomingPacket(seqGen.incomingPacket((byte[]) msg)); // put packet on buffer
+                    agentClient.incomingPacket(seqGen.incomingPacket((byte[]) msg)); // forward packet to agentClient
                  }
             else log.error("Couldn't find the request. Not forwarding packet");
             ReferenceCountUtil.release(msg);
@@ -110,15 +110,10 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             //myChannel = f.channel();
             log.info("Started host-side socket server at Port {}", port);
             return true;
-            // Need to do socket closing handling. close all the remaining open sockets
-            //System.out.println(EchoServer.class.getName() + " started and listen on " + f.channel().localAddress());
-            //f.channel().closeFuture().sync();
         } catch (InterruptedException e) {
             log.error("Error starting host-side socket");
             e.printStackTrace();
             return false;
-        } finally {
-            //group.shutdownGracefully().sync();
         }
     }
     private RequestMapper getClientRequest(String remoteIP, int remotePort) {

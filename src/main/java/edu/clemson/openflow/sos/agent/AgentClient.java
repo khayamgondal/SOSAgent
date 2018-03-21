@@ -30,6 +30,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author Khayam Gondal kanjam@g.clemson.edu
+ * This class will be doing following
+ * 1: Open parallel connections with AgentServer
+ * 2: Notify AgentServer about the ports belongin to certain client
+ * 3: Append seq. no
+ * 4: Write packet to open channels in circular order
+ */
+
 public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private static final Logger log = LoggerFactory.getLogger(AgentClient.class);
 
@@ -38,10 +47,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private static final int AGENT_DATA_PORT = 9878;
 
     private int currentChannelNo = 0;
-
-    //private Channel myChannel;
-  //  private DataPipelineInitiator dataPipelineInitiator;
-    private AgentClientHandler agentClientHandler;
 
     private RequestMapper request;
     private ArrayList<Channel> channels;
@@ -59,7 +64,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
         for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++)
             channels.add(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()));
-        // TODO: Notify the agent-server about the ports so It can use it to filter out
 
         List<Integer> ports = new ArrayList<>(request.getRequest().getNumParallelSockets());
         for (Channel channel : channels
@@ -113,14 +117,14 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            log.info("Channel is inactive");
+            log.debug("Channel is inactive");
         }
 
     }
 
 
 
-    //TODO: apache is deprecated webclient...
+    //TODO: apache is deprecated webclient...use some other one
     private boolean notifyRemoteAgent(List<Integer> ports) throws IOException {
         String uri = RestRoutes.URIBuilder(request.getRequest().getServerAgentIP(), REST_PORT, PORTMAP_PATH);
         HttpClient httpClient = new DefaultHttpClient();
@@ -150,10 +154,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         currentChannelNo++;
     }
 
-    //TODO: might write an event listener and this calss register for the event ???
-    public void hostStatus() {
-
-    }
 
     private void writeToAgentChannel(Channel channel, byte[] data) {
        // log.debug("packet content is {}", new String(data));

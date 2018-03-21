@@ -6,6 +6,7 @@ import edu.clemson.openflow.sos.rest.RequestMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         byte[] bytes = new byte[packet.capacity() - 4 ];
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostClient.getMyChannel().writeAndFlush(bytes);
-
+        ReferenceCountUtil.release(packet);
       //  if (!cf.isSuccess()) log.error("write not successful {}", cf.cause());
     }
     public void addChannel(Channel channel) {

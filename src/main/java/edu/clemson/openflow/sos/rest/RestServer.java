@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author Khayam Anjam kanjam@g.clemson.edu
+ * RestServer to receive http requests from controller and other agents. It uses port 8002
  */
 public class RestServer {
     private Component component;
