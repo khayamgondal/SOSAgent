@@ -99,8 +99,11 @@ public class AgentServer implements ISocketServer {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
+            myEndHost.transferCompleted(); // notify the host server
+
             hostManager.removeAgentToHost(myEndHost);
             bufferManager.removeBuffer(myBuffer);
+
             ctx.close(); //close this channel
             log.debug("Channel is inactive... Closing it");
 

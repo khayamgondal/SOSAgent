@@ -12,12 +12,14 @@ import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HostClient {
+public class HostClient implements HostStatusListener{
     private static final Logger log = LoggerFactory.getLogger(HostClient.class);
     private Channel myChannel;
     private SeqGen seqGen;
+    private EventLoopGroup group;
 
     private HostPacketInitiator initiator;
+
     public HostClient(){
         seqGen = new SeqGen();
         initiator = new HostPacketInitiator();
@@ -26,6 +28,15 @@ public class HostClient {
     public void setListener(Object listener) {
         initiator.addListener((AgentToHost)listener);
     }
+
+    @Override
+    public void HostStatusChanged(HostStatus hostStatus) {
+        if (!group.isShutdown() && hostStatus == HostStatus.DONE) {
+            log.info("Client is done sending ... closing socket");
+            group.shutdownGracefully();
+        }
+    }
+
     class HostClientHandler extends ChannelInboundHandlerAdapter {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -37,7 +48,7 @@ public class HostClient {
     }
 
     public void start(String hostServerIP, int hostServerPort) {
-        EventLoopGroup group = new NioEventLoopGroup();
+        group = new NioEventLoopGroup();
         try {
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)

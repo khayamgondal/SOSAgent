@@ -99,7 +99,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     @Override
     public void HostStatusChanged(HostStatus hostStatus) {
-        log.info("Shutting down all channels. ");
+        log.info("Shutting down all Opened parallel socks. ");
         eventLoopGroup.shutdownGracefully();
     }
 

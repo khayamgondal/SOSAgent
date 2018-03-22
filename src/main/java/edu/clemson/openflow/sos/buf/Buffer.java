@@ -27,6 +27,8 @@ public class Buffer {
 
     public Buffer() {
         orderedPacketInitiator = new OrderedPacketInitiator();
+        status = new HashMap<>();
+        packetHolder = new HashMap<>();
     }
 
     public Buffer(RequestMapper request) {
@@ -40,13 +42,14 @@ public class Buffer {
 
     /*
         packetHolder and status are initialized with BufferSize received in request from controller.
-        HashMap is capable of auto increasing the capacity if it hits the limit but its expensice on resources cause JVM
+        HashMap is capable of auto increasing the capacity if it hits the limit but its expensive on resources cause JVM
         need to create a new HashMap and than copy all of values from old map to new one.
         If you have specified really small buffersize and you are seeing alot of CPU usage, this could be the issue
      */
     public Buffer(RequestMapper request, Object callBackHandler) {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
+
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
 
@@ -100,7 +103,7 @@ public class Buffer {
                         expecting++;
                     } else break;
                 }
-            } else log.error("Still unsent packets in buffer.. droping seq. {}", currentSeqNo);
+            } else log.error("Still unsent packets in buffer.. droping seq. {}", currentSeqNo); //something wrong here... need to fix
         }
     }
 

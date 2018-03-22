@@ -74,7 +74,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            log.debug("Channel is inactive.. means host is done sending.. notifying agent client");
+            log.info("Client is done sending");
             hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
         }
 
