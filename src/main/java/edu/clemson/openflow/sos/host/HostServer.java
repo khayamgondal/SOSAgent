@@ -44,12 +44,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     public class HostServerHandler extends ChannelInboundHandlerAdapter {
         @Override
-        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        public void channelActive(ChannelHandlerContext ctx) {
             InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
             log.info("New host-side connection from {} at Port {}",
                     socketAddress.getHostName(),
                     socketAddress.getPort());
-
+            //TODO: If remotely connecting client is in your /etc/hosts than socketAddress.getHostName() will return that hostname instead of its IP address and following method call will return null
             request = getClientRequest(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
             if (request == null) {
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");

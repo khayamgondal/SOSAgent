@@ -63,7 +63,11 @@ public class Buffer {
         orderedPacketInitiator.addListener((AgentClient) listener);
     }
 
-    public synchronized void incomingPacket(ByteBuf data) { // need to check performance of this method
+    public void incomingPacket(ByteBuf data) {
+
+    }
+
+    /*public synchronized void incomingPacket(ByteBuf data) { // need to check performance of this method
         //sendData(data);
         //log.info("SIZE   {}", data.capacity());
         if (expecting == MAX_SEQ) expecting = 0;
@@ -105,7 +109,7 @@ public class Buffer {
                 }
             } else log.error("Still unsent packets in buffer.. droping seq. {}", currentSeqNo); //something wrong here... need to fix
         }
-    }
+    }*/
 
     private void sendData(ByteBuf data) {
         orderedPacketInitiator.orderedPacket(data); //notify the listener

@@ -109,8 +109,10 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         //    log.debug("Reading from remote agent");
-          //  log.info(new String((byte[]) msg));
-               myBuffer.incomingPacket((ByteBuf) msg);
+            int size = ((ByteBuf) msg).capacity();
+            log.info(size + "");
+            if (size > 0)
+            myBuffer.incomingPacket((ByteBuf) msg);
 
             //ReferenceCountUtil.release(msg);
         }
