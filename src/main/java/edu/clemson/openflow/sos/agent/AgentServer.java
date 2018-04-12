@@ -18,6 +18,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,13 +65,13 @@ public class AgentServer implements ISocketServer {
 
         }
 
-        @Override
+    /*    @Override
         public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
             ctx.flush();
         }
-
+*/
         /*
-                    Whenever AgentServer recevies new port request from AgentClient. This method will be called and all the open channels
+                    Whenever AgentServer receives new port request from AgentClient. This method will be called and all the open channels
                     will be notified. So considering there is are previous open connections and AS receives new request it will also notify
                     those old channels but they have a null check on myEndHost which will prevent them from using new request.
                     However if two client try to connect at same time it can show undesired behaviour
@@ -94,7 +95,7 @@ public class AgentServer implements ISocketServer {
             log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
             if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
             else myBuffer.incomingPacket(bytes);
-            //ReferenceCountUtil.release(bytes);
+         //   ReferenceCountUtil.release(msg);
         }
 
         @Override

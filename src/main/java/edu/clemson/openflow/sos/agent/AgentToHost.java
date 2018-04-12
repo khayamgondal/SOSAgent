@@ -8,6 +8,7 @@ import edu.clemson.openflow.sos.rest.RequestMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +46,15 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         byte[] bytes = new byte[packet.capacity() - 4 ];
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostClient.getMyChannel().writeAndFlush(bytes);
-        ReferenceCountUtil.release(packet);
-      //  if (!cf.isSuccess()) log.error("write not successful {}", cf.cause());
+       /* cf.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                ReferenceCountUtil.release(packet);
+            }
+        });*/
+        //ReferenceCountUtil.release(bytes);
+      //  ReferenceCountUtil.release(packet);
+        //  if (!cf.isSuccess()) log.error("write not successful {}", cf.cause());
     }
     public void addChannel(Channel channel) {
         channels.add(channel);
@@ -77,7 +85,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     public void hostPacket(byte[] packet) {
         if (currentChannelNo == channels.size()) currentChannelNo = 0;
         log.debug("Forwarding packet with size {} on channel {} to Agent-Client", packet.length, currentChannelNo);
-        log.info(packet.length + "");
+     //   log.info(packet.length + "");
         channels.get(currentChannelNo).writeAndFlush(packet);
         currentChannelNo ++ ;
     }

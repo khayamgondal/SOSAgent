@@ -53,12 +53,19 @@ public class Buffer {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
 
+        bufferSize = request.getRequest().getBufferSize();
+
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
-
+        // This needs to be changed towards a polymorphic approach.
         if (callBackHandler != null) {
             orderedPacketInitiator = new OrderedPacketInitiator();
-            orderedPacketInitiator.addListener((AgentToHost) callBackHandler);
+            try {
+                orderedPacketInitiator.addListener((AgentClient)callBackHandler);
+            }
+            catch (ClassCastException e) {
+                orderedPacketInitiator.addListener((AgentToHost)callBackHandler);
+            }
         }
     }
 
@@ -67,6 +74,7 @@ public class Buffer {
     }
 
     private int offSet(int seq) {
+       // log.info("buffer size {}", bufferSize);
         return seq % bufferSize;
     }
 

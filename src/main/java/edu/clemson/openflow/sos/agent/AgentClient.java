@@ -28,7 +28,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Khayam Gondal kanjam@g.clemson.edu
@@ -58,8 +57,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         // agentClientHandler = new AgentClientHandler();
         this.request = request;
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
-        myBuffer = new Buffer();
-        myBuffer.setListener(this); // notify me when you have sorted packs
+        myBuffer = new Buffer(request, this);
+     //   myBuffer.setListener(this); // notify me when you have sorted packs
         eventLoopGroup = createEventLoopGroup();
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
         for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++)
@@ -88,7 +87,13 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         byte[] bytes = new byte[packet.capacity() - 4 ];
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostChannel.writeAndFlush(bytes);
-        ReferenceCountUtil.release(packet);
+
+    /*    cf.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                ReferenceCountUtil.release(packet);
+            }
+        });*/
       //  if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
 
     }
@@ -110,7 +115,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         //    log.debug("Reading from remote agent");
             int size = ((ByteBuf) msg).capacity();
-            log.info(size + "");
+            //log.info(size + "");
             if (size > 0)
             myBuffer.incomingPacket((ByteBuf) msg);
 
