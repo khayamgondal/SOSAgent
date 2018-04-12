@@ -16,6 +16,7 @@ public class Buffer {
     private String clientIP;
     private int clientPort;
 
+    private int bufferSize;
     private int expecting = 0;
     private static final int MAX_SEQ = Integer.MAX_VALUE;
 
@@ -34,6 +35,8 @@ public class Buffer {
     public Buffer(RequestMapper request) {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
+
+        bufferSize = request.getRequest().getBufferSize();
 
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
@@ -63,8 +66,46 @@ public class Buffer {
         orderedPacketInitiator.addListener((AgentClient) listener);
     }
 
-    public void incomingPacket(ByteBuf data) {
+    private int offSet(int seq) {
+        return seq % bufferSize;
+    }
 
+    private void sendBuffer() {
+        while (true) { //also check our buffer. do we have some unsent packets there too.
+            int bufferIndex = offSet(expecting);
+
+            if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
+                sendData(packetHolder.get(bufferIndex));
+                status.put(bufferIndex, false);
+                log.debug("Sending to Host seq no. {}", expecting);
+                //         log.info("Sending from buffer {}", expecting );
+
+                expecting++;
+            } else break;
+        }
+    }
+    public void incomingPacket(ByteBuf data) {
+        if (expecting == MAX_SEQ) expecting = 0;
+        int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
+        if (currentSeqNo == expecting) {
+            sendData(data);
+            log.debug("Sending to Host seq no: {} ", expecting);
+            //log.info("Sending Directly {}", currentSeqNo );
+
+            // check how much we have in buffer
+            expecting++;
+            sendBuffer();
+
+        } else {
+            if (status.get(currentSeqNo) == null || !status.get(currentSeqNo)) {
+                packetHolder.put(currentSeqNo, data);
+                status.put(currentSeqNo, true);
+                log.debug("Putting seq no. {} in buffer", currentSeqNo);
+                // log.info("BUffering {}", currentSeqNo );
+                sendBuffer();
+            } else
+                log.error("Still unsent packets in buffer.. droping seq. {}", currentSeqNo); //something wrong here... need to fix
+        }
     }
 
     /*public synchronized void incomingPacket(ByteBuf data) { // need to check performance of this method
