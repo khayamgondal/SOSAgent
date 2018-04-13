@@ -85,19 +85,19 @@ public class Buffer {
             if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
                 sendData(packetHolder.get(bufferIndex));
                 status.put(bufferIndex, false);
-                log.debug("Sending to Host seq no. {}", expecting);
+                log.debug("Sending from buffer to Host seq no. {}", expecting);
                 //         log.info("Sending from buffer {}", expecting );
 
                 expecting++;
             } else break;
         }
     }
-    public void incomingPacket(ByteBuf data) {
+    public synchronized void incomingPacket(ByteBuf data) {
         if (expecting == MAX_SEQ) expecting = 0;
         int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
         if (currentSeqNo == expecting) {
             sendData(data);
-            log.debug("Sending to Host seq no: {} ", expecting);
+            log.debug("Sending direclty to Host seq no: {} ", expecting);
             //log.info("Sending Directly {}", currentSeqNo );
 
             // check how much we have in buffer
@@ -105,14 +105,16 @@ public class Buffer {
             sendBuffer();
 
         } else {
-            if (status.get(currentSeqNo) == null || !status.get(currentSeqNo)) {
-                packetHolder.put(currentSeqNo, data);
-                status.put(currentSeqNo, true);
-                log.debug("Putting seq no. {} in buffer", currentSeqNo);
+            int bufferIndex = offSet(currentSeqNo);
+
+            if (status.get(bufferIndex) == null || !status.get(bufferIndex)) {
+                packetHolder.put(bufferIndex, data);
+                status.put(bufferIndex, true);
+                log.debug("Putting seq no. {} in buffer on index {}", currentSeqNo, bufferIndex);
                 // log.info("BUffering {}", currentSeqNo );
                 sendBuffer();
             } else
-                log.error("Still unsent packets in buffer.. droping seq. {}", currentSeqNo); //something wrong here... need to fix
+                log.error("Buffer index {} have unsent data dropping seq {}", bufferIndex, currentSeqNo); //something wrong here... need to fix
         }
     }
 
