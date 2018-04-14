@@ -46,12 +46,12 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         byte[] bytes = new byte[packet.capacity() - 4 ];
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostClient.getMyChannel().writeAndFlush(bytes);
-       /* cf.addListener(new ChannelFutureListener() {
+        cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
                 ReferenceCountUtil.release(packet);
             }
-        });*/
+        });
         //ReferenceCountUtil.release(bytes);
       //  ReferenceCountUtil.release(packet);
         //  if (!cf.isSuccess()) log.error("write not successful {}", cf.cause());

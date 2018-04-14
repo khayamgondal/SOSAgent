@@ -43,12 +43,6 @@ public class Buffer {
 
     }
 
-    /*
-        packetHolder and status are initialized with BufferSize received in request from controller.
-        HashMap is capable of auto increasing the capacity if it hits the limit but its expensive on resources cause JVM
-        need to create a new HashMap and than copy all of values from old map to new one.
-        If you have specified really small buffersize and you are seeing alot of CPU usage, this could be the issue
-     */
     public Buffer(RequestMapper request, Object callBackHandler) {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();

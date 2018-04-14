@@ -88,12 +88,12 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostChannel.writeAndFlush(bytes);
 
-    /*    cf.addListener(new ChannelFutureListener() {
+       cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
                 ReferenceCountUtil.release(packet);
             }
-        });*/
+        });
       //  if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
 
     }
