@@ -165,6 +165,12 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private void writeToAgentChannel(Channel channel, byte[] data) {
        // log.debug("packet content is {}", new String(data));
         ChannelFuture cf = channel.writeAndFlush(data);
+        cf.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                ReferenceCountUtil.release(data);
+            }
+        });
       /*  if (!cf.isSuccess()) {
             log.error("Sending packet failed .. due to {}", cf.cause());
         }*/

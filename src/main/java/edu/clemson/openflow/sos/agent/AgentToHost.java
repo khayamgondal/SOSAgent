@@ -86,8 +86,14 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         if (currentChannelNo == channels.size()) currentChannelNo = 0;
         log.debug("Forwarding packet with size {} on channel {} to Agent-Client", packet.length, currentChannelNo);
      //   log.info(packet.length + "");
-        channels.get(currentChannelNo).writeAndFlush(packet);
+        ChannelFuture cf =  channels.get(currentChannelNo).writeAndFlush(packet);
         currentChannelNo ++ ;
+        cf.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                ReferenceCountUtil.release(packet);
+            }
+        });
     }
 
     public void transferCompleted() {
