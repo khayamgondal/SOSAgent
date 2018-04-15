@@ -9,6 +9,7 @@ import edu.clemson.openflow.sos.buf.*;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestListener;
 import edu.clemson.openflow.sos.rest.RequestMapper;
+import edu.clemson.openflow.sos.stats.StatCollector;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -62,7 +63,7 @@ public class AgentServer implements ISocketServer {
             remoteAgentPort = socketAddress.getPort();
             myChannel = ctx.channel();
             EventListenersLists.requestListeners.add(this);
-
+            StatCollector.getStatCollector().connectionAdded();
         }
 
     /*    @Override
@@ -107,6 +108,7 @@ public class AgentServer implements ISocketServer {
 
             ctx.close(); //close this channel
             log.debug("Channel is inactive... Closing it");
+            StatCollector.getStatCollector().connectionRemoved();
 
         }
 

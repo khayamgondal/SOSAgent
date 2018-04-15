@@ -3,6 +3,7 @@ package edu.clemson.openflow.sos.host;
 import edu.clemson.openflow.sos.agent.HostPacketInitiator;
 import edu.clemson.openflow.sos.agent.AgentToHost;
 import edu.clemson.openflow.sos.buf.SeqGen;
+import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -34,10 +35,17 @@ public class HostClient implements HostStatusListener{
         if (!group.isShutdown() && hostStatus == HostStatus.DONE) {
             log.info("Client is done sending ... closing socket");
             group.shutdownGracefully();
+            StatCollector.getStatCollector().hostRemoved();
         }
     }
 
     class HostClientHandler extends ChannelInboundHandlerAdapter {
+
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            StatCollector.getStatCollector().hostAdded();
+        }
+
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             log.debug("Reading from host");

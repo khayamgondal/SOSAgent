@@ -3,6 +3,8 @@ package edu.clemson.openflow.sos.rest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.management.OperatingSystemMXBean;
+import edu.clemson.openflow.sos.host.HostClient;
+import edu.clemson.openflow.sos.stats.StatCollector;
 import edu.clemson.openflow.sos.utils.PrefsSetup;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
@@ -68,15 +70,26 @@ public class HealthStatus extends ServerResource {
             return null;
         }
     }
+
+    private int getTotalHosts() {
+        return StatCollector.getStatCollector().getConnectedHosts();
+    }
+
+    private int getOpenedConnections() {
+        return StatCollector.getStatCollector().getTotalOpenedConnections();
+    }
+
     private HealthMapper getSystemStats() {
             OperatingSystemMXBean operatingSystemMXBean =
                     (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
         HealthMapper healthStatus = new HealthMapper(getHostName(),
-                    operatingSystemMXBean.getProcessCpuLoad(),
-                    operatingSystemMXBean.getSystemCpuLoad(),
-                    operatingSystemMXBean.getFreePhysicalMemorySize(),
-                    operatingSystemMXBean.getTotalPhysicalMemorySize(),
-                    operatingSystemMXBean.getCommittedVirtualMemorySize());
+                operatingSystemMXBean.getProcessCpuLoad(),
+                operatingSystemMXBean.getSystemCpuLoad(),
+                operatingSystemMXBean.getFreePhysicalMemorySize(),
+                operatingSystemMXBean.getTotalPhysicalMemorySize(),
+                operatingSystemMXBean.getCommittedVirtualMemorySize(),
+                getTotalHosts(),
+                getOpenedConnections());
             return healthStatus;
     }
 }

@@ -6,6 +6,7 @@ import edu.clemson.openflow.sos.buf.OrderedPacketListener;
 import edu.clemson.openflow.sos.host.HostStatusListener;
 import edu.clemson.openflow.sos.rest.RequestMapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
+import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -61,8 +62,10 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
      //   myBuffer.setListener(this); // notify me when you have sorted packs
         eventLoopGroup = createEventLoopGroup();
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
-        for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++)
+        for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
             channels.add(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()));
+            StatCollector.getStatCollector().connectionAdded();
+        }
 
         List<Integer> ports = new ArrayList<>(request.getRequest().getNumParallelSockets());
         for (Channel channel : channels
@@ -75,6 +78,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        StatCollector.getStatCollector().hostAdded();
     }
 
     @Override
@@ -104,8 +108,12 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     @Override
     public void HostStatusChanged(HostStatus hostStatus) {
-        log.info("Shutting down all Opened parallel socks. ");
-        eventLoopGroup.shutdownGracefully();
+        if (hostStatus == HostStatus.DONE) {
+            log.info("Client done sending ...shutting down all opened parallel socks. ");
+            StatCollector.getStatCollector().hostRemoved();
+            eventLoopGroup.shutdownGracefully();
+            StatCollector.getStatCollector().connectionRemoved();
+        }
     }
 
     public class AgentClientHandler extends ChannelInboundHandlerAdapter {
