@@ -103,37 +103,63 @@ def multiControllerNet():
     info( "*** Creating hosts\n" )
     agent1 = net.addHost('agent1', ip='10.0.0.11')
     agent2 = net.addHost('agent2', ip='10.0.0.21')
+    agent3 = net.addHost('agent3', ip='10.0.0.31')
+
+    agent4 = net.addHost('agent4', ip='10.0.0.41')
+    agent5 = net.addHost('agent5', ip='10.0.0.51')
+    agent6 = net.addHost('agent6', ip='10.0.0.61')
 
     client1 = net.addHost('client1', ip='10.0.0.111')
+    client2 = net.addHost('client2', ip='10.0.0.112')
+    client3 = net.addHost('client3', ip='10.0.0.113')
+
     server1 = net.addHost('server1', ip='10.0.0.211')
-
-    #controller = net.addHost('controller', ip='10.0.2.150')
-
-
-    #controller.cmd("cd  /home/vagrant/sos-for-floodlight && java -jar target/floodlight.jar")
+    server2 = net.addHost('server2', ip='10.0.0.212')
+    server3 = net.addHost('server3', ip='10.0.0.213')
 
     info( "*** Creating data links\n" )
+    net.addLink( s1, client1, )
+    net.addLink( s1, client2)
+    net.addLink( s1, client3)
 
-    net.addLink( s1, client1)
     net.addLink(s1, s4)
-    net.addLink(s4, agent1)
 
-    net.addLink( s1, s2 , delay='50ms', bw=1000)
-    net.addLink(s2,server1)
+    net.addLink(s4, agent1)
+    net.addLink(s4, agent3)
+    net.addLink(s4, agent5)
+
+    net.addLink( s1, s2 , delay='50ms')
+
+    net.addLink(s2, server1)
+    net.addLink(s2, server2)
+    net.addLink(s2, server3)
+
     net.addLink(s2, s5)
-    net.addLink(s5,agent2)
+
+    net.addLink(s5, agent2)
+    net.addLink(s5, agent4)
+    net.addLink(s5, agent6)
 
     info( "*** Creating control links\n" )
-    Link(agent1, s3, intfName1='agent1-eth1')
-    agent1.cmd('ifconfig agent1-eth1 192.168.100.1 netmask 255.255.255.0')
-    Link(agent2, s3, intfName1='agent2-eth1')
-    agent2.cmd('ifconfig agent2-eth1 192.168.100.2 netmask 255.255.255.0')
+    Link(agent1, s3, intfName1='eth1')
+    Link(agent2, s3, intfName1='eth1')
+    Link(agent3, s3, intfName1='eth1')
+    Link(agent4, s3, intfName1='eth1')
+    Link(agent5, s3, intfName1='eth1')
+    Link(agent6, s3, intfName1='eth1')
+
+    agent1.cmd('ifconfig eth1 192.168.100.1 netmask 255.255.255.0')
+    agent2.cmd('ifconfig eth1 192.168.100.2 netmask 255.255.255.0')
+    agent3.cmd('ifconfig eth1 192.168.100.3 netmask 255.255.255.0')
+    agent4.cmd('ifconfig eth1 192.168.100.4 netmask 255.255.255.0')
+    agent5.cmd('ifconfig eth1 192.168.100.5 netmask 255.255.255.0')
+    agent6.cmd('ifconfig eth1 192.168.100.6 netmask 255.255.255.0')
 
 
     info( "*** Starting network\n" )
     net.build()
 
-    makeTerms([agent1, agent2, server1, client1])
+    makeTerms([agent1, agent2, agent3, agent4, agent5, agent6, server1, server2, server3, client1, client2, client3])
 
     info( "*** Creating controllers\n" )
     local = net.addController( 'localctl', port=6633 ) #controller for control network
@@ -141,22 +167,15 @@ def multiControllerNet():
     s3.start([local])
 
     info("*** Assigning IP to host interface\n")
-    #call ('sudo', '/sbin/ifconfig', 's3', '192.168.100.10/24', 'up', shell=True)
     subprocess.Popen('sudo ifconfig s3 192.168.100.10/24 up', shell=True)
 
-    remote = RemoteController( 'remotectl', ip='192.168.100.10',
-                               port=6663 ) #controller for data network (floodlight IP)
+    remote = RemoteController( 'remotectl', ip='192.168.100.10', port=6663 ) #controller for data network (floodlight IP)
     remote.start()
-    s1.start( [ remote ] )
-    s2.start( [ remote] )
-    s4.start( [ remote] )
-    s5.start( [ remote] )
+    s1.start( [remote])
+    s2.start( [remote])
+    s4.start( [remote])
+    s5.start( [remote])
 
-
-    #info( "*** Testing network\n" )
-    #net.pingAll()
-
-    #info( "*** Running CLI\n" )
     CLI( net )
 
     #info( "*** Stopping network\n" )

@@ -1,6 +1,11 @@
 package edu.clemson.openflow.sos.stats;
 
+/**
+ * @author Khayam Anjam kanjam@g.clemson.edu
+ * This class collects stats like active SOS connections, total connected hosts.
+ */
 public class StatCollector {
+
     private int connectedHosts;
     private int totalOpenedConnections;
     private static StatCollector statCollector = new StatCollector();
