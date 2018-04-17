@@ -22,6 +22,7 @@ public class RequestTemplate {
     private int queueCapacity;
     private String serverIP;
     private int serverPort;
+    private boolean mockRequest;
 
     public RequestTemplate(@JsonProperty("is-client-agent") boolean isClientAgent,
                            @JsonProperty("transfer-id") String transferID,
@@ -33,7 +34,8 @@ public class RequestTemplate {
                            @JsonProperty("buffer-size") int bufferSize,
                            @JsonProperty("queue-capacity") int queueCapacity,
                            @JsonProperty("server-ip") String serverIP,
-                           @JsonProperty("server-port") int serverPort) {
+                           @JsonProperty("server-port") int serverPort,
+                           @JsonProperty("mock-request") boolean mockRequest) {
         this.isClientAgent = isClientAgent;
         this.transferID = transferID;
         this.clientIP = clientIP;
@@ -45,6 +47,7 @@ public class RequestTemplate {
         this.queueCapacity = queueCapacity;
         this.serverIP = serverIP;
         this.serverPort = serverPort;
+        this.mockRequest = mockRequest;
     }
 
 
@@ -86,6 +89,10 @@ public class RequestTemplate {
 
     public String getClientAgentIP() {
         return clientAgentIP;
+    }
+
+    public boolean isMockRequest() {
+        return mockRequest;
     }
 
     public int getServerPort() {

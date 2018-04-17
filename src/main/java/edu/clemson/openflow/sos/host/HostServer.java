@@ -116,6 +116,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         }
     }
     private RequestMapper getClientRequest(String remoteIP, int remotePort) {
+        // if its a mock request we dont need to match the port.. just match on IP
         for (RequestMapper incomingRequest : incomingRequests) {
             if (incomingRequest.getRequest().getClientIP().equals(remoteIP) &&
                     incomingRequest.getRequest().getClientPort() == remotePort) return incomingRequest;

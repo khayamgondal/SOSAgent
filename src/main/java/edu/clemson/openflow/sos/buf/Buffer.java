@@ -23,6 +23,7 @@ public class Buffer {
 
     private OrderedPacketInitiator orderedPacketInitiator;
 
+    //TODO: Look into Google's ConcurrentHashMap	https://github.com/google/guava/wiki/NewCollectionTypesExplained
     private HashMap<Integer, ByteBuf> packetHolder;
     private HashMap<Integer, Boolean> status;
 
