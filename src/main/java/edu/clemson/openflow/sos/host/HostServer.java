@@ -29,7 +29,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
     private static final int DATA_PORT = 9877;
     private RequestMapper request;
-    private Channel myChannel;
+    //private Channel myChannel;
     //PacketBuffer packetBuffer;
     private SeqGen seqGen;
     private AgentClient agentClient;
@@ -55,8 +55,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
             }
-            myChannel = ctx.channel();
-
+         //   myChannel = ctx.channel();
 
             if (request != null) {
                 seqGen = new SeqGen();
@@ -85,7 +84,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                     agentClient.incomingPacket(seqGen.incomingPacket((byte[]) msg)); // forward packet to agentClient
                  }
             else log.error("Couldn't find the request. Not forwarding packet");
-            ReferenceCountUtil.release(msg);
+          //  ReferenceCountUtil.release(msg);
         }
     }
 
