@@ -23,6 +23,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private ArrayList<Channel> channels;
     private HostClient hostClient;
     private int currentChannelNo = 0;
+    private long totalBytes, startTime, endTime;
 
 
     public AgentToHost(RequestMapper request) {
@@ -38,11 +39,13 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         log.debug("Created & started new host handler for server {} port {}",
                 request.getRequest().getServerIP(),
                 request.getRequest().getServerPort());
+        startTime = System.currentTimeMillis();
     }
 
     @Override
     public void orderedPacket(ByteBuf packet) { //TODO: remove incoming request
         log.debug("Got new sorted packet");
+        totalBytes += packet.capacity();
         byte[] bytes = new byte[packet.capacity() - 4 ];
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostClient.getMyChannel().writeAndFlush(bytes);
@@ -98,5 +101,10 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     public void transferCompleted() {
         hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
+        endTime = System.currentTimeMillis();
+        long diffInSec = (endTime - startTime) / 1000;
+        System.out.println("KHAYAM Total bytes "+ totalBytes);
+        System.out.println("Total time "+ diffInSec);
+        System.out.println("Throughput Mbps "+  (totalBytes / diffInSec) * 8 / 1000000 );
     }
 }

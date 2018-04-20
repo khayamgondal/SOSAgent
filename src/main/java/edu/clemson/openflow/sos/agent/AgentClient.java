@@ -54,6 +54,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private Channel hostChannel;
     private EventLoopGroup eventLoopGroup;
 
+
+
     public AgentClient(RequestMapper request) {
         // agentClientHandler = new AgentClientHandler();
         this.request = request;

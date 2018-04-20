@@ -20,7 +20,6 @@ public class HostClient implements HostStatusListener{
     private EventLoopGroup group;
 
     private HostPacketInitiator initiator;
-
     public HostClient(){
         seqGen = new SeqGen();
         initiator = new HostPacketInitiator();
@@ -44,6 +43,7 @@ public class HostClient implements HostStatusListener{
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             StatCollector.getStatCollector().hostAdded();
+
         }
 
         @Override

@@ -116,10 +116,17 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         }
     }
     private RequestMapper getClientRequest(String remoteIP, int remotePort) {
+        //Controller sends client port in request msg. If we are using mock client, there is no way to know the port before actually
+        //starting socket so for now I am just skipping the port check
+        //TODO: may be first send the packet and than request ? doesn't look like a good idea though :p
         // if its a mock request we dont need to match the port.. just match on IP
         for (RequestMapper incomingRequest : incomingRequests) {
-            if (incomingRequest.getRequest().getClientIP().equals(remoteIP) &&
-                    incomingRequest.getRequest().getClientPort() == remotePort) return incomingRequest;
+            if (!incomingRequest.getRequest().isMockRequest() ?
+                    incomingRequest.getRequest().getClientIP().equals(remoteIP) && incomingRequest.getRequest().getClientPort() == remotePort :
+                    incomingRequest.getRequest().getClientIP().equals(remoteIP))
+           // if (incomingRequest.getRequest().getClientIP().equals(remoteIP) &&
+            //        incomingRequest.getRequest().getClientPort() == remotePort)
+                return incomingRequest;
         }
         return null;
     }

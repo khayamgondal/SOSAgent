@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.assertEquals;
 
@@ -56,6 +57,14 @@ public class A2AClient {
         log.info("Agent returned {}", response.getStatusLine().getStatusCode());
     }
 
+
+    private String createPacketOfBytes(int bytes) {
+        StringBuilder sb = new StringBuilder(bytes);
+        for (int i=0; i<bytes; i++) {
+            sb.append('a');
+        }
+        return sb.toString();
+    }
     @Test
     public void main() {
 
@@ -77,7 +86,20 @@ public class A2AClient {
 
             Socket socket = setupClientSocket(request.getRequest().getClientAgentIP(), 9877);
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            oos.writeObject("sfdafsafdsafasssssssssssssss");
+
+            String b = createPacketOfBytes(800);
+            long startTime = System.currentTimeMillis();
+            long totalBytes = 0;
+            for (long i=0; i < 99000000; i ++){
+                oos.writeObject(b);
+                totalBytes += 800;
+            }
+            long endTime = System.currentTimeMillis();
+            long diffInSec = (endTime - startTime) / 1000;
+            System.out.println("Total bytes "+ totalBytes);
+            System.out.println("Total time "+ diffInSec);
+            System.out.println("Throughput Gbps "+  (totalBytes / diffInSec) * 8 / 1000000000 );
+
             oos.close();
 
         } catch (IOException e) {
