@@ -4,7 +4,7 @@ import edu.clemson.openflow.sos.buf.OrderedPacketListener;
 import edu.clemson.openflow.sos.host.HostClient;
 import edu.clemson.openflow.sos.host.HostStatusInitiator;
 import edu.clemson.openflow.sos.host.HostStatusListener;
-import edu.clemson.openflow.sos.rest.RequestMapper;
+import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -19,14 +19,14 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private static final Logger log = LoggerFactory.getLogger(AgentToHost.class);
     private final HostStatusInitiator hostStatusInitiator;
 
-    private RequestMapper request;
+    private RequestTemplateWrapper request;
     private ArrayList<Channel> channels;
     private HostClient hostClient;
     private int currentChannelNo = 0;
     private long totalBytes, startTime, endTime;
 
 
-    public AgentToHost(RequestMapper request) {
+    public AgentToHost(RequestTemplateWrapper request) {
         this.request = request;
         channels = new ArrayList<>();
         hostClient = new HostClient();
@@ -73,7 +73,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         if (this == o) return true;
       //  if (o == null || getClass() != o.getClass()) return false;
 
-        RequestMapper host = (RequestMapper) o;
+        RequestTemplateWrapper host = (RequestTemplateWrapper) o;
 
         if (request.getRequest().getServerPort() != host.getRequest().getServerPort()) return false;
         return request.getRequest().getServerIP().equals(host.getRequest().getServerIP());
@@ -101,10 +101,10 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     public void transferCompleted() {
         hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
-        endTime = System.currentTimeMillis();
+    /*    endTime = System.currentTimeMillis();
         long diffInSec = (endTime - startTime) / 1000;
         System.out.println("KHAYAM Total bytes "+ totalBytes);
         System.out.println("Total time "+ diffInSec);
-        System.out.println("Throughput Mbps "+  (totalBytes / diffInSec) * 8 / 1000000 );
+        System.out.println("Throughput Mbps "+  (totalBytes / diffInSec) * 8 / 1000000 );*/
     }
 }

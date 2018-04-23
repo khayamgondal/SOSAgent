@@ -1,6 +1,5 @@
 package edu.clemson.openflow.sos.buf;
 
-import edu.clemson.openflow.sos.rest.RequestMapper;
 import io.netty.buffer.ByteBuf;
 
 import java.util.ArrayList;

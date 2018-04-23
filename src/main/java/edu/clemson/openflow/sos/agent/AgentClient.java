@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.buf.Buffer;
 import edu.clemson.openflow.sos.buf.OrderedPacketListener;
 import edu.clemson.openflow.sos.host.HostStatusListener;
-import edu.clemson.openflow.sos.rest.RequestMapper;
+import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
@@ -48,7 +48,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     private int currentChannelNo = 0;
 
-    private RequestMapper request;
+    private RequestTemplateWrapper request;
     private ArrayList<Channel> channels;
     private Buffer myBuffer;
     private Channel hostChannel;
@@ -56,7 +56,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
 
 
-    public AgentClient(RequestMapper request) {
+    public AgentClient(RequestTemplateWrapper request) {
         // agentClientHandler = new AgentClientHandler();
         this.request = request;
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
@@ -147,7 +147,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         HttpClient httpClient = new DefaultHttpClient();
         HttpPost httpRequest = new HttpPost(uri);
 
-        RequestMapper portMap = new RequestMapper(request.getRequest(), ports); //portmap contains both controller request and all the associated portss
+        RequestTemplateWrapper portMap = new RequestTemplateWrapper(request.getRequest(), ports); //portmap contains both controller request and all the associated portss
         ObjectMapper mapperObj = new ObjectMapper();
         String portMapString = mapperObj.writeValueAsString(portMap);
 
@@ -161,7 +161,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         return Boolean.parseBoolean(response.toString());
     }
 
-
+    //change this byte[] into bytebuf
     public void incomingPacket(byte[] data) {
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
         log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,

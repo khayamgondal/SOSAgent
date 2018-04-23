@@ -46,11 +46,11 @@ public class A2AServer {
             while ((c = inputStream.read()) != -1) {
                 //System.out.print((char) c);
                 totalBytes++;
-           //     long currentTime = System.currentTimeMillis();
-           //     if (totalBytes > 900000) {
-           //         long diffInSec = (currentTime - startTime) / 1000;
-            //       System.out.println("Throughput Mbps " + (totalBytes / diffInSec) * 8 / 1000000);
-            //    }
+                long currentTime = System.currentTimeMillis();
+                if (totalBytes > 9000000) {
+                   long diffInSec = (currentTime - startTime) / 1000;
+                  System.out.println("llllThroughput Mbps " + (totalBytes / diffInSec) * 8 / 1000000);
+               }
             }
 
             long endTime = System.currentTimeMillis();

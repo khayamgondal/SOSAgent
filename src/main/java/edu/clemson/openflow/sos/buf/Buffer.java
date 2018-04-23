@@ -2,7 +2,7 @@ package edu.clemson.openflow.sos.buf;
 
 import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.agent.AgentToHost;
-import edu.clemson.openflow.sos.rest.RequestMapper;
+import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +33,7 @@ public class Buffer {
         packetHolder = new HashMap<>();
     }
 
-    public Buffer(RequestMapper request) {
+    public Buffer(RequestTemplateWrapper request) {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
 
@@ -44,7 +44,7 @@ public class Buffer {
 
     }
 
-    public Buffer(RequestMapper request, Object callBackHandler) {
+    public Buffer(RequestTemplateWrapper request, Object callBackHandler) {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
 

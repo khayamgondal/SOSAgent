@@ -2,7 +2,7 @@ package edu.clemson.openflow.sos.rest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class HealthMapper {
+public class HealthRequestTemplate {
     private String hostName;
     private double processCPULoad;
     private double systemCPULoad;
@@ -12,14 +12,14 @@ public class HealthMapper {
     private int connectedHosts;
     private int totalOpenConnections;
 
-    public HealthMapper(@JsonProperty("hostname")String hostName,
-                        @JsonProperty("process-cpu-load") double processCPULoad,
-                        @JsonProperty("system-cpu-load") double systemCPULoad,
-                        @JsonProperty("free-memory-size") long freePhyMemSize,
-                        @JsonProperty("total-memory-size")long totalPhyMemSize,
-                        @JsonProperty("committed-virtual-memorysize") long committedVirtualMemSize,
-                        @JsonProperty("connected-hosts") int connectedHosts,
-                        @JsonProperty("total-opened-connections") int totalOpenConnections) {
+    public HealthRequestTemplate(@JsonProperty("hostname")String hostName,
+                                 @JsonProperty("process-cpu-load") double processCPULoad,
+                                 @JsonProperty("system-cpu-load") double systemCPULoad,
+                                 @JsonProperty("free-memory-size") long freePhyMemSize,
+                                 @JsonProperty("total-memory-size")long totalPhyMemSize,
+                                 @JsonProperty("committed-virtual-memorysize") long committedVirtualMemSize,
+                                 @JsonProperty("connected-hosts") int connectedHosts,
+                                 @JsonProperty("total-opened-connections") int totalOpenConnections) {
         this.hostName = hostName;
         this.processCPULoad = processCPULoad;
         this.systemCPULoad = systemCPULoad;

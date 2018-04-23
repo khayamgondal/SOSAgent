@@ -23,10 +23,10 @@ public class RequestHandler extends ServerResource{
     protected Representation post(Representation entity) throws ResourceException {
         try {
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
-            RequestMapper incomingRequest = mapper.readValue(request.toString(), RequestMapper.class);
+            RequestTemplateWrapper incomingRequest = mapper.readValue(request.toString(), RequestTemplateWrapper.class);
             if (incomingRequest.getPorts() != null)log.debug("New ports info from client- agent {}.", incomingRequest.getRequest().getClientAgentIP());
             log.debug("Request Object {}", request.toString());
-
+            // also implement the getting of controller IP
             for (RequestListener requestListener : EventListenersLists.requestListeners) {
                 if (requestListener != null) {
                     requestListener.newIncomingRequest(incomingRequest); //notify the packet receiver about new incoming connection && and also assign a buffer to it.

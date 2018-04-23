@@ -1,9 +1,8 @@
 package edu.clemson.openflow.sos.func;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.clemson.openflow.sos.agent.AgentServer;
 import edu.clemson.openflow.sos.host.HostServer;
-import edu.clemson.openflow.sos.rest.RequestMapper;
+import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.rest.RequestTemplate;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import edu.clemson.openflow.sos.rest.RestServer;
@@ -15,10 +14,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
-import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.assertEquals;
 
@@ -26,12 +23,12 @@ public class A2AClient {
 
     private static final Logger log = LoggerFactory.getLogger(A2AClient.class);
 
-    private RequestMapper mockRequestBuilder() {
+    private RequestTemplateWrapper mockRequestBuilder() {
         RequestTemplate requestTemplate = new RequestTemplate(true, "xxx",
                 "10.0.0.11", 12000, "10.0.0.21", "10.0.0.11",
-                8, 900000, 5, "10.0.0.21", 5001, true);
+                8, 9000000, 5, "10.0.0.21", 5001, true, "0.0.0.0");
 
-        RequestMapper mapper = new RequestMapper(requestTemplate, null);
+        RequestTemplateWrapper mapper = new RequestTemplateWrapper(requestTemplate, null);
         return mapper;
     }
 
@@ -39,7 +36,7 @@ public class A2AClient {
         return new Socket(IP, port);
     }
 
-    private void restCallToAgentClient(RequestMapper request) throws IOException {
+    private void restCallToAgentClient(RequestTemplateWrapper request) throws IOException {
 
         String uri = RestRoutes.URIBuilder(request.getRequest().getClientAgentIP(), "8002", "/request");
         HttpClient httpClient = new DefaultHttpClient();
@@ -77,7 +74,7 @@ public class A2AClient {
       //  AgentServer agentServer = new AgentServer();
       //  assertEquals(agentServer.start(), true);
 
-        RequestMapper request = mockRequestBuilder();
+        RequestTemplateWrapper request = mockRequestBuilder();
 
 
         try {
@@ -87,24 +84,37 @@ public class A2AClient {
             Socket socket = setupClientSocket(request.getRequest().getClientAgentIP(), 9877);
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 
-            String b = createPacketOfBytes(800);
+            String b = createPacketOfBytes(800000);
             long startTime = System.currentTimeMillis();
             long totalBytes = 0;
-            for (long i=0; i < 99000000; i ++){
+        /*    for (long i=0; i < 100000; i ++){
                 oos.writeObject(b);
-                totalBytes += 800;
-            }
+                totalBytes += 800000;
+                TimeUnit.NANOSECONDS.sleep(1);
+
+            }*/
+            File f = new File("/dev/test.file");
+
+            final BufferedInputStream inStream = new BufferedInputStream(new FileInputStream(f));
+
+            final byte[] buffer = new byte[4096];
+            for (int read = inStream.read(buffer); read >= 0; read = inStream.read(buffer))
+                oos.write(buffer, 0, read);
+            inStream.close();
+
             long endTime = System.currentTimeMillis();
             long diffInSec = (endTime - startTime) / 1000;
             System.out.println("Total bytes "+ totalBytes);
             System.out.println("Total time "+ diffInSec);
-            System.out.println("Throughput Gbps "+  (totalBytes / diffInSec) * 8 / 1000000000 );
+            System.out.println("Throughput Mbps "+  (totalBytes / diffInSec) * 8 / 1000000 );
 
             oos.close();
 
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }/* catch (InterruptedException e) {
+            e.printStackTrace();
+        }*/
 
     }
 }

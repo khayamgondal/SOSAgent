@@ -8,7 +8,7 @@ package edu.clemson.openflow.sos.agent;
 import edu.clemson.openflow.sos.buf.*;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestListener;
-import edu.clemson.openflow.sos.rest.RequestMapper;
+import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
@@ -19,7 +19,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
-import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +33,7 @@ public class AgentServer implements ISocketServer {
     private BufferManager bufferManager;
     private AgentToHostManager hostManager;
 
-    private List<RequestMapper> incomingRequests;
+    private List<RequestTemplateWrapper> incomingRequests;
     private NioEventLoopGroup group;
 
 
@@ -79,7 +78,7 @@ public class AgentServer implements ISocketServer {
                     TODO: Do something better
                  */
         @Override
-        public void newIncomingRequest(RequestMapper request) {
+        public void newIncomingRequest(RequestTemplateWrapper request) {
 
                 if (myEndHost == null) {
                     log.debug("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
@@ -96,6 +95,7 @@ public class AgentServer implements ISocketServer {
             log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
             if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
             else myBuffer.incomingPacket(bytes);
+            // do we need to release this msg also .. cause we are copying it in hashmap
          //   ReferenceCountUtil.release(msg);
         }
 
@@ -153,8 +153,8 @@ public class AgentServer implements ISocketServer {
         }
     }
 
-    private RequestMapper getMyRequestByClientAgentPort(String remoteIP, int remotePort) {
-        for (RequestMapper incomingRequest : incomingRequests) {
+    private RequestTemplateWrapper getMyRequestByClientAgentPort(String remoteIP, int remotePort) {
+        for (RequestTemplateWrapper incomingRequest : incomingRequests) {
             if (incomingRequest.getRequest().getClientAgentIP().equals(remoteIP)) {
                 for (int port : incomingRequest.getPorts()
                         ) {
@@ -168,7 +168,7 @@ public class AgentServer implements ISocketServer {
         return null;
     }
 
-    private void deleteRequestFromList(RequestMapper request) {
+    private void deleteRequestFromList(RequestTemplateWrapper request) {
         incomingRequests.remove(request);
     }
 
