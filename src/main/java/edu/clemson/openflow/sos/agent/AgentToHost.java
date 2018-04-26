@@ -43,7 +43,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     }
 
     @Override
-    public void orderedPacket(ByteBuf packet) { //TODO: remove incoming request
+    public void orderedPacket(ByteBuf packet) {
         log.debug("Got new sorted packet");
         totalBytes += packet.capacity();
         byte[] bytes = new byte[packet.capacity() - 4 ];

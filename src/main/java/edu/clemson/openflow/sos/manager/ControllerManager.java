@@ -2,6 +2,8 @@ package edu.clemson.openflow.sos.manager;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -13,11 +15,13 @@ import java.net.Socket;
  */
 public class ControllerManager {
     //https://github.com/khayamgondal/sos-agent/blob/master/discovery.c
+    private static final Logger log = LoggerFactory.getLogger(ControllerManager.class);
 
     private String transferID;
     private String controllerIP;
     private static final int DISC_PORT = 9998;
-    public ControllerManager(String transferID) {
+    public ControllerManager(String transferID, String controllerIP) {
+        this.controllerIP = controllerIP;
         this.transferID = transferID;
     }
 
@@ -28,6 +32,7 @@ public class ControllerManager {
     }
 
     public boolean sendTerminationMsg() {
+        log.info("Sending termination message to controller {}", controllerIP);
         try {
             Socket socket = new Socket(controllerIP, DISC_PORT);
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());

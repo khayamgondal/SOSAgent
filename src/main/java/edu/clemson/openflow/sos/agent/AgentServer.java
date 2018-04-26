@@ -19,6 +19,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,12 +92,12 @@ public class AgentServer implements ISocketServer {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            ByteBuf bytes = (ByteBuf) msg;
-            log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
+        //    ByteBuf bytes = (ByteBuf) msg;
+        //    log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
             if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
-            else myBuffer.incomingPacket(bytes);
+            else myBuffer.incomingPacket((ByteBuf) msg);
             // do we need to release this msg also .. cause we are copying it in hashmap
-         //   ReferenceCountUtil.release(msg);
+          //  ReferenceCountUtil.release(msg);
         }
 
         @Override

@@ -66,7 +66,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
                 hostStatusInitiator = new HostStatusInitiator();
                 hostStatusInitiator.addListener(agentClient);
-                controllerManager = new ControllerManager(request.getRequest().getTransferID());
+                controllerManager = new ControllerManager(request.getRequest().getTransferID(),
+                        request.getRequest().getControllerIP());
             }
             else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                     request.toString());

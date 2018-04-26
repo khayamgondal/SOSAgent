@@ -106,6 +106,10 @@ public class RequestTemplate {
         return controllerIP;
     }
 
+    public void setControllerIP(String controllerIP) {
+        this.controllerIP = controllerIP;
+    }
+
     @Override
     public String toString() {
         return "RequestTemplate{" +

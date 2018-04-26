@@ -3,12 +3,14 @@ package edu.clemson.openflow.sos.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import org.json.JSONObject;
+import org.restlet.data.Header;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
+import org.restlet.util.Series;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,13 +20,18 @@ public class RequestHandler extends ServerResource{
     ObjectMapper mapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
-
     @Override
     protected Representation post(Representation entity) throws ResourceException {
         try {
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
             RequestTemplateWrapper incomingRequest = mapper.readValue(request.toString(), RequestTemplateWrapper.class);
             if (incomingRequest.getPorts() != null)log.debug("New ports info from client- agent {}.", incomingRequest.getRequest().getClientAgentIP());
+        //    String ctlIP = entity.createClientInfo().getAddress();
+            final Series<Header> headers = (Series<Header>) getRequest().getAttributes().
+                    get("org.restlet.http.headers");
+            final String ctlIP = headers.getFirstValue("X-Real-IP", true);
+            log.info("ccccccccccccccc{}", headers.toString());
+            incomingRequest.getRequest().setControllerIP(ctlIP);
             log.debug("Request Object {}", request.toString());
             // also implement the getting of controller IP
             for (RequestListener requestListener : EventListenersLists.requestListeners) {
