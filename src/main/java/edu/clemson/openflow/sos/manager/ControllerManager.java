@@ -12,14 +12,14 @@ import java.net.Socket;
 /**
  * @author Khayam Gondal kanjam@g.clemson.edu
  * This class will send the controller connection termination message.
+ *     https://github.com/khayamgondal/sos-agent/blob/master/discovery.c
  */
 public class ControllerManager {
-    //https://github.com/khayamgondal/sos-agent/blob/master/discovery.c
     private static final Logger log = LoggerFactory.getLogger(ControllerManager.class);
 
     private String transferID;
     private String controllerIP;
-    private static final int DISC_PORT = 9998;
+    private static final int DISC_PORT = 9999;
     public ControllerManager(String transferID, String controllerIP) {
         this.controllerIP = controllerIP;
         this.transferID = transferID;

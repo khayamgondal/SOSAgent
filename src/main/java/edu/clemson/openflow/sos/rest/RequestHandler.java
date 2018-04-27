@@ -26,11 +26,7 @@ public class RequestHandler extends ServerResource{
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
             RequestTemplateWrapper incomingRequest = mapper.readValue(request.toString(), RequestTemplateWrapper.class);
             if (incomingRequest.getPorts() != null)log.debug("New ports info from client- agent {}.", incomingRequest.getRequest().getClientAgentIP());
-        //    String ctlIP = entity.createClientInfo().getAddress();
-            final Series<Header> headers = (Series<Header>) getRequest().getAttributes().
-                    get("org.restlet.http.headers");
-            final String ctlIP = headers.getFirstValue("X-Real-IP", true);
-            log.info("ccccccccccccccc{}", headers.toString());
+            String ctlIP = getClientInfo().getAddress();
             incomingRequest.getRequest().setControllerIP(ctlIP);
             log.debug("Request Object {}", request.toString());
             // also implement the getting of controller IP

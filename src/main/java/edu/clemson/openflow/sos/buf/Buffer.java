@@ -87,9 +87,7 @@ public class Buffer {
             } else break;
         }
     }
-    public synchronized void incomingPacket(ByteBuf data) { sendData(data);
-
-        /*
+    public synchronized void incomingPacket(ByteBuf data) {
         if (expecting == MAX_SEQ) expecting = 0;
         int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
         if (currentSeqNo == expecting) {
@@ -112,7 +110,7 @@ public class Buffer {
                 sendBuffer();
             } else
                 log.error("Buffer index {} have unsent data dropping seq {}", bufferIndex, currentSeqNo); //something wrong here... need to fix
-        }*/
+        }
     }
 
     /*public synchronized void incomingPacket(ByteBuf data) { // need to check performance of this method

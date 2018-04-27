@@ -45,6 +45,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private static final String PORTMAP_PATH = "/portmap";
     private static final String REST_PORT = "8002";
     private static final int AGENT_DATA_PORT = 9878;
+    private final long startTime;
 
     private int currentChannelNo = 0;
 
@@ -54,6 +55,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private Channel hostChannel;
     private EventLoopGroup eventLoopGroup;
 
+    private float totalBytes;
 
 
     public AgentClient(RequestTemplateWrapper request) {
@@ -81,6 +83,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             e.printStackTrace();
         }
         StatCollector.getStatCollector().hostAdded();
+         startTime = System.currentTimeMillis();
+
     }
 
     @Override
@@ -115,6 +119,9 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             StatCollector.getStatCollector().hostRemoved();
             eventLoopGroup.shutdownGracefully();
             StatCollector.getStatCollector().connectionRemoved();
+            long stopTime = System.currentTimeMillis();
+            log.info("Agentclient rate {}", (totalBytes * 8)/(stopTime-startTime)/1000000);
+
         }
     }
 
@@ -175,6 +182,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private void writeToAgentChannel(Channel channel, byte[] data) {
        // log.debug("packet content is {}", new String(data));
         ChannelFuture cf = channel.writeAndFlush(data);
+        totalBytes += data.length;
         cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {

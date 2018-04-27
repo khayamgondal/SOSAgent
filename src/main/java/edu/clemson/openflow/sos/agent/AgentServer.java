@@ -37,7 +37,6 @@ public class AgentServer implements ISocketServer {
     private List<RequestTemplateWrapper> incomingRequests;
     private NioEventLoopGroup group;
 
-
     public AgentServer() {
         incomingRequests = new ArrayList<>();
         bufferManager = new BufferManager(); //setup buffer manager.
@@ -51,6 +50,8 @@ public class AgentServer implements ISocketServer {
         private String remoteAgentIP;
         private int remoteAgentPort;
         private Channel myChannel;
+        private float totalBytes;
+        private long startTime;
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -64,6 +65,8 @@ public class AgentServer implements ISocketServer {
             myChannel = ctx.channel();
             EventListenersLists.requestListeners.add(this);
             StatCollector.getStatCollector().connectionAdded();
+            startTime = System.currentTimeMillis();
+
         }
 
     /*    @Override
@@ -92,16 +95,23 @@ public class AgentServer implements ISocketServer {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+
         //    ByteBuf bytes = (ByteBuf) msg;
         //    log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
-            if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
-            else myBuffer.incomingPacket((ByteBuf) msg);
+              if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
+              else myBuffer.incomingPacket((ByteBuf) msg);
+
+            totalBytes += ((ByteBuf) msg).capacity();
             // do we need to release this msg also .. cause we are copying it in hashmap
           //  ReferenceCountUtil.release(msg);
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
+
+            long stopTime = System.currentTimeMillis();
+            log.info("Agentserver rate {}", (totalBytes * 8)/(stopTime-startTime)/1000);
+
             myEndHost.transferCompleted(); // notify the host server
 
             hostManager.removeAgentToHost(myEndHost);

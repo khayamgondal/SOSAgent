@@ -8,11 +8,13 @@ import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +39,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private NioEventLoopGroup group;
     private HostStatusInitiator hostStatusInitiator;
 
+
     public HostServer() {
         EventListenersLists.requestListeners.add(this); //we register for incoming requests
     }
@@ -44,6 +47,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     public class HostServerHandler extends ChannelInboundHandlerAdapter {
 
         private ControllerManager controllerManager;
+        private float totalBytes;
+        private long startTime;
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
@@ -58,6 +63,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 return;
             }
          //   myChannel = ctx.channel();
+            startTime = System.currentTimeMillis();
 
             if (request != null) {
                 seqGen = new SeqGen();
@@ -78,8 +84,11 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         public void channelInactive(ChannelHandlerContext ctx) {
             log.info("Client is done sending");
             hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
+
+            long stopTime = System.currentTimeMillis();
+            log.info("HostServer rate {}", (totalBytes * 8)/(stopTime-startTime)/1000000);
             // also notify controller to tear down this connection.
-            if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();
+        //    if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();
         }
 
         @Override
@@ -89,9 +98,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                     agentClient.incomingPacket(seqGen.incomingPacket((byte[]) msg)); // forward packet to agentClient
                     //KHAYAM
                     // cast into bytebuf ??
+                    totalBytes += ((byte[]) msg).length;
                  }
-            else log.error("Couldn't find the request. Not forwarding packet");
-          //  ReferenceCountUtil.release(msg);
+            else {
+                log.error("Couldn't find the request. Not forwarding packet");
+                ReferenceCountUtil.release(msg);
+            }
         }
     }
 
