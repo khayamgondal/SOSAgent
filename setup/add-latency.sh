@@ -1,8 +1,8 @@
 #!/bin/bash
 
 interface=br0
-ip=10.0.0.11
-delay=50ms
+ip=10.0.0.xx
+delay=25ms
 
 tc qdisc del dev br0 root
 tc qdisc add dev $interface root handle 1: prio

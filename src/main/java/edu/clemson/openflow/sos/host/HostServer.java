@@ -53,6 +53,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
             InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
+
             log.info("New host-side connection from {} at Port {}",
                     socketAddress.getHostName(),
                     socketAddress.getPort());
@@ -117,10 +118,9 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                     .childHandler(new ChannelInitializer() {
                                       @Override
                                       protected void initChannel(Channel channel) throws Exception {
-                                          channel.pipeline().addLast("bytesDecoder",
-                                                  new ByteArrayDecoder());
-                                          channel.pipeline().addLast("hostHandler", new HostServerHandler());
-                                          channel.pipeline().addLast("bytesEncoder", new ByteArrayEncoder());
+                                          channel.pipeline().addLast("bytesDecoder", new ByteArrayDecoder())
+                                          .addLast("hostHandler", new HostServerHandler())
+                                          .addLast("bytesEncoder", new ByteArrayEncoder());
                                       }
                                   }
                     );

@@ -37,7 +37,7 @@ public class Buffer {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
 
-        bufferSize = request.getRequest().getBufferSize();
+        bufferSize = 90000;//request.getRequest().getBufferSize();
 
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
@@ -48,7 +48,7 @@ public class Buffer {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
 
-        bufferSize = request.getRequest().getBufferSize();
+        bufferSize = 90000;//request.getRequest().getBufferSize();
 
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());

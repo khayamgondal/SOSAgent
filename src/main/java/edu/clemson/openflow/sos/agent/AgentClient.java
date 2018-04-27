@@ -28,6 +28,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -56,10 +57,14 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private EventLoopGroup eventLoopGroup;
 
     private float totalBytes;
+    private HashMap<Integer, Float> perChBytes;
 
+        int wCount = 0;
 
     public AgentClient(RequestTemplateWrapper request) {
         // agentClientHandler = new AgentClientHandler();
+        perChBytes = new HashMap<>(request.getRequest().getNumParallelSockets());
+
         this.request = request;
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
         myBuffer = new Buffer(request, this);
@@ -120,6 +125,10 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             eventLoopGroup.shutdownGracefully();
             StatCollector.getStatCollector().connectionRemoved();
             long stopTime = System.currentTimeMillis();
+            for (int i=0; i < request.getRequest().getNumParallelSockets(); i++) {
+                log.info("Ch {} rate {}",i, (perChBytes.get(i) * 8)/(stopTime-startTime)/1000000);
+
+            }
             log.info("Agentclient rate {}", (totalBytes * 8)/(stopTime-startTime)/1000000);
 
         }
@@ -171,17 +180,25 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     //change this byte[] into bytebuf
     public void incomingPacket(byte[] data) {
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
-        log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,
-                ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
-                currentChannelNo);
+       // log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,
+      //          ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
+        //        currentChannelNo);
         writeToAgentChannel(channels.get(currentChannelNo), data);
         currentChannelNo++;
     }
 
 
-    private void writeToAgentChannel(Channel channel, byte[] data) {
+    private void writeToAgentChannel(Channel currentChannel, byte[] data) {
        // log.debug("packet content is {}", new String(data));
-        ChannelFuture cf = channel.writeAndFlush(data);
+        ChannelFuture cf = currentChannel.write(data);
+        wCount++;
+        if (wCount >= request.getRequest().getBufferSize()) {
+            for (Channel channel : channels)
+            { channel.flush(); }
+            wCount = 0; log.info("Flushed all channels");
+        }
+        perChBytes.put(currentChannelNo, perChBytes.getOrDefault(currentChannelNo, 0f) + data.length);
+
         totalBytes += data.length;
         cf.addListener(new ChannelFutureListener() {
             @Override
@@ -203,16 +220,13 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
-                                    .addLast("lengthdecorder",
-                                            new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
-                                   // .addLast("4blengthdec", new ByteArrayDecoder())
+                                    .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agentClient", new AgentClientHandler())
                                     .addLast("4blength", new LengthFieldPrepender(4))
                                     .addLast("bytesEncoder", new ByteArrayEncoder())
                             ;
                         }
                     });
-            ;
 
             Channel myChannel = bootstrap.connect(agentServerIP, AGENT_DATA_PORT).sync().channel();
             //if (myChannel == null) log.debug("in start it is nul");
