@@ -1,5 +1,6 @@
 package edu.clemson.openflow.sos.agent;
 
+import com.sun.webkit.graphics.Ref;
 import edu.clemson.openflow.sos.buf.OrderedPacketListener;
 import edu.clemson.openflow.sos.host.HostClient;
 import edu.clemson.openflow.sos.host.HostStatusInitiator;
@@ -24,6 +25,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private HostClient hostClient;
     private int currentChannelNo = 0;
     private long totalBytes, startTime, endTime;
+    private int wCount;
 
 
     public AgentToHost(RequestTemplateWrapper request) {
@@ -45,14 +47,27 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     @Override
     public void orderedPacket(ByteBuf packet) {
         log.debug("Got new sorted packet");
+
         totalBytes += packet.capacity();
-        byte[] bytes = new byte[packet.capacity() - 4 ];
-        packet.getBytes(4, bytes);
-        ChannelFuture cf = hostClient.getMyChannel().writeAndFlush(bytes);
+       // byte[] bytes = new byte[packet.capacity() - 4 ]; //SLOW
+       // packet.getBytes(4, bytes);
+      //  ChannelFuture cf = hostClient.getMyChannel().write(bytes);
+        //TODO: lookinto read/write index
+        ChannelFuture cf = hostClient.getMyChannel().write(packet);
+        wCount++; // will not work if multiple clients are connected...
+        if (wCount >= request.getRequest().getBufferSize()) {
+
+            hostClient.getMyChannel().flush();
+            wCount = 0;
+            //log.info("Flushed all channels");
+        }
+        //hostClient.getMyChannel().flush();                packet.release();
+
         cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                ReferenceCountUtil.release(packet);
+        //        ReferenceCountUtil.release(packet);
+              //  ReferenceCountUtil.release(bytes);
             }
         });
         //ReferenceCountUtil.release(bytes);
@@ -85,9 +100,9 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     }
 
     @Override
-    public void hostPacket(byte[] packet) {
+    public void hostPacket(ByteBuf packet) {
         if (currentChannelNo == channels.size()) currentChannelNo = 0;
-        log.debug("Forwarding packet with size {} on channel {} to Agent-Client", packet.length, currentChannelNo);
+        log.debug("Forwarding packet with size {} on channel {} to Agent-Client", packet.capacity(), currentChannelNo);
      //   log.info(packet.length + "");
         ChannelFuture cf =  channels.get(currentChannelNo).writeAndFlush(packet);
         currentChannelNo ++ ;

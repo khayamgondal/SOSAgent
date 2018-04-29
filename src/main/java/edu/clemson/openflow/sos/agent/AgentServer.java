@@ -95,6 +95,10 @@ public class AgentServer implements ISocketServer {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+      //      byte[] dd = new byte[10];
+       //     ((ByteBuf) msg).getBytes(10, dd);
+           // log.info(new String(dd));
+        //    log.info("Rec seq {} size {} bytes {}",((ByteBuf) msg).getInt(0) , ((ByteBuf) msg).capacity(), dd);
 
         //    ByteBuf bytes = (ByteBuf) msg;
         //    log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
@@ -103,11 +107,12 @@ public class AgentServer implements ISocketServer {
 
             totalBytes += ((ByteBuf) msg).capacity();
             // do we need to release this msg also .. cause we are copying it in hashmap
-          //  ReferenceCountUtil.release(msg);
+           // ReferenceCountUtil.release(msg);
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
+            ctx.flush();
 
             long stopTime = System.currentTimeMillis();
             log.info("Agentserver rate {}", (totalBytes * 8)/(stopTime-startTime)/1000);
@@ -138,12 +143,11 @@ public class AgentServer implements ISocketServer {
                                       @Override
                                       protected void initChannel(Channel channel) throws Exception {
                                           channel.pipeline()
-                                                  .addLast("lengthdecorder",
-                                                          new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
+                                                  .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                                   // .addLast("bytesDecoder", new ByteArrayDecoder())
                                                   .addLast(new AgentServerHandler())
                                                   .addLast("4blength", new LengthFieldPrepender(4))
-                                                  .addLast("bytesEncoder", new ByteArrayEncoder())
+                                                //  .addLast("bytesEncoder", new ByteArrayEncoder())
                                           ;
                                       }
                                   }

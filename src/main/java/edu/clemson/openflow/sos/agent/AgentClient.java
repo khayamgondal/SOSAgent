@@ -9,6 +9,7 @@ import edu.clemson.openflow.sos.rest.RestRoutes;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -150,6 +151,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
+            ctx.flush(); //flush any unsent data
             log.debug("Channel is inactive");
         }
 
@@ -186,7 +188,18 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         writeToAgentChannel(channels.get(currentChannelNo), data);
         currentChannelNo++;
     }
-
+    public void incomingPacket(ByteBuf data) {
+        if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
+      //  byte[] dd = new byte[10];
+        //((ByteBuf) data).getBytes(10, dd);
+        // log.info(new String(dd));
+        //log.info("Rec seq {} size {} bytes {}",((ByteBuf) data).getInt(0) , ((ByteBuf) data).capacity(), dd);
+        // log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,
+        //          ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
+        //        currentChannelNo);
+        writeToAgentChannel(channels.get(currentChannelNo), data);
+        currentChannelNo++;
+    }
 
     private void writeToAgentChannel(Channel currentChannel, byte[] data) {
        // log.debug("packet content is {}", new String(data));
@@ -195,7 +208,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         if (wCount >= request.getRequest().getBufferSize()) {
             for (Channel channel : channels)
             { channel.flush(); }
-            wCount = 0; log.info("Flushed all channels");
+            wCount = 0;
+            //log.info("Flushed all channels");
         }
         perChBytes.put(currentChannelNo, perChBytes.getOrDefault(currentChannelNo, 0f) + data.length);
 
@@ -210,7 +224,32 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             log.error("Sending packet failed .. due to {}", cf.cause());
         }*/
     }
+    private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
+        // log.debug("packet content is {}", new String(data));
+        ChannelFuture cf = currentChannel.write(data);
+        wCount++;
+        if (wCount >= request.getRequest().getBufferSize()) {
+            for (Channel channel : channels)
+            { channel.flush();  }
+            wCount = 0;
+            //log.info("Flushed all channels");
+        }
+        perChBytes.put(currentChannelNo, perChBytes.getOrDefault(currentChannelNo, 0f) + data.capacity());
 
+        totalBytes += data.capacity();
+        cf.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+
+               // ReferenceCountUtil.release(data);
+            }
+        });
+      /*  if (!cf.isSuccess()) {
+            log.error("Sending packet failed .. due to {}", cf.cause());
+        }*/
+
+
+    }
 
     private Channel bootStrap(EventLoopGroup group, String agentServerIP) {
         try {
@@ -223,7 +262,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                                     .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agentClient", new AgentClientHandler())
                                     .addLast("4blength", new LengthFieldPrepender(4))
-                                    .addLast("bytesEncoder", new ByteArrayEncoder())
+                                  //  .addLast("bytesEncoder", new ByteArrayEncoder())
                             ;
                         }
                     });

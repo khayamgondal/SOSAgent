@@ -96,10 +96,19 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
 
             if (request != null && seqGen != null) {
-                    agentClient.incomingPacket(seqGen.incomingPacket((byte[]) msg)); // forward packet to agentClient
-                    //KHAYAM
+              //  long st = System.currentTimeMillis();
+             //   byte[] seqedPack = seqGen.incomingPacket((byte[]) msg);
+              //  long dt = System.currentTimeMillis();
+              //  log.info("SEQ time {}", dt - st);
+                  //  agentClient.incomingPacket(seqedPack); // forward packet to agentClient
+                agentClient.incomingPacket(seqGen.incomingPacket1((byte[]) msg));
+               // long et = System.currentTimeMillis();
+               // log.info("Sen time {}", et - dt);
+
+                //KHAYAM
                     // cast into bytebuf ??
                     totalBytes += ((byte[]) msg).length;
+               // totalBytes += ((ByteBuf) msg).capacity();
                  }
             else {
                 log.error("Couldn't find the request. Not forwarding packet");

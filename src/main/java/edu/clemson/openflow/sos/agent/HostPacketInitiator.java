@@ -1,5 +1,7 @@
 package edu.clemson.openflow.sos.agent;
 
+import io.netty.buffer.ByteBuf;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,7 +11,7 @@ public class HostPacketInitiator {
     public void addListener(HostPacketListener listener) {
         listeners.add(listener);
     }
-    public void hostPacket(byte[] packet) {
+    public void hostPacket(ByteBuf packet) {
         for (HostPacketListener listener: listeners
              ) {
             listener.hostPacket(packet);
