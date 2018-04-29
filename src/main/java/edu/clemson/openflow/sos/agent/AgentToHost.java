@@ -53,7 +53,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
        // packet.getBytes(4, bytes);
       //  ChannelFuture cf = hostClient.getMyChannel().write(bytes);
         //TODO: lookinto read/write index
-        ChannelFuture cf = hostClient.getMyChannel().write(packet);
+        ChannelFuture cf = hostClient.getMyChannel().write(packet.slice(4, packet.capacity() - 4 ));
         wCount++; // will not work if multiple clients are connected...
         if (wCount >= request.getRequest().getBufferSize()) {
 

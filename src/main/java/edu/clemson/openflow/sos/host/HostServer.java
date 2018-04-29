@@ -127,6 +127,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                     .childHandler(new ChannelInitializer() {
                                       @Override
                                       protected void initChannel(Channel channel) throws Exception {
+                                          //can I remove bytes decorder and get bytebuf?
                                           channel.pipeline().addLast("bytesDecoder", new ByteArrayDecoder())
                                           .addLast("hostHandler", new HostServerHandler())
                                           .addLast("bytesEncoder", new ByteArrayEncoder());
