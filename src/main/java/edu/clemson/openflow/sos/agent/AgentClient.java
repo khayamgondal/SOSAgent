@@ -60,7 +60,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private float totalBytes;
     private HashMap<Integer, Float> perChBytes;
 
-        int wCount = 0;
+    int wCount = 0;
 
     public AgentClient(RequestTemplateWrapper request) {
         // agentClientHandler = new AgentClientHandler();
@@ -69,7 +69,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         this.request = request;
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
         myBuffer = new Buffer(request, this);
-     //   myBuffer.setListener(this); // notify me when you have sorted packs
+        //   myBuffer.setListener(this); // notify me when you have sorted packs
         eventLoopGroup = createEventLoopGroup();
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
         for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
@@ -89,7 +89,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             e.printStackTrace();
         }
         StatCollector.getStatCollector().hostAdded();
-         startTime = System.currentTimeMillis();
+        startTime = System.currentTimeMillis();
 
     }
 
@@ -97,20 +97,20 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     public void orderedPacket(ByteBuf packet) {
         byte[] res = new byte[packet.capacity()];
         //packet.getBytes(0, res);
-    //    log.info(packet.getInt(0) +"");
+        //    log.info(packet.getInt(0) +"");
 
 
-        byte[] bytes = new byte[packet.capacity() - 4 ];
+        byte[] bytes = new byte[packet.capacity() - 4];
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostChannel.writeAndFlush(bytes);
 
-       cf.addListener(new ChannelFutureListener() {
+        cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
                 ReferenceCountUtil.release(packet);
             }
         });
-      //  if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
+        //  if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
 
     }
 
@@ -126,11 +126,11 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             eventLoopGroup.shutdownGracefully();
             StatCollector.getStatCollector().connectionRemoved();
             long stopTime = System.currentTimeMillis();
-            for (int i=0; i < request.getRequest().getNumParallelSockets(); i++) {
-                log.info("Ch {} rate {}",i, (perChBytes.get(i) * 8)/(stopTime-startTime)/1000000);
+            for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
+                log.info("Ch {} rate {}", i, (perChBytes.get(i) * 8) / (stopTime - startTime) / 1000000);
 
             }
-            log.info("Agentclient rate {}", (totalBytes * 8)/(stopTime-startTime)/1000000);
+            log.info("Agentclient rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000000);
 
         }
     }
@@ -140,11 +140,11 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        //    log.debug("Reading from remote agent");
+            //    log.debug("Reading from remote agent");
             int size = ((ByteBuf) msg).capacity();
             //log.info(size + "");
             if (size > 0)
-            myBuffer.incomingPacket((ByteBuf) msg);
+                myBuffer.incomingPacket((ByteBuf) msg);
 
             //ReferenceCountUtil.release(msg);
         }
@@ -156,7 +156,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         }
 
     }
-
 
 
     //TODO: apache is deprecated webclient...use some other one
@@ -182,15 +181,16 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     //change this byte[] into bytebuf
     public void incomingPacket(byte[] data) {
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
-       // log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,
-      //          ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
+        // log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,
+        //          ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
         //        currentChannelNo);
         writeToAgentChannel(channels.get(currentChannelNo), data);
         currentChannelNo++;
     }
+
     public void incomingPacket(ByteBuf data) {
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
-      //  byte[] dd = new byte[10];
+        //  byte[] dd = new byte[10];
         //((ByteBuf) data).getBytes(10, dd);
         // log.info(new String(dd));
         //log.info("Rec seq {} size {} bytes {}",((ByteBuf) data).getInt(0) , ((ByteBuf) data).capacity(), dd);
@@ -202,12 +202,13 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     }
 
     private void writeToAgentChannel(Channel currentChannel, byte[] data) {
-       // log.debug("packet content is {}", new String(data));
+        // log.debug("packet content is {}", new String(data));
         ChannelFuture cf = currentChannel.write(data);
         wCount++;
         if (wCount >= request.getRequest().getBufferSize()) {
-            for (Channel channel : channels)
-            { channel.flush(); }
+            for (Channel channel : channels) {
+                channel.flush();
+            }
             wCount = 0;
             //log.info("Flushed all channels");
         }
@@ -224,13 +225,14 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             log.error("Sending packet failed .. due to {}", cf.cause());
         }*/
     }
+
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
         // log.debug("packet content is {}", new String(data));
         ChannelFuture cf = currentChannel.write(data);
         wCount++;
-        if (wCount >= request.getRequest().getBufferSize()) {
+        if (wCount >= request.getRequest().getBufferSize() * request.getRequest().getNumParallelSockets()) {
             for (Channel channel : channels)
-            { channel.flush();  }
+                channel.flush();
             wCount = 0;
             //log.info("Flushed all channels");
         }
@@ -241,7 +243,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
 
-               // ReferenceCountUtil.release(data);
+                // ReferenceCountUtil.release(data);
             }
         });
       /*  if (!cf.isSuccess()) {
@@ -262,7 +264,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                                     .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agentClient", new AgentClientHandler())
                                     .addLast("4blength", new LengthFieldPrepender(4))
-                                  //  .addLast("bytesEncoder", new ByteArrayEncoder())
+                            //  .addLast("bytesEncoder", new ByteArrayEncoder())
                             ;
                         }
                     });
