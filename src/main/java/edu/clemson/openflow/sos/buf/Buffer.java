@@ -87,9 +87,11 @@ public class Buffer {
             } else break;
         }
     }
+    //TODO: Recheck the logic here.
     public synchronized void incomingPacket(ByteBuf data) { //sendData(data);
         if (expecting == MAX_SEQ) expecting = 0;
         int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
+        //TODO: may be use data.slice(0, 4) ??
      //   log.info("Received seq no {}", currentSeqNo);
         if (currentSeqNo == expecting) {
             sendData(data);

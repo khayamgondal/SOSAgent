@@ -54,8 +54,8 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
       //  ChannelFuture cf = hostClient.getMyChannel().write(bytes);
         //TODO: lookinto read/write index
         ChannelFuture cf = hostClient.getMyChannel().write(packet.slice(4, packet.capacity() - 4 ));
-        wCount++; // will not work if multiple clients are connected...
-        if (wCount >= request.getRequest().getBufferSize()) {
+        wCount++; // will not work if multiple clients are connected...maintaince own couter using manager ?
+        if (wCount >= request.getRequest().getQueueCapacity()) {
 
             hostClient.getMyChannel().flush();
             wCount = 0;
