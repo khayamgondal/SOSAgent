@@ -4,6 +4,7 @@ import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.agent.AgentToHost;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,8 +21,11 @@ public class Buffer {
     private int expecting = 0;
     private static final int MAX_SEQ = Integer.MAX_VALUE;
 
+    private static final int MAX_BUF = 5000;
 
     private OrderedPacketInitiator orderedPacketInitiator;
+
+    private int bufCount = 0;
 
     //TODO: Look into Google's ConcurrentHashMap	https://github.com/google/guava/wiki/NewCollectionTypesExplained
     private HashMap<Integer, ByteBuf> packetHolder;
@@ -37,7 +41,7 @@ public class Buffer {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
 
-        bufferSize = 900000;//request.getRequest().getBufferSize();
+        bufferSize = MAX_BUF;//request.getRequest().getBufferSize();
 
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
@@ -48,7 +52,7 @@ public class Buffer {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
 
-        bufferSize = 900000;//request.getRequest().getBufferSize();
+        bufferSize = MAX_BUF;//request.getRequest().getBufferSize();
 
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
@@ -78,6 +82,8 @@ public class Buffer {
             int bufferIndex = offSet(expecting);
 
             if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
+               // log.info("Sending {}", bufferIndex);
+                bufCount--;
                 sendData(packetHolder.get(bufferIndex));
                 status.put(bufferIndex, false);
                 log.debug("Sending from buffer to Host seq no. {}", expecting);
@@ -92,8 +98,9 @@ public class Buffer {
         if (expecting == MAX_SEQ) expecting = 0;
         int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
         //TODO: may be use data.slice(0, 4) ??
-     //   log.info("Received seq no {}", currentSeqNo);
+        log.info("buf used {}", bufCount);
         if (currentSeqNo == expecting) {
+        //    log.info("Sending {}", currentSeqNo);
             sendData(data);
             log.debug("Sending direclty to Host seq no: {} ", expecting);
             //log.info("Sending Directly {}", currentSeqNo );
@@ -102,17 +109,24 @@ public class Buffer {
             expecting++;
             sendBuffer();
 
-        } else {
-            int bufferIndex = offSet(currentSeqNo);
+        } else putInBuffer(currentSeqNo, data);
 
-            if (status.get(bufferIndex) == null || !status.get(bufferIndex)) {
-                packetHolder.put(bufferIndex, data);
-                status.put(bufferIndex, true);
-                log.debug("Putting seq no. {} in buffer on index {}", currentSeqNo, bufferIndex);
-                // log.info("BUffering {}", currentSeqNo );
-                sendBuffer();
-            } else
-                log.error("Buffer index {} have unsent data dropping seq {}", bufferIndex, currentSeqNo); //something wrong here... need to fix
+    }
+
+    private void putInBuffer(int seqNo, ByteBuf data) {
+        int bufferIndex = offSet(seqNo);
+
+        if (status.get(bufferIndex) == null || !status.get(bufferIndex)) {
+            bufCount ++;
+            packetHolder.put(bufferIndex, data);
+            status.put(bufferIndex, true);
+            log.debug("Putting seq no. {} in buffer on index {}", seqNo, bufferIndex);
+            // log.info("BUffering {}", currentSeqNo );
+            sendBuffer();
+        } else {
+            log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix
+            //ReferenceCountUtil.release(data);
+            data.release();
         }
     }
 

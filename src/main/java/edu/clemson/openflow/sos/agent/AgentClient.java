@@ -122,6 +122,10 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     public void HostStatusChanged(HostStatus hostStatus) {
         if (hostStatus == HostStatus.DONE) {
             log.info("Client done sending ...shutting down all opened parallel socks. ");
+         /*   for (Channel ch: channels
+                 ) {
+                ch.flush(); ch.close();
+            }*/
             StatCollector.getStatCollector().hostRemoved();
             eventLoopGroup.shutdownGracefully();
             StatCollector.getStatCollector().connectionRemoved();
@@ -179,17 +183,19 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     }
 
     //change this byte[] into bytebuf
-    public void incomingPacket(byte[] data) {
+  /*  public void incomingPacket(byte[] data) {
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
         // log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,
         //          ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
         //        currentChannelNo);
+
         writeToAgentChannel(channels.get(currentChannelNo), data);
         currentChannelNo++;
-    }
+    }*/
 
     public void incomingPacket(ByteBuf data) {
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
+       // System.out.println(((ByteBuf) data).getInt(0)+"");
         //  byte[] dd = new byte[10];
         //((ByteBuf) data).getBytes(10, dd);
         // log.info(new String(dd));

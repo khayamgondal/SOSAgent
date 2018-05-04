@@ -64,7 +64,7 @@ public class HostClient implements HostStatusListener{
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
-                                    .addLast("bytesDecoder", new ByteArrayDecoder())
+                                        .addLast("bytesDecoder", new ByteArrayDecoder())
                                     .addLast("hostClient", new HostClientHandler())
                                     .addLast("bytesEncoder", new ByteArrayEncoder());
                         }

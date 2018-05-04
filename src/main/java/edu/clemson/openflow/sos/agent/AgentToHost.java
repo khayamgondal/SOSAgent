@@ -11,6 +11,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.ResourceLeakDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +27,6 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private int currentChannelNo = 0;
     private long totalBytes, startTime, endTime;
     private int wCount;
-
 
     public AgentToHost(RequestTemplateWrapper request) {
         this.request = request;
@@ -53,23 +53,27 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
        // packet.getBytes(4, bytes);
       //  ChannelFuture cf = hostClient.getMyChannel().write(bytes);
         //TODO: lookinto read/write index
-        ChannelFuture cf = hostClient.getMyChannel().write(packet.slice(4, packet.capacity() - 4 ));
+       /* ChannelFuture cf = */
+       //hostClient.getMyChannel().write(packet.slice(4, packet.capacity() - 4 ));
         wCount++; // will not work if multiple clients are connected...maintaince own couter using manager ?
         if (wCount >= request.getRequest().getQueueCapacity()) {
 
-            hostClient.getMyChannel().flush();
+       //     hostClient.getMyChannel().flush(); //packet.release();
             wCount = 0;
             //log.info("Flushed all channels");
         }
+     //   hostClient.getMyChannel().writeAndFlush(packet);
+         packet.release();
+        //ReferenceCountUtil.release(packet);
         //hostClient.getMyChannel().flush();                packet.release();
 
-        cf.addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+      //  cf.addListener(new ChannelFutureListener() {
+       //     @Override
+        //    public void operationComplete(ChannelFuture channelFuture) throws Exception {
         //        ReferenceCountUtil.release(packet);
               //  ReferenceCountUtil.release(bytes);
-            }
-        });
+        //    }
+        //});
         //ReferenceCountUtil.release(bytes);
       //  ReferenceCountUtil.release(packet);
         //  if (!cf.isSuccess()) log.error("write not successful {}", cf.cause());

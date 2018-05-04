@@ -99,7 +99,7 @@ public class AgentServer implements ISocketServer {
        //     ((ByteBuf) msg).getBytes(10, dd);
            // log.info(new String(dd));
         //    log.info("Rec seq {} size {} bytes {}",((ByteBuf) msg).getInt(0) , ((ByteBuf) msg).capacity(), dd);
-
+          //  System.out.println(((ByteBuf) msg).getInt(0)+"");
         //    ByteBuf bytes = (ByteBuf) msg;
         //    log.debug("Got packet with seq {} & size {} from Agent-Client", bytes.getInt(0), bytes.capacity());
               if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
@@ -107,7 +107,7 @@ public class AgentServer implements ISocketServer {
 
             totalBytes += ((ByteBuf) msg).capacity();
             // do we need to release this msg also .. cause we are copying it in hashmap
-           // ReferenceCountUtil.release(msg);
+          //  ReferenceCountUtil.release(msg);
         }
 
         @Override
