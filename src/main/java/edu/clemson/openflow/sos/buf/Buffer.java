@@ -19,9 +19,9 @@ public class Buffer {
 
     private int bufferSize;
     private int expecting = 0;
-    private static final int MAX_SEQ = Integer.MAX_VALUE;
+    private static final int MAX_SEQ = 10000; //Integer.MAX_VALUE;
 
-    private static final int MAX_BUF = 5000;
+    private static final int MAX_BUF = 99000;
 
     private OrderedPacketInitiator orderedPacketInitiator;
 
@@ -96,9 +96,11 @@ public class Buffer {
     //TODO: Recheck the logic here.
     public synchronized void incomingPacket(ByteBuf data) { //sendData(data);
         if (expecting == MAX_SEQ) expecting = 0;
+        log.debug("Waiting for {}", expecting);
+
         int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
         //TODO: may be use data.slice(0, 4) ??
-        log.info("buf used {}", bufCount);
+     //   log.info("buf used {}", bufCount);
         if (currentSeqNo == expecting) {
         //    log.info("Sending {}", currentSeqNo);
             sendData(data);
