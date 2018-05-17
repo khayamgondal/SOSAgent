@@ -1,6 +1,5 @@
 package edu.clemson.openflow.sos.agent;
 
-import com.sun.webkit.graphics.Ref;
 import edu.clemson.openflow.sos.buf.OrderedPacketListener;
 import edu.clemson.openflow.sos.host.HostClient;
 import edu.clemson.openflow.sos.host.HostStatusInitiator;
@@ -11,7 +10,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.util.ReferenceCountUtil;
-import io.netty.util.ResourceLeakDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

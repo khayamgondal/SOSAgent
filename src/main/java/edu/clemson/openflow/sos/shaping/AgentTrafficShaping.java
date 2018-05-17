@@ -18,6 +18,10 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
     private final List<Long> throughputReadBytes = new LinkedList<Long>();
 
 
+    public AgentTrafficShaping(ScheduledExecutorService executor, long checkInterval) {
+        super(executor, checkInterval);
+    }
+
     public AgentTrafficShaping(ScheduledExecutorService executor, long writeGlobalLimit, long readGlobalLimit,
                                long writeChannelLimit, long readChannelLimit, long checkInterval) {
         super(executor, writeGlobalLimit, readGlobalLimit, writeChannelLimit, readChannelLimit, checkInterval);
@@ -36,7 +40,7 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
         if (maxReadNonZero == 0) {
             maxReadNonZero = 1;
         }
-        log.info("Counterrrrrrr {}", this.channelTrafficCounters().size());
+      //  log.info("Counterrrrrrr {}", this.channelTrafficCounters().size());
         for (TrafficCounter tc : this.channelTrafficCounters()) {
             long cumulativeWritten = tc.cumulativeWrittenBytes();
             if (cumulativeWritten > maxWrittenNonZero) {

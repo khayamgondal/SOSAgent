@@ -19,7 +19,7 @@ public class Buffer {
 
     private int bufferSize;
     private int expecting = 0;
-    private static final int MAX_SEQ = 10000; //Integer.MAX_VALUE;
+    private static final int MAX_SEQ = 30000; //Integer.MAX_VALUE;
 
     private static final int MAX_BUF = 99000;
 
@@ -94,8 +94,8 @@ public class Buffer {
         }
     }
     //TODO: Recheck the logic here.
-    public synchronized void incomingPacket(ByteBuf data) { //sendData(data);
-        if (expecting == MAX_SEQ) expecting = 0;
+    public synchronized void incomingPacket(ByteBuf data) { sendData(data);
+  /*      if (expecting == MAX_SEQ) expecting = 0;
         log.debug("Waiting for {}", expecting);
 
         int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
@@ -112,13 +112,13 @@ public class Buffer {
             sendBuffer();
 
         } else putInBuffer(currentSeqNo, data);
-
+*/
     }
 
     private void putInBuffer(int seqNo, ByteBuf data) {
         int bufferIndex = offSet(seqNo);
 
-        if (status.get(bufferIndex) == null || !status.get(bufferIndex)) {
+        if (status.get(bufferIndex) == null || !status.get(bufferIndex)) { //for now just override previous buf loc
             bufCount ++;
             packetHolder.put(bufferIndex, data);
             status.put(bufferIndex, true);

@@ -50,8 +50,11 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private static final String PORTMAP_PATH = "/portmap";
     private static final String REST_PORT = "8002";
     private static final int AGENT_DATA_PORT = 9878;
+
     private final long startTime;
-    private final AgentTrafficShaping ats;
+    private float totalBytes;
+    private HashMap<Integer, Float> perChBytes;
+    int wCount = 0;
 
     private int currentChannelNo = 0;
 
@@ -60,17 +63,9 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private Buffer myBuffer;
     private Channel hostChannel;
     private EventLoopGroup eventLoopGroup;
-
-    private float totalBytes;
-    private HashMap<Integer, Float> perChBytes;
-
-    static final int MAXGLOBALTHROUGHPUT = Integer.parseInt(System.getProperty("maxGlobalThroughput", "0"));
-    static final int MAXCHANNELTHROUGHPUT = Integer.parseInt(System.getProperty("maxChannelThroughput", "0"));
-
-    int wCount = 0;
+    private AgentTrafficShaping ats;
 
     public AgentClient(RequestTemplateWrapper request) {
-        // agentClientHandler = new AgentClientHandler();
         perChBytes = new HashMap<>(request.getRequest().getNumParallelSockets());
 
         this.request = request;
@@ -99,9 +94,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        ats = new AgentTrafficShaping(eventLoopGroup, 0, MAXGLOBALTHROUGHPUT,
-                0, MAXCHANNELTHROUGHPUT, 1000);
-        
+
         StatCollector.getStatCollector().hostAdded();
         startTime = System.currentTimeMillis();
 
@@ -128,7 +121,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     }
 
-    public void setChannel(Channel channel) {
+    public void setWriteBackChannel(Channel channel) {
         this.hostChannel = channel;
     }
 
@@ -145,10 +138,10 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             StatCollector.getStatCollector().connectionRemoved();
             long stopTime = System.currentTimeMillis();
             for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
-                log.info("Ch {} rate {}", i, (perChBytes.get(i) * 8) / (stopTime - startTime) / 1000000);
+                log.info("Ch {} rate {}", i, (perChBytes.get(i) * 8) / (stopTime - startTime) / 1000);
 
             }
-            log.info("Agentclient rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000000);
+            log.info("Agentclient rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
 
         }
     }
@@ -275,6 +268,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     private Bootstrap bootStrap(EventLoopGroup group, String agentServerIP) {
         try {
+            ats = new AgentTrafficShaping(eventLoopGroup, 10000);
+
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)
                     .handler(new ChannelInitializer() {
@@ -283,9 +278,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                             channel.pipeline()
                                     .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agentClient", new AgentClientHandler())
-                                 //   .addLast( new AgentTrafficShaping(eventLoopGroup, 0, MAXGLOBALTHROUGHPUT,
-                               //             0, MAXCHANNELTHROUGHPUT, 1000))
-                           // .addLast(ats)
+                                    .addLast("agent-traffic-shapping", ats )
                                     .addLast("4blength", new LengthFieldPrepender(4))
                             //  .addLast("bytesEncoder", new ByteArrayEncoder())
                             ;
