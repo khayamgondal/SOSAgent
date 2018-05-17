@@ -6,6 +6,7 @@ import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
+import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -38,7 +39,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private List<RequestTemplateWrapper> incomingRequests = new ArrayList<>();
     private NioEventLoopGroup group;
     private HostStatusInitiator hostStatusInitiator;
-
+    HostTrafficShaping hts;
 
     public HostServer() {
         EventListenersLists.requestListeners.add(this); //we register for incoming requests
@@ -95,6 +96,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        //    log.info("Read limit {}", hts.getReadLimit());
 
             if (request != null && seqGen != null) {
               //  long st = System.currentTimeMillis();
@@ -120,6 +122,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
+        hts =  new HostTrafficShaping(group, 0, 750000000, 1000);
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(group)
@@ -129,9 +132,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                                       @Override
                                       protected void initChannel(Channel channel) throws Exception {
                                           //can I remove bytes decorder and get bytebuf?
-                                          channel.pipeline().addLast("bytesDecoder", new ByteArrayDecoder())
-                                          .addLast("hostHandler", new HostServerHandler())
-                                          .addLast("bytesEncoder", new ByteArrayEncoder());
+                                          channel.pipeline()
+                                                  .addLast("traffic", hts)
+                                                  .addLast("bytesDecoder", new ByteArrayDecoder()) //also release below
+                                                  .addLast("hostHandler", new HostServerHandler())
+                                                  .addLast("bytesEncoder", new ByteArrayEncoder());
+
                                       }
                                   }
                     );

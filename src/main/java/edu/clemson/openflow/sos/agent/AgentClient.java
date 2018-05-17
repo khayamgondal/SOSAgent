@@ -6,6 +6,7 @@ import edu.clemson.openflow.sos.buf.OrderedPacketListener;
 import edu.clemson.openflow.sos.host.HostStatusListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
+import edu.clemson.openflow.sos.shaping.AgentTrafficShaping;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -16,6 +17,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.handler.traffic.ChannelTrafficShapingHandler;
+import io.netty.handler.traffic.GlobalChannelTrafficShapingHandler;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -48,6 +51,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private static final String REST_PORT = "8002";
     private static final int AGENT_DATA_PORT = 9878;
     private final long startTime;
+    private final AgentTrafficShaping ats;
 
     private int currentChannelNo = 0;
 
@@ -59,6 +63,9 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     private float totalBytes;
     private HashMap<Integer, Float> perChBytes;
+
+    static final int MAXGLOBALTHROUGHPUT = Integer.parseInt(System.getProperty("maxGlobalThroughput", "0"));
+    static final int MAXCHANNELTHROUGHPUT = Integer.parseInt(System.getProperty("maxChannelThroughput", "0"));
 
     int wCount = 0;
 
@@ -72,11 +79,15 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         //   myBuffer.setListener(this); // notify me when you have sorted packs
         eventLoopGroup = createEventLoopGroup();
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
+        try {
         for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
-            channels.add(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()));
+            channels.add( connectToChannel(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()),
+                    request.getRequest().getServerAgentIP()));
             StatCollector.getStatCollector().connectionAdded();
         }
-
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         List<Integer> ports = new ArrayList<>(request.getRequest().getNumParallelSockets());
         for (Channel channel : channels
                 ) {
@@ -88,6 +99,9 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        ats = new AgentTrafficShaping(eventLoopGroup, 0, MAXGLOBALTHROUGHPUT,
+                0, MAXCHANNELTHROUGHPUT, 1000);
+        
         StatCollector.getStatCollector().hostAdded();
         startTime = System.currentTimeMillis();
 
@@ -259,7 +273,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     }
 
-    private Channel bootStrap(EventLoopGroup group, String agentServerIP) {
+    private Bootstrap bootStrap(EventLoopGroup group, String agentServerIP) {
         try {
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)
@@ -269,17 +283,20 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                             channel.pipeline()
                                     .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agentClient", new AgentClientHandler())
+                                 //   .addLast( new AgentTrafficShaping(eventLoopGroup, 0, MAXGLOBALTHROUGHPUT,
+                               //             0, MAXCHANNELTHROUGHPUT, 1000))
+                           // .addLast(ats)
                                     .addLast("4blength", new LengthFieldPrepender(4))
                             //  .addLast("bytesEncoder", new ByteArrayEncoder())
                             ;
                         }
                     });
 
-            Channel myChannel = bootstrap.connect(agentServerIP, AGENT_DATA_PORT).sync().channel();
+        //    Channel myChannel = bootstrap.connect(agentServerIP, AGENT_DATA_PORT).sync().channel();
             //if (myChannel == null) log.debug("in start it is nul");
-            log.debug("Connected to Agent-Server {} on Port {}", agentServerIP, AGENT_DATA_PORT);
-            return myChannel;
-
+      //      log.debug("Connected to Agent-Server {} on Port {}", agentServerIP, AGENT_DATA_PORT);
+      //      return myChannel;
+                return bootstrap;
         } catch (Exception e) {
             log.error("Error connecting to Agent-Server {} on Port{}", agentServerIP, AGENT_DATA_PORT);
             e.printStackTrace();
@@ -287,6 +304,11 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         } finally {
             //group.shutdownGracefully();
         }
+    }
+
+    private Channel connectToChannel(Bootstrap bootstrap, String agentServerIP) throws InterruptedException {
+        log.debug("Connected to Agent-Server {} on Port {}", agentServerIP, AGENT_DATA_PORT);
+        return bootstrap.connect(agentServerIP, AGENT_DATA_PORT).sync().channel();
     }
 
     private NioEventLoopGroup createEventLoopGroup() {
