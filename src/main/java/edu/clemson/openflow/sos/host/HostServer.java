@@ -7,6 +7,7 @@ import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
+import edu.clemson.openflow.sos.shaping.IStatListener;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -27,7 +28,7 @@ import java.util.List;
  * Listens for connections from client on port 9877
  */
 
-public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, RequestListener {
+public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, RequestListener, IStatListener {
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
     private static final int DATA_PORT = 9877;
     private RequestTemplateWrapper request;
@@ -42,6 +43,11 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     public HostServer() {
         EventListenersLists.requestListeners.add(this); //we register for incoming requests
+    }
+
+    @Override
+    public void notifyStats(long WrittenThroughputBytes) {
+
     }
 
     public class HostServerHandler extends ChannelInboundHandlerAdapter {
@@ -70,6 +76,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 seqGen = new SeqGen();
                 agentClient = new AgentClient(request);
                 agentClient.setWriteBackChannel(ctx.channel());
+                agentClient.setStatListener(HostServer.this); // notify big daddy about stats
 
                 hostStatusInitiator = new HostStatusInitiator();
                 hostStatusInitiator.addListener(agentClient);

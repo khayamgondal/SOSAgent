@@ -7,6 +7,7 @@ import edu.clemson.openflow.sos.host.HostStatusListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import edu.clemson.openflow.sos.shaping.AgentTrafficShaping;
+import edu.clemson.openflow.sos.shaping.IStatListener;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -64,6 +65,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private Channel hostChannel;
     private EventLoopGroup eventLoopGroup;
     private AgentTrafficShaping ats;
+    private IStatListener statListener;
 
     public AgentClient(RequestTemplateWrapper request) {
         perChBytes = new HashMap<>(request.getRequest().getNumParallelSockets());
@@ -100,6 +102,10 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     }
 
+    public void setStatListener(IStatListener statListener) {
+        this.statListener = statListener;
+    }
+    
     @Override
     public void orderedPacket(ByteBuf packet) {
         byte[] res = new byte[packet.capacity()];
@@ -128,13 +134,18 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     @Override
     public void HostStatusChanged(HostStatus hostStatus) {
         if (hostStatus == HostStatus.DONE) {
+            log.info("DDD {}", ats.channelTrafficCounters().size());
+
             log.info("Client done sending ...shutting down all opened parallel socks. ");
          /*   for (Channel ch: channels
                  ) {
                 ch.flush(); ch.close();
             }*/
             StatCollector.getStatCollector().hostRemoved();
+
+            ats.release();
             eventLoopGroup.shutdownGracefully();
+
             StatCollector.getStatCollector().connectionRemoved();
             long stopTime = System.currentTimeMillis();
             for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
@@ -147,7 +158,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     }
 
     public class AgentClientHandler extends ChannelInboundHandlerAdapter {
-
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -268,7 +278,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     private Bootstrap bootStrap(EventLoopGroup group, String agentServerIP) {
         try {
-            ats = new AgentTrafficShaping(eventLoopGroup, 10000);
+            ats = new AgentTrafficShaping(statListener, eventLoopGroup, 10000);
 
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)

@@ -17,11 +17,15 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
     private final List<Long> throughputWrittenBytes = new LinkedList<Long>();
     private final List<Long> throughputReadBytes = new LinkedList<Long>();
 
+    private IStatListener statListener;
 
-    public AgentTrafficShaping(ScheduledExecutorService executor, long checkInterval) {
+   /* public AgentTrafficShaping(ScheduledExecutorService executor, long checkInterval) {
+       super(executor, checkInterval);
+    }*/
+    public AgentTrafficShaping(IStatListener statListener, ScheduledExecutorService executor, long checkInterval) {
         super(executor, checkInterval);
+        this.statListener = statListener;
     }
-
     public AgentTrafficShaping(ScheduledExecutorService executor, long writeGlobalLimit, long readGlobalLimit,
                                long writeChannelLimit, long readChannelLimit, long checkInterval) {
         super(executor, writeGlobalLimit, readGlobalLimit, writeChannelLimit, readChannelLimit, checkInterval);
@@ -55,11 +59,12 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
             cumulativeReadBytes.add((maxReadNonZero - cumulativeRead) * 100 / maxReadNonZero);
             throughputReadBytes.add(tc.lastReadThroughput() >> 10);
         }
-        log.info(this.toString() + " QueuesSize: " + queuesSize()
+      /*  log.info(this.toString() + " QueuesSize: " + queuesSize()
                 + "\nWrittenBytesPercentage: " + cumulativeWrittenBytes
                 + "\nWrittenThroughputBytes: " + throughputWrittenBytes
                 + "\nReadBytesPercentage:    " + cumulativeReadBytes
-                + "\nReadThroughputBytes:    " + throughputReadBytes);
+                + "\nReadThroughputBytes:    " + throughputReadBytes);*/
+      statListener.notifyStats(throughputWrittenBytes);
         cumulativeWrittenBytes.clear();
         cumulativeReadBytes.clear();
         throughputWrittenBytes.clear();
