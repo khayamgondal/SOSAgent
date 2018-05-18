@@ -46,8 +46,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     }
 
     @Override
-    public void notifyStats(long WrittenThroughputBytes) {
-
+    public void notifyStats(List<Long> writtenThroughputBytes) {
+        log.info("SSS {}", writtenThroughputBytes.toString());
     }
 
     public class HostServerHandler extends ChannelInboundHandlerAdapter {

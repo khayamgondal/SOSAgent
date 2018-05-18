@@ -1,6 +1,8 @@
 package edu.clemson.openflow.sos.shaping;
 
+import java.util.List;
+
 public interface IStatListener {
 
-    void notifyStats(long WrittenThroughputBytes);
+    void notifyStats(List<Long> writtenThroughputBytes);
 }
