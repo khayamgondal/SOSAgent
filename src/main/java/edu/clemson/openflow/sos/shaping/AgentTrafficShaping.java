@@ -26,10 +26,7 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
         super(executor, checkInterval);
         this.statListener = statListener;
     }
-    public AgentTrafficShaping(ScheduledExecutorService executor, long writeGlobalLimit, long readGlobalLimit,
-                               long writeChannelLimit, long readChannelLimit, long checkInterval) {
-        super(executor, writeGlobalLimit, readGlobalLimit, writeChannelLimit, readChannelLimit, checkInterval);
-    }
+
 
     /**
      * Override to compute average of bandwidth between all channels
@@ -64,7 +61,8 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
                 + "\nWrittenThroughputBytes: " + throughputWrittenBytes
                 + "\nReadBytesPercentage:    " + cumulativeReadBytes
                 + "\nReadThroughputBytes:    " + throughputReadBytes);*/
-      statListener.notifyStats(throughputWrittenBytes);
+      if (statListener != null) statListener.notifyStats(throughputWrittenBytes);
+     // else log.error("Stat listener is null ");
         cumulativeWrittenBytes.clear();
         cumulativeReadBytes.clear();
         throughputWrittenBytes.clear();

@@ -30,24 +30,31 @@ import java.util.List;
 
 public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, RequestListener, IStatListener {
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
+
     private static final int DATA_PORT = 9877;
+
     private RequestTemplateWrapper request;
-    //private Channel myChannel;
-    //PacketBuffer packetBuffer;
     private SeqGen seqGen;
     private AgentClient agentClient;
     private List<RequestTemplateWrapper> incomingRequests = new ArrayList<>();
     private NioEventLoopGroup group;
     private HostStatusInitiator hostStatusInitiator;
     HostTrafficShaping hostTrafficShaping;
+    private long totalWritten;
 
     public HostServer() {
         EventListenersLists.requestListeners.add(this); //we register for incoming requests
     }
 
+    private synchronized void totalWritten(long written) {
+        totalWritten += written;
+        log.info(" {}", totalWritten * 8 /1024);
+
+    }
+
     @Override
     public void notifyStats(List<Long> writtenThroughputBytes) {
-        log.info("SSS {}", writtenThroughputBytes.toString());
+        totalWritten(writtenThroughputBytes.get(0));
     }
 
     public class HostServerHandler extends ChannelInboundHandlerAdapter {
@@ -69,22 +76,23 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
             }
-         //   myChannel = ctx.channel();
+            //   myChannel = ctx.channel();
             startTime = System.currentTimeMillis();
 
             if (request != null) {
                 seqGen = new SeqGen();
+
                 agentClient = new AgentClient(request);
+                agentClient.setStatListener(HostServer.this);
+                agentClient.bootStrapSockets();
                 agentClient.setWriteBackChannel(ctx.channel());
-                agentClient.setStatListener(HostServer.this); // notify big daddy about stats
 
                 hostStatusInitiator = new HostStatusInitiator();
                 hostStatusInitiator.addListener(agentClient);
 
                 controllerManager = new ControllerManager(request.getRequest().getTransferID(),
                         request.getRequest().getControllerIP());
-            }
-            else log.error("Couldn't find the request {} in request pool. Not notifying agent",
+            } else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                     request.toString());
 
         }
@@ -93,29 +101,28 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         public void channelInactive(ChannelHandlerContext ctx) {
             ctx.flush();
             log.info("Client is done sending");
-            hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
+            if (hostStatusInitiator != null) hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
 
             long stopTime = System.currentTimeMillis();
-            log.info("HostServer rate {}", (totalBytes * 8)/(stopTime-startTime)/1000000);
+            log.info("HostServer rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000000);
             // also notify controller to tear down this connection.
-        //    if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();
+            //    if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();
         }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        //    log.info("Read limit {}", hts.getReadLimit());
+            //    log.info("Read limit {}", hts.getReadLimit());
 
             if (request != null && seqGen != null) {
                 agentClient.incomingPacket(seqGen.incomingPacket1((byte[]) msg));
-               // long et = System.currentTimeMillis();
-               // log.info("Sen time {}", et - dt);
+                // long et = System.currentTimeMillis();
+                // log.info("Sen time {}", et - dt);
 
                 //KHAYAM
-                    // cast into bytebuf ??
-                    totalBytes += ((byte[]) msg).length;
-               // totalBytes += ((ByteBuf) msg).capacity();
-                 }
-            else {
+                // cast into bytebuf ??
+                totalBytes += ((byte[]) msg).length;
+                // totalBytes += ((ByteBuf) msg).capacity();
+            } else {
                 log.error("Couldn't find the request. Not forwarding packet");
                 ReferenceCountUtil.release(msg);
             }
@@ -124,7 +131,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
-        hostTrafficShaping =  new HostTrafficShaping(group, 0, 750000000, 1000);
+        hostTrafficShaping = new HostTrafficShaping(group, 0, 360000000, 1000);
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(group)
@@ -153,6 +160,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             return false;
         }
     }
+
     private RequestTemplateWrapper getClientRequest(String remoteIP, int remotePort) {
         //Controller sends client port in request msg. If we are using mock client, there is no way to know the port before actually
         //starting socket so for now I am just skipping the port check
@@ -162,8 +170,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             if (!incomingRequest.getRequest().isMockRequest() ?
                     incomingRequest.getRequest().getClientIP().equals(remoteIP) && incomingRequest.getRequest().getClientPort() == remotePort :
                     incomingRequest.getRequest().getClientIP().equals(remoteIP))
-           // if (incomingRequest.getRequest().getClientIP().equals(remoteIP) &&
-            //        incomingRequest.getRequest().getClientPort() == remotePort)
+                // if (incomingRequest.getRequest().getClientIP().equals(remoteIP) &&
+                //        incomingRequest.getRequest().getClientPort() == remotePort)
                 return incomingRequest;
         }
         return null;

@@ -94,8 +94,8 @@ public class Buffer {
         }
     }
     //TODO: Recheck the logic here.
-    public synchronized void incomingPacket(ByteBuf data) { sendData(data);
-  /*      if (expecting == MAX_SEQ) expecting = 0;
+    public synchronized void incomingPacket(ByteBuf data) { //sendData(data);
+        if (expecting == MAX_SEQ) expecting = 0;
         log.debug("Waiting for {}", expecting);
 
         int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
@@ -112,7 +112,7 @@ public class Buffer {
             sendBuffer();
 
         } else putInBuffer(currentSeqNo, data);
-*/
+
     }
 
     private void putInBuffer(int seqNo, ByteBuf data) {

@@ -52,7 +52,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private static final String REST_PORT = "8002";
     private static final int AGENT_DATA_PORT = 9878;
 
-    private final long startTime;
+    private long startTime;
     private float totalBytes;
     private HashMap<Integer, Float> perChBytes;
     int wCount = 0;
@@ -68,20 +68,26 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private IStatListener statListener;
 
     public AgentClient(RequestTemplateWrapper request) {
-        perChBytes = new HashMap<>(request.getRequest().getNumParallelSockets());
-
         this.request = request;
+
+        perChBytes = new HashMap<>(request.getRequest().getNumParallelSockets());
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
         myBuffer = new Buffer(request, this);
+    //    this.statListener = statListener;
         //   myBuffer.setListener(this); // notify me when you have sorted packs
+
+
+    }
+
+    public void bootStrapSockets() {
         eventLoopGroup = createEventLoopGroup();
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
         try {
-        for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
-            channels.add( connectToChannel(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()),
-                    request.getRequest().getServerAgentIP()));
-            StatCollector.getStatCollector().connectionAdded();
-        }
+            for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
+                channels.add( connectToChannel(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()),
+                        request.getRequest().getServerAgentIP()));
+                StatCollector.getStatCollector().connectionAdded();
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -99,7 +105,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
         StatCollector.getStatCollector().hostAdded();
         startTime = System.currentTimeMillis();
-
     }
 
     public void setStatListener(IStatListener statListener) {
@@ -108,11 +113,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     
     @Override
     public void orderedPacket(ByteBuf packet) {
-        byte[] res = new byte[packet.capacity()];
-        //packet.getBytes(0, res);
-        //    log.info(packet.getInt(0) +"");
-
-
         byte[] bytes = new byte[packet.capacity() - 4];
         packet.getBytes(4, bytes);
         ChannelFuture cf = hostChannel.writeAndFlush(bytes);
@@ -134,7 +134,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     @Override
     public void HostStatusChanged(HostStatus hostStatus) {
         if (hostStatus == HostStatus.DONE) {
-            log.info("DDD {}", ats.channelTrafficCounters().size());
+        //    log.info("DDD {}", ats.channelTrafficCounters().size());
 
             log.info("Client done sending ...shutting down all opened parallel socks. ");
          /*   for (Channel ch: channels
