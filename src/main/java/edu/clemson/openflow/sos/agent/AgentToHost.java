@@ -45,7 +45,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     @Override
     public void orderedPacket(ByteBuf packet) {
         log.debug("Got new sorted packet");
-
+        log.info("Order count {}", packet.refCnt());
         totalBytes += packet.capacity();
        // byte[] bytes = new byte[packet.capacity() - 4 ]; //SLOW
        // packet.getBytes(4, bytes);
