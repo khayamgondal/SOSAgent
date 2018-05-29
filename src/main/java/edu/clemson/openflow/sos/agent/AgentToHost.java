@@ -45,15 +45,23 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     @Override
     public void orderedPacket(ByteBuf packet) {
         log.debug("Got new sorted packet");
-        log.info("Order count {}", packet.refCnt());
+    //    log.info("Order count {}", packet.refCnt());
         totalBytes += packet.capacity();
        // byte[] bytes = new byte[packet.capacity() - 4 ]; //SLOW
        // packet.getBytes(4, bytes);
     //    ChannelFuture cf = hostClient.getMyChannel().write(bytes);
         //TODO: lookinto read/write index
        /* ChannelFuture cf = */
-       hostClient.getMyChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4 ));
-       
+       ChannelFuture cf = hostClient.getMyChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4 ));
+
+      /*    cf.addListener(new ChannelFutureListener() {
+             @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                //ReferenceCountUtil.release(packet);
+                 log.info("After flush {}", packet.refCnt());
+            }
+        });*/
+
         wCount++; // will not work if multiple clients are connected...maintaince own couter using manager ?
    /*     if (wCount >= request.getRequest().getQueueCapacity()) {
 
@@ -66,13 +74,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         //ReferenceCountUtil.release(packet);
         //hostClient.getMyChannel().flush();                packet.release();
 
-      //  cf.addListener(new ChannelFutureListener() {
-       //     @Override
-        //    public void operationComplete(ChannelFuture channelFuture) throws Exception {
-        //        ReferenceCountUtil.release(packet);
-              //  ReferenceCountUtil.release(bytes);
-        //    }
-        //});
+
         //ReferenceCountUtil.release(bytes);
       //  ReferenceCountUtil.release(packet);
         //  if (!cf.isSuccess()) log.error("write not successful {}", cf.cause());

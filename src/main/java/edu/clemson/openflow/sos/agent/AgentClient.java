@@ -288,7 +288,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                             channel.pipeline()
                                     .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agentClient", new AgentClientHandler())
-                                    .addLast("agent-traffic-shapping", ats )
+                                   .addLast("agent-traffic-shapping", ats )
                                     .addLast("4blength", new LengthFieldPrepender(4))
                             //  .addLast("bytesEncoder", new ByteArrayEncoder())
                             ;

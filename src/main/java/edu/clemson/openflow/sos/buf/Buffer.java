@@ -94,25 +94,31 @@ public class Buffer {
         }
     }
     //TODO: Recheck the logic here.
-    public synchronized void incomingPacket(ByteBuf data) { //sendData(data);
-        if (expecting == MAX_SEQ) expecting = 0;
-        log.debug("Waiting for {}", expecting);
+    private void processPacket(ByteBuf data) {
+        { //sendData(data);
+            if (expecting == MAX_SEQ) expecting = 0;
+            log.debug("Waiting for {}", expecting);
 
-        int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
-        //TODO: may be use data.slice(0, 4) ??
-     //   log.info("buf used {}", bufCount);
-        if (currentSeqNo == expecting) {
-        //    log.info("Sending {}", currentSeqNo);
-            sendData(data);
-            log.debug("Sending direclty to Host seq no: {} ", expecting);
-            //log.info("Sending Directly {}", currentSeqNo );
+            int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
+            //TODO: may be use data.slice(0, 4) ??
+            //   log.info("buf used {}", bufCount);
+            if (currentSeqNo == expecting) {
+                //    log.info("Sending {}", currentSeqNo);
+                sendData(data);
+                log.debug("Sending direclty to Host seq no: {} ", expecting);
+                //log.info("Sending Directly {}", currentSeqNo );
 
-            // check how much we have in buffer
-            expecting++;
-            sendBuffer();
+                // check how much we have in buffer
+                expecting++;
+                sendBuffer();
 
-        } else putInBuffer(currentSeqNo, data);
+            } else putInBuffer(currentSeqNo, data);
 
+        }
+    }
+    public synchronized void incomingPacket(ByteBuf data) {
+        //processPacket(data);
+        sendData(data);
     }
 
     private void putInBuffer(int seqNo, ByteBuf data) {

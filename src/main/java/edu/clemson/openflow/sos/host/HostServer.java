@@ -131,7 +131,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
-        hostTrafficShaping = new HostTrafficShaping(group, 0, 360000000, 1000);
+        hostTrafficShaping = new HostTrafficShaping(group, 0, 0, 1000);
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(group)

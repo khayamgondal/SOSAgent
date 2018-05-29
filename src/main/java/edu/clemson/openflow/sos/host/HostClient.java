@@ -32,7 +32,7 @@ public class HostClient implements HostStatusListener{
     @Override
     public void HostStatusChanged(HostStatus hostStatus) {
         if (!group.isShutdown() && hostStatus == HostStatus.DONE) {
-            log.info("Client is done sending ... closing socket");
+            log.debug("Client is done sending ... closing socket");
             group.shutdownGracefully();
             StatCollector.getStatCollector().hostRemoved();
         }
