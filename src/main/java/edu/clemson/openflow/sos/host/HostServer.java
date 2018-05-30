@@ -48,7 +48,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private synchronized void totalWritten(long written) {
         totalWritten += written;
-        log.info(" {}", totalWritten * 8 /1024);
+     //   log.info(" {}", totalWritten * 8 /1024);
 
     }
 
@@ -131,7 +131,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
-        hostTrafficShaping = new HostTrafficShaping(group, 0, 0, 1000);
+        hostTrafficShaping = new HostTrafficShaping(group, 0, 300000000, 1000);
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(group)

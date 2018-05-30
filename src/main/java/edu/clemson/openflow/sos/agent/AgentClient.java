@@ -73,7 +73,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         perChBytes = new HashMap<>(request.getRequest().getNumParallelSockets());
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
         myBuffer = new Buffer(request, this);
-    //    this.statListener = statListener;
+        //    this.statListener = statListener;
         //   myBuffer.setListener(this); // notify me when you have sorted packs
 
 
@@ -84,7 +84,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
         try {
             for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
-                channels.add( connectToChannel(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()),
+                channels.add(connectToChannel(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()),
                         request.getRequest().getServerAgentIP()));
                 StatCollector.getStatCollector().connectionAdded();
             }
@@ -110,7 +110,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     public void setStatListener(IStatListener statListener) {
         this.statListener = statListener;
     }
-    
+
     @Override
     public void orderedPacket(ByteBuf packet) {
         byte[] bytes = new byte[packet.capacity() - 4];
@@ -134,17 +134,22 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     @Override
     public void HostStatusChanged(HostStatus hostStatus) {
         if (hostStatus == HostStatus.DONE) {
-        //    log.info("DDD {}", ats.channelTrafficCounters().size());
+            //    log.info("DDD {}", ats.channelTrafficCounters().size());
 
             log.info("Client done sending ...shutting down all opened parallel socks. ");
-         /*   for (Channel ch: channels
+            /*
+                Send and empty buffer on all channels. and add listener for them. Once write is successful
+                we will close all channels
+             */
+            for (Channel ch: channels
                  ) {
-                ch.flush(); ch.close();
-            }*/
+                ch.writeAndFlush(Unpooled.EMPTY_BUFFER)
+                        .addListener(ChannelFutureListener.CLOSE);
+            }
             StatCollector.getStatCollector().hostRemoved();
 
-            ats.release();
-            eventLoopGroup.shutdownGracefully();
+           // ats.release();
+          //  eventLoopGroup.shutdownGracefully();
 
             StatCollector.getStatCollector().connectionRemoved();
             long stopTime = System.currentTimeMillis();
@@ -211,15 +216,11 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     }*/
 
     public void incomingPacket(ByteBuf data) {
+        //      for (Channel ch: channels
+        //         ) {
+        //       ch.writeAndFlush(data.retain());
+        //  }
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
-       // System.out.println(((ByteBuf) data).getInt(0)+"");
-        //  byte[] dd = new byte[10];
-        //((ByteBuf) data).getBytes(10, dd);
-        // log.info(new String(dd));
-        //log.info("Rec seq {} size {} bytes {}",((ByteBuf) data).getInt(0) , ((ByteBuf) data).capacity(), dd);
-        // log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,
-        //          ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
-        //        currentChannelNo);
         writeToAgentChannel(channels.get(currentChannelNo), data);
         currentChannelNo++;
     }
@@ -257,16 +258,15 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             for (Channel channel : channels)
                 channel.flush();
             wCount = 0;
-            //log.info("Flushed all channels");
         }
         perChBytes.put(currentChannelNo, perChBytes.getOrDefault(currentChannelNo, 0f) + data.capacity());
 
-        totalBytes += data.capacity();
         cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
-
-                // ReferenceCountUtil.release(data);
+                log.info("Ref count {}", data.refCnt());
+                if (cf.isSuccess()) totalBytes += data.capacity();
+                else log.error("Failed to write packet to channel {}", cf.cause());
             }
         });
       /*  if (!cf.isSuccess()) {
@@ -288,18 +288,18 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                             channel.pipeline()
                                     .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agentClient", new AgentClientHandler())
-                                   .addLast("agent-traffic-shapping", ats )
+                                    .addLast("agent-traffic-shapping", ats)
                                     .addLast("4blength", new LengthFieldPrepender(4))
                             //  .addLast("bytesEncoder", new ByteArrayEncoder())
                             ;
                         }
                     });
 
-        //    Channel myChannel = bootstrap.connect(agentServerIP, AGENT_DATA_PORT).sync().channel();
+            //    Channel myChannel = bootstrap.connect(agentServerIP, AGENT_DATA_PORT).sync().channel();
             //if (myChannel == null) log.debug("in start it is nul");
-      //      log.debug("Connected to Agent-Server {} on Port {}", agentServerIP, AGENT_DATA_PORT);
-      //      return myChannel;
-                return bootstrap;
+            //      log.debug("Connected to Agent-Server {} on Port {}", agentServerIP, AGENT_DATA_PORT);
+            //      return myChannel;
+            return bootstrap;
         } catch (Exception e) {
             log.error("Error connecting to Agent-Server {} on Port{}", agentServerIP, AGENT_DATA_PORT);
             e.printStackTrace();
