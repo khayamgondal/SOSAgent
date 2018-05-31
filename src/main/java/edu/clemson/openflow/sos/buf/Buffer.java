@@ -93,6 +93,25 @@ public class Buffer {
         }
     }
 
+    private void sendBufferDrop() {
+        {
+            while (true) { //also check our buffer. do we have some unsent packets there too.
+                int bufferIndex = offSet(expecting);
+
+                if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
+                    // log.info("Sending {}", bufferIndex);
+                    bufCount--;
+                    dropData(packetHolder.get(bufferIndex));
+                    status.put(bufferIndex, false);
+                    log.debug("Sending from buffer to Host seq no. {}", expecting);
+                    //         log.info("Sending from buffer {}", expecting );
+
+                    expecting++;
+                } else break;
+            }
+        }
+    }
+
     //TODO: Recheck the logic here.
     private void processPacket(ByteBuf data) {
         try {
@@ -125,8 +144,41 @@ public class Buffer {
 
     public synchronized void incomingPacket(ByteBuf data) {
         //processPacket(data);
-        sendWithoutBuffering(data);
+       // sendWithoutBuffering(data);
         //dropData(data);
+        processDontSend(data);
+    }
+
+    public void processDontSend(ByteBuf data) {
+        {
+            try {
+                if (expecting == MAX_SEQ) expecting = 0;
+                log.debug("Waiting for {}", expecting);
+
+                int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
+                //TODO: may be use data.slice(0, 4) ??
+                //   log.info("buf used {}", bufCount);
+                if (currentSeqNo == expecting) {
+                    //    log.info("Sending {}", currentSeqNo);
+                    dropData(data);
+                    log.debug("Sending direclty to Host seq no: {} ", expecting);
+                    //log.info("Sending Directly {}", currentSeqNo );
+
+                    // check how much we have in buffer
+                    expecting++;
+                    sendBufferDrop();
+
+                } else putInBufferAndDrop(currentSeqNo, data);
+            }
+            catch (IndexOutOfBoundsException exception) {
+                // When client is done sending, agent on the otherside will send an empty bytebuf once that bytebuf is sent, it will close the channel.
+                //      reason for sending this empty bytebuf is so we can findout once agent have successfully sent all the packets.
+                //     But on the receiving agent side, it is not expecting empty packets and tries to use first 4 bytes as seq no. and due to an empty packet it
+                // throws indexoutofbound exception. So i am just catching that exception here and not doing anything.
+            }
+
+        }
+
     }
 
     public void dropData(ByteBuf data) {
@@ -147,6 +199,23 @@ public class Buffer {
             log.debug("Putting seq no. {} in buffer on index {}", seqNo, bufferIndex);
             // log.info("BUffering {}", currentSeqNo );
             sendBuffer();
+        } else {
+            log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix
+            //ReferenceCountUtil.release(data);
+            data.release();
+        }
+    }
+
+    private void putInBufferAndDrop(int seqNo, ByteBuf data) {
+        int bufferIndex = offSet(seqNo);
+
+        if (status.get(bufferIndex) == null || !status.get(bufferIndex)) { //for now just override previous buf loc
+            bufCount++;
+            packetHolder.put(bufferIndex, data);
+            status.put(bufferIndex, true);
+            log.debug("Putting seq no. {} in buffer on index {}", seqNo, bufferIndex);
+            // log.info("BUffering {}", currentSeqNo );
+            sendBufferDrop();
         } else {
             log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix
             //ReferenceCountUtil.release(data);
