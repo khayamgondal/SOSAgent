@@ -68,7 +68,7 @@ public class AgentServer implements ISocketServer, IStatListener {
         gotStatsFrom ++;
         sumThroughput(lastWriteThroughput, lastReadThroughput);
         if (gotStatsFrom == StatCollector.getStatCollector().getTotalOpenedConnections()) { //mean now we have gotten stats from all conns. time to notify other agents
-            log.info("Notifying client-agent about stats {}", incomingRequests.size());
+            log.info("Notifying client-agent about stats ");
             try {
                 notifyAgents();
             } catch (IOException e) {
@@ -148,13 +148,21 @@ public class AgentServer implements ISocketServer, IStatListener {
                 if (myEndHost == null) {
                     log.debug("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
 
-                    incomingRequests.add(request); // also remove this request once connection terminates. TODO
+                    addToRequestPool(request); // also remove this request once connection terminates. TODO
                     myEndHost = hostManager.addAgentToHost(request);
                     myEndHost.addChannel(myChannel);
                     myBuffer = bufferManager.addBuffer(request, myEndHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
                 }
             }
 
+        private void addToRequestPool(RequestTemplateWrapper request) {
+            if (!incomingRequests.contains(request)) incomingRequests.add(request);
+        }
+
+
+        private void removeFromRequestPool(RequestTemplateWrapper request) {
+            if (incomingRequests.contains(request)) incomingRequests.remove(request);
+        }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
