@@ -1,5 +1,6 @@
 package edu.clemson.openflow.sos.agent;
 
+import edu.clemson.openflow.sos.buf.Buffer;
 import edu.clemson.openflow.sos.buf.OrderedPacketListener;
 import edu.clemson.openflow.sos.host.HostClient;
 import edu.clemson.openflow.sos.host.HostStatusInitiator;
@@ -22,6 +23,8 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private RequestTemplateWrapper request;
     private ArrayList<Channel> channels;
     private HostClient hostClient;
+    private Buffer buffer;
+
     private int currentChannelNo = 0;
     private long totalBytes, startTime, endTime;
     private int wCount;
@@ -42,18 +45,23 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         startTime = System.currentTimeMillis();
     }
 
+    public void setBuffer(Buffer buffer) {
+        this.buffer = buffer;
+    }
+
     @Override
-    public void orderedPacket(ByteBuf packet) {
+    public boolean orderedPacket(ByteBuf packet) {
         log.debug("Got new sorted packet");
-    //    log.info("Order count {}", packet.refCnt());
         totalBytes += packet.capacity();
-       // byte[] bytes = new byte[packet.capacity() - 4 ]; //SLOW
-       // packet.getBytes(4, bytes);
-    //    ChannelFuture cf = hostClient.getHostChannel().write(bytes);
         //TODO: lookinto read/write index
        /* ChannelFuture cf = */
-       // hostClient.getHostChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4));
-        packet.release();
+        if (hostClient.getHostChannel().isWritable()) {
+            hostClient.getHostChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4));
+            wCount++;
+            return true;
+        }
+        else return false;
+        //packet.release();
 
       /*    cf.addListener(new ChannelFutureListener() {
              @Override
@@ -63,22 +71,8 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
             }
         });*/
 
-        wCount++; // will not work if multiple clients are connected...maintaince own couter using manager ?
-   /*     if (wCount >= request.getRequest().getQueueCapacity()) {
+       // will not work if multiple clients are connected...maintaince own couter using manager ?
 
-            hostClient.getHostChannel().flush(); //packet.release();
-            wCount = 0;
-            //log.info("Flushed all channels");
-        }*/
-     //   hostClient.getHostChannel().writeAndFlush(packet);
-     //    packet.release();
-        //ReferenceCountUtil.release(packet);
-        //hostClient.getHostChannel().flush();                packet.release();
-
-
-        //ReferenceCountUtil.release(bytes);
-      //  ReferenceCountUtil.release(packet);
-        //  if (!cf.isSuccess()) log.error("write not successful {}", cf.cause());
     }
     public void addChannel(Channel channel) {
         channels.add(channel);

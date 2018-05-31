@@ -6,7 +6,7 @@ import java.util.HashMap;
 
 public interface OrderedPacketListener {
 
-    void holders(HashMap<Integer, ByteBuf> packetHolder, HashMap<Integer, Boolean> status);
-    void orderedPacket(ByteBuf packet);
+   // void holders(HashMap<Integer, ByteBuf> packetHolder, HashMap<Integer, Boolean> status);
+     boolean orderedPacket(ByteBuf packet);
 
 }

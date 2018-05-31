@@ -10,10 +10,11 @@ public class OrderedPacketInitiator {
     public void addListener(OrderedPacketListener toAdd) {
         listeners.add(toAdd);
     }
-    public void orderedPacket(ByteBuf packet) {
+    public boolean orderedPacket(ByteBuf packet) {
         for (OrderedPacketListener listener: listeners
              ) {
-            if (listener!=null) listener.orderedPacket(packet);
+            if (listener!=null) return listener.orderedPacket(packet);
         }
+        return false;
     }
 }

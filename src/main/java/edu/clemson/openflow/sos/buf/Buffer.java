@@ -68,6 +68,14 @@ public class Buffer {
         }
     }
 
+    public HashMap<Integer, Boolean> getStatus() {
+        return status;
+    }
+
+    public HashMap<Integer, ByteBuf> getPacketHolder() {
+        return packetHolder;
+    }
+
     public void setListener(Object listener) {
         orderedPacketInitiator.addListener((AgentClient) listener);
     }
@@ -83,12 +91,14 @@ public class Buffer {
             if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
                 // log.info("Sending {}", bufferIndex);
                 bufCount--;
-                sendData(packetHolder.get(bufferIndex));
-                status.put(bufferIndex, false);
-                log.debug("Sending from buffer to Host seq no. {}", expecting);
-                //         log.info("Sending from buffer {}", expecting );
 
-                expecting++;
+                if (sendData(packetHolder.get(bufferIndex)) ) {
+                    status.put(bufferIndex, false);
+                    log.debug("Sending from buffer to Host seq no. {}", expecting);
+                    //         log.info("Sending from buffer {}", expecting );
+
+                    expecting++;
+                }
             } else break;
         }
     }
@@ -123,13 +133,14 @@ public class Buffer {
             //   log.info("buf used {}", bufCount);
             if (currentSeqNo == expecting) {
                 //    log.info("Sending {}", currentSeqNo);
-                sendData(data);
-                log.debug("Sending direclty to Host seq no: {} ", expecting);
-                //log.info("Sending Directly {}", currentSeqNo );
+                if (sendData(data)) {
+                    log.debug("Sending direclty to Host seq no: {} ", expecting);
+                    //log.info("Sending Directly {}", currentSeqNo );
 
-                // check how much we have in buffer
-                expecting++;
-                sendBuffer();
+                    // check how much we have in buffer
+                    expecting++;
+                    sendBuffer();
+                }
 
             } else putInBuffer(currentSeqNo, data);
         }
@@ -143,11 +154,11 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-        //processPacket(data);
+        processPacket(data);
        // sendWithoutBuffering(data);
         //dropData(data);
 
-        processDontSend(data);
+        //processDontSend(data);
     }
 
     public void processDontSend(ByteBuf data) {
@@ -268,8 +279,8 @@ public class Buffer {
         }
     }*/
 
-    private void sendData(ByteBuf data) {
-        orderedPacketInitiator.orderedPacket(data); //notify the listener
+    private boolean sendData(ByteBuf data) {
+        return orderedPacketInitiator.orderedPacket(data); //notify the listener
 
     }
 

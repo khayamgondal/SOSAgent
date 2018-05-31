@@ -23,7 +23,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -112,7 +111,7 @@ public class AgentServer implements ISocketServer, IStatListener {
     public class AgentServerHandler extends ChannelInboundHandlerAdapter implements RequestListener {
 
         private Buffer myBuffer;
-        private AgentToHost myEndHost;
+        private AgentToHost hostManager;
         private String remoteAgentIP;
         private int remoteAgentPort;
         private Channel myChannel;
@@ -135,23 +134,23 @@ public class AgentServer implements ISocketServer, IStatListener {
 
         }
 
-        /*
-                    Whenever AgentServer receives new port request from AgentClient. This method will be called and all the open channels
+        /*  Whenever AgentServer receives new port request from AgentClient. This method will be called and all the open channels
                     will be notified. So considering there is are previous open connections and AS receives new request it will also notify
-                    those old channels but they have a null check on myEndHost which will prevent them from using new request.
+                    those old channels but they have a null check on hostManager which will prevent them from using new request.
                     However if two client try to connect at same time it can show undesired behaviour
                     TODO: Do something better
                  */
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
 
-                if (myEndHost == null) {
+                if (hostManager == null) {
                     log.debug("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
 
                     addToRequestPool(request); // also remove this request once connection terminates. TODO
-                    myEndHost = hostManager.addAgentToHost(request);
-                    myEndHost.addChannel(myChannel);
-                    myBuffer = bufferManager.addBuffer(request, myEndHost); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+                    hostManager = AgentServer.this.hostManager.addAgentToHost(request);
+                    hostManager.addChannel(myChannel);
+                    myBuffer = bufferManager.addBuffer(request, hostManager); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+                    hostManager.setBuffer(myBuffer);
                 }
             }
 
@@ -175,8 +174,8 @@ public class AgentServer implements ISocketServer, IStatListener {
         }
 
         private void write(Object msg) {
-            if (myEndHost.getHostClient().getHostChannel().isWritable())
-                myEndHost.getHostClient().getHostChannel().writeAndFlush(msg);
+            if (hostManager.getHostClient().getHostChannel().isWritable())
+                hostManager.getHostClient().getHostChannel().writeAndFlush(msg);
             else { log.info("UNWRITTEBNLLLBSB"); ReferenceCountUtil.release(msg); }
 
         }
@@ -188,9 +187,9 @@ public class AgentServer implements ISocketServer, IStatListener {
             long stopTime = System.currentTimeMillis();
             log.info("Agentserver rate {}", (totalBytes * 8)/(stopTime-startTime)/1000);
 
-            myEndHost.transferCompleted(); // notify the host server
+            hostManager.transferCompleted(); // notify the host server
 
-            hostManager.removeAgentToHost(myEndHost);
+            AgentServer.this.hostManager.removeAgentToHost(hostManager);
             bufferManager.removeBuffer(myBuffer);
 
             ctx.close(); //close this channel
