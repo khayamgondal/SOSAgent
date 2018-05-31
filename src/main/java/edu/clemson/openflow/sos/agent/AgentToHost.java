@@ -49,11 +49,11 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         totalBytes += packet.capacity();
        // byte[] bytes = new byte[packet.capacity() - 4 ]; //SLOW
        // packet.getBytes(4, bytes);
-    //    ChannelFuture cf = hostClient.getMyChannel().write(bytes);
+    //    ChannelFuture cf = hostClient.getHostChannel().write(bytes);
         //TODO: lookinto read/write index
        /* ChannelFuture cf = */
-        hostClient.getMyChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4));
-
+       // hostClient.getHostChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4));
+        packet.release();
 
       /*    cf.addListener(new ChannelFutureListener() {
              @Override
@@ -66,14 +66,14 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         wCount++; // will not work if multiple clients are connected...maintaince own couter using manager ?
    /*     if (wCount >= request.getRequest().getQueueCapacity()) {
 
-            hostClient.getMyChannel().flush(); //packet.release();
+            hostClient.getHostChannel().flush(); //packet.release();
             wCount = 0;
             //log.info("Flushed all channels");
         }*/
-     //   hostClient.getMyChannel().writeAndFlush(packet);
+     //   hostClient.getHostChannel().writeAndFlush(packet);
      //    packet.release();
         //ReferenceCountUtil.release(packet);
-        //hostClient.getMyChannel().flush();                packet.release();
+        //hostClient.getHostChannel().flush();                packet.release();
 
 
         //ReferenceCountUtil.release(bytes);
@@ -127,5 +127,9 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         System.out.println("KHAYAM Total bytes "+ totalBytes);
         System.out.println("Total time "+ diffInSec);
         System.out.println("Throughput Mbps "+  (totalBytes / diffInSec) * 8 / 1000000 );*/
+    }
+
+    public HostClient getHostClient() {
+        return hostClient;
     }
 }

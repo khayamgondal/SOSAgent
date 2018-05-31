@@ -56,7 +56,8 @@ public class Buffer {
 
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
-        // This needs to be changed towards a polymorphic approach.
+        // TODO: remove the below section and make two setListerners()..
+        // However this starts issues when we write to channel... may be it notifies both AgentClient & AgentToHost... need to lookup
         if (callBackHandler != null) {
             orderedPacketInitiator = new OrderedPacketInitiator();
             try {
@@ -72,7 +73,6 @@ public class Buffer {
     }
 
     private int offSet(int seq) {
-        // log.info("buffer size {}", bufferSize);
         return seq % bufferSize;
     }
 
@@ -116,7 +116,7 @@ public class Buffer {
     private void processPacket(ByteBuf data) {
         try {
             if (expecting == MAX_SEQ) expecting = 0;
-            log.debug("Waiting for {}", expecting);
+            log.info("Waiting for {}", expecting);
 
             int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
             //TODO: may be use data.slice(0, 4) ??
@@ -143,10 +143,11 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-        processPacket(data);
+        //processPacket(data);
        // sendWithoutBuffering(data);
         //dropData(data);
-        //processDontSend(data);
+
+        processDontSend(data);
     }
 
     public void processDontSend(ByteBuf data) {
@@ -213,11 +214,11 @@ public class Buffer {
             bufCount++;
             packetHolder.put(bufferIndex, data);
             status.put(bufferIndex, true);
-            log.debug("Putting seq no. {} in buffer on index {}", seqNo, bufferIndex);
+       //     log.info("Putting seq no. {} in buffer on index {}", seqNo, bufferIndex);
             // log.info("BUffering {}", currentSeqNo );
             sendBufferDrop();
         } else {
-            log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix
+           log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix
             //ReferenceCountUtil.release(data);
             data.release();
         }

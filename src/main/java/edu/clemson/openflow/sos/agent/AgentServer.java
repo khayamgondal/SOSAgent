@@ -168,10 +168,17 @@ public class AgentServer implements ISocketServer, IStatListener {
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
               if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
               else myBuffer.incomingPacket((ByteBuf) msg);
-
+        //        write(msg);
             totalBytes += ((ByteBuf) msg).capacity();
             // do we need to release this msg also .. cause we are copying it in hashmap
            // ReferenceCountUtil.release(msg);
+        }
+
+        private void write(Object msg) {
+            if (myEndHost.getHostClient().getHostChannel().isWritable())
+                myEndHost.getHostClient().getHostChannel().writeAndFlush(msg);
+            else { log.info("UNWRITTEBNLLLBSB"); ReferenceCountUtil.release(msg); }
+
         }
 
         @Override

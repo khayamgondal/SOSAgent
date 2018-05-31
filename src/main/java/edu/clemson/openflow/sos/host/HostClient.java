@@ -60,11 +60,12 @@ public class HostClient implements HostStatusListener{
         try {
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)
+                   // .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 320 * 1024)
                     .handler(new ChannelInitializer() {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
-                                        .addLast("bytesDecoder", new ByteArrayDecoder())
+                                    .addLast("bytesDecoder", new ByteArrayDecoder())
                                     .addLast("hostClient", new HostClientHandler())
                                     .addLast("bytesEncoder", new ByteArrayEncoder());
                         }
@@ -81,7 +82,7 @@ public class HostClient implements HostStatusListener{
         }
     }
 
-    public Channel getMyChannel() {
+    public Channel getHostChannel() {
         return myChannel;
     }
 
