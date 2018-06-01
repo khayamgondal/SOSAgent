@@ -57,23 +57,12 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
        /* ChannelFuture cf = */
         if (hostClient.getHostChannel().isWritable()) {
             hostClient.getHostChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4));
-            wCount++;
+            wCount++; // will not work if multiple clients connected
             return true;
         }
         else return false;
-        //packet.release();
-
-      /*    cf.addListener(new ChannelFutureListener() {
-             @Override
-            public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                //ReferenceCountUtil.release(packet);
-                 log.info("After flush {}", packet.refCnt());
-            }
-        });*/
-
-       // will not work if multiple clients are connected...maintaince own couter using manager ?
-
     }
+
     public void addChannel(Channel channel) {
         channels.add(channel);
         log.debug("added channel for client {} : {} server {} : {}",

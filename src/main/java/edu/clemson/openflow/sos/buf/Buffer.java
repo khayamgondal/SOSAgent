@@ -90,15 +90,15 @@ public class Buffer {
 
             if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
                 // log.info("Sending {}", bufferIndex);
-                bufCount--;
 
                 if (sendData(packetHolder.get(bufferIndex)) ) {
+                    bufCount--;
                     status.put(bufferIndex, false);
                     log.debug("Sending from buffer to Host seq no. {}", expecting);
-                    //         log.info("Sending from buffer {}", expecting );
-
+                    // log.info("Sending from buffer {}", expecting );
                     expecting++;
                 }
+                else log.error("Sending is blocked");
             } else break;
         }
     }
@@ -141,6 +141,7 @@ public class Buffer {
                     expecting++;
                     sendBuffer();
                 }
+                else log.error("Sending is blocked");
 
             } else putInBuffer(currentSeqNo, data);
         }

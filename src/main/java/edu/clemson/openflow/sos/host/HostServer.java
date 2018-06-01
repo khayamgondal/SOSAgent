@@ -8,6 +8,7 @@ import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
 import edu.clemson.openflow.sos.shaping.IStatListener;
+import edu.clemson.openflow.sos.shaping.ShapingTimer;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimerTask;
 
 /**
  * @author Khayam Anjam kanjam@g.clemson.edu
@@ -40,7 +42,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private List<RequestTemplateWrapper> incomingRequests = new ArrayList<>();
     private NioEventLoopGroup group;
     private HostStatusInitiator hostStatusInitiator;
-    HostTrafficShaping hostTrafficShaping;
+    private HostTrafficShaping hostTrafficShaping;
     private long totalWritten;
 
     public HostServer() {
@@ -142,6 +144,10 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         group = new NioEventLoopGroup();
         hostTrafficShaping = new HostTrafficShaping(group, 0, 0, 1000);//800000000
 
+
+        ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
+        timer.s
+
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(group)
@@ -161,7 +167,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                                   }
                     );
             ChannelFuture f = b.bind().sync();
-            //myChannel = f.channel();
             log.info("Started host-side socket server at Port {}", port);
             return true;
         } catch (InterruptedException e) {

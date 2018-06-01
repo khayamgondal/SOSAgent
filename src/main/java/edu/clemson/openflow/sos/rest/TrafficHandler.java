@@ -16,6 +16,11 @@ import java.io.IOException;
 
 public class TrafficHandler extends ServerResource {
 
+
+    public static double readRate; // for now I am using a public static.. but need to change this to an event based model. where once rate is updated
+    // it notifies the HostServer and that adjusts it rate accordingly ......
+
+
     ObjectMapper mapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(TrafficHandler.class);
 
@@ -26,6 +31,8 @@ public class TrafficHandler extends ServerResource {
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
             StatsTemplate statsTemplate = mapper.readValue(request.toString(), StatsTemplate.class);
             double dd = statsTemplate.getTotalReadThroughput() * 8 /1024 / 1024;
+            readRate = statsTemplate.getTotalReadThroughput();
+
             log.info("Read size Mbps {}", dd);
 
         } catch (IOException e) {

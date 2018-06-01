@@ -283,7 +283,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
-                                    .addLast("agent-traffic-shapping", ats)
+                                    .addLast("agent-traffic-shaping", ats)
                                     .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agentClient", new AgentClientHandler())
                                     .addLast("4blength", new LengthFieldPrepender(4))
