@@ -25,6 +25,10 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Khayam Anjam kanjam@g.clemson.edu
@@ -144,9 +148,14 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         group = new NioEventLoopGroup();
         hostTrafficShaping = new HostTrafficShaping(group, 0, 0, 1000);//800000000
 
-
         ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
-        timer.s
+
+        ScheduledExecutorService scheduledExecutorService =
+                Executors.newScheduledThreadPool(1);
+
+        ScheduledFuture scheduledFuture =
+                scheduledExecutorService.scheduleAtFixedRate(timer, 0, 10, TimeUnit.SECONDS);
+
 
         try {
             ServerBootstrap b = new ServerBootstrap();

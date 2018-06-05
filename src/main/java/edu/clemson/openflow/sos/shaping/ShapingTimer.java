@@ -1,9 +1,12 @@
 package edu.clemson.openflow.sos.shaping;
 
+import edu.clemson.openflow.sos.rest.TrafficHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.TimerTask;
+public class ShapingTimer implements Runnable {
 
-public class ShapingTimer extends TimerTask {
+    private static final Logger log = LoggerFactory.getLogger(ShapingTimer.class);
 
     private HostTrafficShaping shaper;
 
@@ -13,6 +16,6 @@ public class ShapingTimer extends TimerTask {
 
     @Override
     public void run() {
-
+        shaper.configure(0, (long) TrafficHandler.readRate);
     }
 }
