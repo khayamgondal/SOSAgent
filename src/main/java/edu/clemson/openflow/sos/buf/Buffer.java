@@ -155,11 +155,11 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-        processPacket(data);
+     //   processPacket(data);
        // sendWithoutBuffering(data);
         //dropData(data);
 
-        //processDontSend(data);
+       processDontSend(data);
     }
 
     public void processDontSend(ByteBuf data) {
