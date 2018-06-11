@@ -79,7 +79,8 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
         RequestTemplateWrapper host = (RequestTemplateWrapper) o;
 
-        if (request.getRequest().getServerPort() != host.getRequest().getServerPort()) return false;
+        if (request.getRequest().getServerPort() != host.getRequest().getServerPort() ||
+                request.getRequest().getClientPort() != host.getRequest().getClientPort()) return false; // also doing check on client port as if same client can have multiple parallel conns opened to single server
         return request.getRequest().getServerIP().equals(host.getRequest().getServerIP());
     }
 

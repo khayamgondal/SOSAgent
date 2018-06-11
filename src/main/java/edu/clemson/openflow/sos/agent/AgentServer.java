@@ -6,7 +6,8 @@ package edu.clemson.openflow.sos.agent;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.clemson.openflow.sos.buf.*;
+import edu.clemson.openflow.sos.buf.Buffer;
+import edu.clemson.openflow.sos.buf.BufferManager;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
@@ -64,7 +65,7 @@ public class AgentServer implements ISocketServer, IStatListener {
 
     @Override
     public void notifyStats(long lastWriteThroughput, long lastReadThroughput) {
-        gotStatsFrom ++;
+        gotStatsFrom++;
         sumThroughput(lastWriteThroughput, lastReadThroughput);
         if (gotStatsFrom == StatCollector.getStatCollector().getTotalOpenedConnections()) { //mean now we have gotten stats from all conns. time to notify other agents
             log.info("Notifying client-agent about stats ");
@@ -82,8 +83,8 @@ public class AgentServer implements ISocketServer, IStatListener {
     }
 
     private void notifyAgents() throws IOException {
-        for (RequestTemplateWrapper request: incomingRequests
-             ) {
+        for (RequestTemplateWrapper request : incomingRequests
+                ) {
             String uri = RestRoutes.URIBuilder(request.getRequest().getClientAgentIP(), REST_PORT, TRAFFIC_PATH);
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost httpRequest = new HttpPost(uri);
@@ -108,10 +109,24 @@ public class AgentServer implements ISocketServer, IStatListener {
         totalWriteThroughput += lastWriteThroughput;
     }
 
+    private synchronized AgentToHost getHostHandler(RequestTemplateWrapper request, Channel channel) {
+        //  if (hostManager == null) {
+      //  log.info("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
+
+        addToRequestPool(request); // also remove this request once connection terminates. TODO
+        /*AgentToHost agentToHost = */
+        return hostManager.addAgentToHost(request);
+        //    agentToHost.addChannel(channel);
+        //    myBuffer = bufferManager.addBuffer(request, hostManager); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
+        //    hostManager.setBuffer(myBuffer);
+        // }
+        //  return null;
+    }
+
     public class AgentServerHandler extends ChannelInboundHandlerAdapter implements RequestListener {
 
         private Buffer myBuffer;
-        private AgentToHost hostManager;
+        private AgentToHost endHostHandler;
         private String remoteAgentIP;
         private int remoteAgentPort;
         private Channel myChannel;
@@ -143,53 +158,54 @@ public class AgentServer implements ISocketServer, IStatListener {
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
 
-                if (hostManager == null) {
-                    log.debug("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
+            endHostHandler = getHostHandler(request, myChannel);
+            endHostHandler.addChannel(myChannel);
+            myBuffer = bufferManager.addBuffer(request, endHostHandler);
+            endHostHandler.setBuffer(myBuffer);
 
-                    addToRequestPool(request); // also remove this request once connection terminates. TODO
+
+         /*       if (hostManager == null) {
+                    log.info("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
+
+                 //   addToRequestPool(request); // also remove this request once connection terminates. TODO
                     hostManager = AgentServer.this.hostManager.addAgentToHost(request);
                     hostManager.addChannel(myChannel);
                     myBuffer = bufferManager.addBuffer(request, hostManager); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
                     hostManager.setBuffer(myBuffer);
-                }
-            }
-
-        private void addToRequestPool(RequestTemplateWrapper request) {
-            if (!incomingRequests.contains(request)) incomingRequests.add(request);
+                }*/
         }
 
-
-        private void removeFromRequestPool(RequestTemplateWrapper request) {
-            if (incomingRequests.contains(request)) incomingRequests.remove(request);
-        }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-              if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
-              else myBuffer.incomingPacket((ByteBuf) msg);
-        //        write(msg);
+            if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
+            else myBuffer.incomingPacket((ByteBuf) msg);
+            //        write(msg);
             totalBytes += ((ByteBuf) msg).capacity();
             // do we need to release this msg also .. cause we are copying it in hashmap
-           // ReferenceCountUtil.release(msg);
+            // ReferenceCountUtil.release(msg);
         }
 
-        private void write(Object msg) {
+   /*     private void write(Object msg) {
             if (hostManager.getHostClient().getHostChannel().isWritable())
                 hostManager.getHostClient().getHostChannel().writeAndFlush(msg);
-            else { log.info("UNWRITTEBNLLLBSB"); ReferenceCountUtil.release(msg); }
+            else {
+                log.info("UNWRITTEBNLLLBSB");
+                ReferenceCountUtil.release(msg);
+            }
 
-        }
+        }*/
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
             ctx.flush();
 
             long stopTime = System.currentTimeMillis();
-            log.info("Agentserver rate {}", (totalBytes * 8)/(stopTime-startTime)/1000);
+            log.info("Agentserver rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
 
-            hostManager.transferCompleted(); // notify the host server
+            endHostHandler.transferCompleted(); // notify the host server
 
-            AgentServer.this.hostManager.removeAgentToHost(hostManager);
+            AgentServer.this.hostManager.removeAgentToHost(endHostHandler);
             bufferManager.removeBuffer(myBuffer);
 
             ctx.close(); //close this channel
@@ -198,14 +214,19 @@ public class AgentServer implements ISocketServer, IStatListener {
 
         }
 
-
+        private void removeFromRequestPool(RequestTemplateWrapper request) {
+            if (incomingRequests.contains(request)) incomingRequests.remove(request);
+        }
 
     }
 
+    private void addToRequestPool(RequestTemplateWrapper request) {
+        if (!incomingRequests.contains(request)) incomingRequests.add(request);
+    }
 
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
-        AgentTrafficShaping ats = new AgentTrafficShaping( group, 10000);
+        AgentTrafficShaping ats = new AgentTrafficShaping(group, 10000);
         ats.setStatListener(this);
         try {
             ServerBootstrap b = new ServerBootstrap();
@@ -221,7 +242,7 @@ public class AgentServer implements ISocketServer, IStatListener {
                                                   // .addLast("bytesDecoder", new ByteArrayDecoder())
                                                   .addLast(new AgentServerHandler())
                                                   .addLast("4blength", new LengthFieldPrepender(4))
-                                                //  .addLast("bytesEncoder", new ByteArrayEncoder())
+                                          //  .addLast("bytesEncoder", new ByteArrayEncoder())
                                           ;
                                       }
                                   }
