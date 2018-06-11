@@ -4,7 +4,6 @@ import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.agent.AgentToHost;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,14 +90,13 @@ public class Buffer {
             if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
                 // log.info("Sending {}", bufferIndex);
 
-                if (sendData(packetHolder.get(bufferIndex)) ) {
+                if (sendData(packetHolder.get(bufferIndex))) {
                     bufCount--;
                     status.put(bufferIndex, false);
                     log.debug("Sending from buffer to Host seq no. {}", expecting);
                     // log.info("Sending from buffer {}", expecting );
                     expecting++;
-                }
-                else log.error("Sending is blocked");
+                } else log.error("Sending is blocked");
             } else break;
         }
     }
@@ -140,12 +138,10 @@ public class Buffer {
                     // check how much we have in buffer
                     expecting++;
                     sendBuffer();
-                }
-                else log.error("Sending is blocked");
+                } else log.error("Sending is blocked");
 
             } else putInBuffer(currentSeqNo, data);
-        }
-        catch (IndexOutOfBoundsException exception) {
+        } catch (IndexOutOfBoundsException exception) {
             // When client is done sending, agent on the otherside will send an empty bytebuf once that bytebuf is sent, it will close the channel.
             //      reason for sending this empty bytebuf is so we can findout once agent have successfully sent all the packets.
             //     But on the receiving agent side, it is not expecting empty packets and tries to use first 4 bytes as seq no. and due to an empty packet it
@@ -155,11 +151,11 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-        processPacket(data);
+       // processPacket(data);
        // sendWithoutBuffering(data);
-        //dropData(data);
+        dropData(data);
 
-        //processDontSend(data);
+          // processDontSend(data);
     }
 
     public void processDontSend(ByteBuf data) {
@@ -182,8 +178,7 @@ public class Buffer {
                     sendBufferDrop();
 
                 } else putInBufferAndDrop(currentSeqNo, data);
-            }
-            catch (IndexOutOfBoundsException exception) {
+            } catch (IndexOutOfBoundsException exception) {
                 // When client is done sending, agent on the otherside will send an empty bytebuf once that bytebuf is sent, it will close the channel.
                 //      reason for sending this empty bytebuf is so we can findout once agent have successfully sent all the packets.
                 //     But on the receiving agent side, it is not expecting empty packets and tries to use first 4 bytes as seq no. and due to an empty packet it
@@ -199,7 +194,10 @@ public class Buffer {
     }
 
     private void sendWithoutBuffering(ByteBuf data) {
-        sendData(data);
+        if (!sendData(data)) {
+            log.error("Sending is blocked.. dropping");
+            dropData(data);
+        }
     }
 
     private void putInBuffer(int seqNo, ByteBuf data) {
@@ -226,11 +224,11 @@ public class Buffer {
             bufCount++;
             packetHolder.put(bufferIndex, data);
             status.put(bufferIndex, true);
-       //     log.info("Putting seq no. {} in buffer on index {}", seqNo, bufferIndex);
+            //     log.info("Putting seq no. {} in buffer on index {}", seqNo, bufferIndex);
             // log.info("BUffering {}", currentSeqNo );
             sendBufferDrop();
         } else {
-           log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix
+            log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix
             //ReferenceCountUtil.release(data);
             data.release();
         }

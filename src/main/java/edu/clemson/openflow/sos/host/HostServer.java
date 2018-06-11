@@ -40,9 +40,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private static final int DATA_PORT = 9877;
 
-    private RequestTemplateWrapper request;
-    private SeqGen seqGen;
-    private AgentClient agentClient;
     private List<RequestTemplateWrapper> incomingRequests = new ArrayList<>();
     private NioEventLoopGroup group;
     private HostStatusInitiator hostStatusInitiator;
@@ -65,6 +62,11 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         private ControllerManager controllerManager;
         private float totalBytes;
         private long startTime;
+
+
+        private RequestTemplateWrapper request;
+        private SeqGen seqGen;
+        private AgentClient agentClient;
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
@@ -140,21 +142,18 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         @param perChannel per channel write rate in Mbps
         @return read limit in bytes per second
      */
-    private long channelToGlobalReadLimit(int perChannel) {
+   /* private long channelToGlobalReadLimit(int perChannel) {
         return perChannel * request.getRequest().getNumParallelSockets() * 1024 *1024 / 8;
-    }
+    }*/
 
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
-        hostTrafficShaping = new HostTrafficShaping(group, 0, 0, 1000);//800000000
+        hostTrafficShaping = new HostTrafficShaping(group, 0, 200000000, 1000);
 
         ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
-
         ScheduledExecutorService scheduledExecutorService =
                 Executors.newScheduledThreadPool(1);
-
-        ScheduledFuture scheduledFuture =
-                scheduledExecutorService.scheduleAtFixedRate(timer, 0, 10, TimeUnit.SECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(timer, 0, 10, TimeUnit.SECONDS);
 
 
         try {
