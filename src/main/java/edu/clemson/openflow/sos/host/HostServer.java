@@ -121,13 +121,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             if (request != null && seqGen != null) {
                 ByteBuf seqed = seqGen.incomingPacket1((byte[]) msg);
                 agentClient.incomingPacket(seqed);
-                // long et = System.currentTimeMillis();
-                // log.info("Sen time {}", et - dt);
-
-                //KHAYAM
-                // cast into bytebuf ??
                 totalBytes += ((byte[]) msg).length;
-                // totalBytes += ((ByteBuf) msg).capacity();
             } else {
                 log.error("Couldn't find the request. Not forwarding packet");
                 ReferenceCountUtil.release(msg);
@@ -146,7 +140,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
-        hostTrafficShaping = new HostTrafficShaping(group, 0, 0, 1000);//800000000
+        hostTrafficShaping = new HostTrafficShaping(group, 0, 0, 500);//800000000
 
         ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
 

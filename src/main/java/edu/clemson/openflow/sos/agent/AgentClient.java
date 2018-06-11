@@ -163,9 +163,9 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             //    log.debug("Reading from remote agent");
-            int size = ((ByteBuf) msg).capacity();
+       //     int size = ((ByteBuf) msg).capacity();
             //log.info(size + "");
-            if (size > 0)
+        //    if (size > 0)
                 myBuffer.incomingPacket((ByteBuf) msg);
 
             //ReferenceCountUtil.release(msg);
@@ -200,63 +200,22 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         return Boolean.parseBoolean(response.toString());
     }
 
-    //change this byte[] into bytebuf
-  /*  public void incomingPacket(byte[] data) {
-        if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
-        // log.debug("Forwarding packet with size {} & seq {} on channel no. {} to Agent-Server", data.length,
-        //          ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 31)).getInt(),
-        //        currentChannelNo);
-
-        writeToAgentChannel(channels.get(currentChannelNo), data);
-        currentChannelNo++;
-    }*/
 
     public void incomingPacket(ByteBuf data) {
-        //      for (Channel ch: channels
-        //         ) {
-        //       ch.writeAndFlush(data.retain());
-        //  }
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
         writeToAgentChannel(channels.get(currentChannelNo), data);
         currentChannelNo++;
     }
 
-   /* private void writeToAgentChannel(Channel currentChannel, byte[] data) {
-        // log.debug("packet content is {}", new String(data));
-        ChannelFuture cf = currentChannel.write(data);
-        wCount++;
-        if (wCount >= request.getRequest().getBufferSize()) {
-            for (Channel channel : channels) {
-                channel.flush();
-            }
-            wCount = 0;
-            //log.info("Flushed all channels");
-        }
-        perChBytes.put(currentChannelNo, perChBytes.getOrDefault(currentChannelNo, 0f) + data.length);
-
-        totalBytes += data.length;
-        cf.addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                ReferenceCountUtil.release(data);
-            }
-        });
-      //  if (!cf.isSuccess()) {
-       //     log.error("Sending packet failed .. due to {}", cf.cause());
-      //  }
-    }*/
-
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
-        currentChannel.writeAndFlush(data);
-        /*ChannelFuture cf = currentChannel.write(data);
+        //currentChannel.writeAndFlush(data);
+        ChannelFuture cf = currentChannel.write(data);
         wCount++;
         if (wCount >= request.getRequest().getBufferSize() * request.getRequest().getNumParallelSockets()) {
             for (Channel channel : channels)
                 channel.flush();
             wCount = 0;
         }
-        perChBytes.put(currentChannelNo, perChBytes.getOrDefault(currentChannelNo, 0f) + data.capacity());
-
         cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
@@ -265,16 +224,11 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
                 else log.error("Failed to write packet to channel {}", cf.cause());
             }
         });
-      //  if (!cf.isSuccess()) {
-      //      log.error("Sending packet failed .. due to {}", cf.cause());
-      //  }
-
-*/
     }
 
     private Bootstrap bootStrap(EventLoopGroup group, String agentServerIP) {
         try {
-            ats = new AgentTrafficShaping(eventLoopGroup, 1000);
+            ats = new AgentTrafficShaping(eventLoopGroup, 500);
             ats.setStatListener(statListener);
 
             Bootstrap bootstrap = new Bootstrap().group(group)

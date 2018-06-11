@@ -17,6 +17,7 @@ public class ShapingTimer implements Runnable {
     @Override
     public void run() {
 
-        //shaper.configure(0, (long) TrafficHandler.readRate);
+        if (TrafficHandler.readRate > 0)
+            shaper.configure(0, (long) TrafficHandler.readRate);
     }
 }
