@@ -7,7 +7,6 @@ import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
-import edu.clemson.openflow.sos.shaping.IStatListener;
 import edu.clemson.openflow.sos.shaping.ShapingTimer;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
 import io.netty.bootstrap.ServerBootstrap;
@@ -24,10 +23,8 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -143,7 +140,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
 
-        hostTrafficShaping = new HostTrafficShaping(group, 0, 200000000, 1000);
+        hostTrafficShaping = new HostTrafficShaping(group, 0, 100000000, 5000);
 
         ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
         ScheduledExecutorService scheduledExecutorService =

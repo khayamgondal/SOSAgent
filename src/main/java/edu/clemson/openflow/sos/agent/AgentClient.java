@@ -7,7 +7,7 @@ import edu.clemson.openflow.sos.host.HostStatusListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import edu.clemson.openflow.sos.shaping.AgentTrafficShaping;
-import edu.clemson.openflow.sos.shaping.IStatListener;
+import edu.clemson.openflow.sos.shaping.ISocketStatListener;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -39,7 +39,7 @@ import java.util.List;
  * 4: Write packet to open channels in circular order
  */
 
-public class AgentClient implements OrderedPacketListener, HostStatusListener {
+public class AgentClient implements OrderedPacketListener, HostStatusListener, ISocketStatListener {
     private static final Logger log = LoggerFactory.getLogger(AgentClient.class);
 
     private static final String PORTMAP_PATH = "/portmap";
@@ -59,7 +59,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
     private Channel hostChannel;
     private EventLoopGroup eventLoopGroup;
     private AgentTrafficShaping ats;
-    private IStatListener statListener;
 
     public AgentClient(RequestTemplateWrapper request) {
         this.request = request;
@@ -101,9 +100,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         startTime = System.currentTimeMillis();
     }
 
-    public void setStatListener(IStatListener statListener) {
-        this.statListener = statListener;
-    }
+
 
     @Override
     public boolean orderedPacket(ByteBuf packet) {
@@ -111,15 +108,16 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         packet.getBytes(4, bytes);
         if (hostChannel.isWritable()) {
             ChannelFuture cf = hostChannel.writeAndFlush(bytes);
+            cf.addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                    totalBytes += packet.capacity();
+                }
+            });
+            if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
             return true;
         }
-        //  cf.addListener(new ChannelFutureListener() {
-        //      @Override
-        //      public void operationComplete(ChannelFuture channelFuture) throws Exception {
-        //          ReferenceCountUtil.release(packet);
-        //      }
-        //  });
-        //  if (!cf.isSuccess()) log.error("write back to host not successful {}", cf.cause());
+
         return false;
     }
 
@@ -156,6 +154,11 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
             log.info("Agentclient rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
 
         }
+    }
+
+    @Override
+    public void SocketStats(long lastWriteThroughput, long lastReadThroughput) {
+        log.info("Write {}", lastWriteThroughput);
     }
 
     public class AgentClientHandler extends ChannelInboundHandlerAdapter {
@@ -219,7 +222,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
         cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
-               // log.info("Ref count {}", data.refCnt());
                 if (cf.isSuccess()) totalBytes += data.capacity();
                 else log.error("Failed to write packet to channel {}", cf.cause());
             }
@@ -228,8 +230,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener {
 
     private Bootstrap bootStrap(EventLoopGroup group, String agentServerIP) {
         try {
-            ats = new AgentTrafficShaping(eventLoopGroup, 500);
-            ats.setStatListener(statListener);
+            ats = new AgentTrafficShaping(eventLoopGroup, 5000);
+            ats.setStatListener(this);
 
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)

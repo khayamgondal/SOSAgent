@@ -13,7 +13,7 @@ import edu.clemson.openflow.sos.rest.RequestListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import edu.clemson.openflow.sos.shaping.AgentTrafficShaping;
-import edu.clemson.openflow.sos.shaping.IStatListener;
+import edu.clemson.openflow.sos.shaping.ISocketStatListener;
 import edu.clemson.openflow.sos.shaping.StatsTemplate;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import edu.clemson.openflow.sos.utils.EventListenersLists;
@@ -24,7 +24,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.util.ReferenceCountUtil;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
@@ -37,7 +36,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AgentServer implements ISocketServer, IStatListener {
+public class AgentServer implements ISocketServer, ISocketStatListener {
 
     private static final Logger log = LoggerFactory.getLogger(AgentServer.class);
 
@@ -64,7 +63,7 @@ public class AgentServer implements ISocketServer, IStatListener {
     }
 
     @Override
-    public void notifyStats(long lastWriteThroughput, long lastReadThroughput) {
+    public void SocketStats(long lastWriteThroughput, long lastReadThroughput) {
         gotStatsFrom++;
         sumThroughput(lastWriteThroughput, lastReadThroughput);
         if (gotStatsFrom == StatCollector.getStatCollector().getTotalOpenedConnections()) { //mean now we have gotten stats from all conns. time to notify other agents
@@ -110,17 +109,9 @@ public class AgentServer implements ISocketServer, IStatListener {
     }
 
     private synchronized AgentToHost getHostHandler(RequestTemplateWrapper request, Channel channel) {
-        //  if (hostManager == null) {
-      //  log.info("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
 
         addToRequestPool(request); // also remove this request once connection terminates. TODO
-        /*AgentToHost agentToHost = */
         return hostManager.addAgentToHost(request);
-        //    agentToHost.addChannel(channel);
-        //    myBuffer = bufferManager.addBuffer(request, hostManager); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
-        //    hostManager.setBuffer(myBuffer);
-        // }
-        //  return null;
     }
 
     public class AgentServerHandler extends ChannelInboundHandlerAdapter implements RequestListener {
@@ -150,11 +141,7 @@ public class AgentServer implements ISocketServer, IStatListener {
         }
 
         /*  Whenever AgentServer receives new port request from AgentClient. This method will be called and all the open channels
-                    will be notified. So considering there is are previous open connections and AS receives new request it will also notify
-                    those old channels but they have a null check on hostManager which will prevent them from using new request.
-                    However if two client try to connect at same time it can show undesired behaviour
-                    TODO: Do something better
-                 */
+                    will be notified.                */
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
 
@@ -162,17 +149,6 @@ public class AgentServer implements ISocketServer, IStatListener {
             endHostHandler.addChannel(myChannel);
             myBuffer = bufferManager.addBuffer(request, endHostHandler);
             endHostHandler.setBuffer(myBuffer);
-
-
-         /*       if (hostManager == null) {
-                    log.info("Setting up receive buffer for this connection. My end-host is {} {}", request.getRequest().getServerIP(), request.getRequest().getServerPort());
-
-                 //   addToRequestPool(request); // also remove this request once connection terminates. TODO
-                    hostManager = AgentServer.this.hostManager.addAgentToHost(request);
-                    hostManager.addChannel(myChannel);
-                    myBuffer = bufferManager.addBuffer(request, hostManager); //passing callback listener so when sorted packets are avaiable it can notify the agent2host
-                    hostManager.setBuffer(myBuffer);
-                }*/
         }
 
 
@@ -226,7 +202,7 @@ public class AgentServer implements ISocketServer, IStatListener {
 
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
-        AgentTrafficShaping ats = new AgentTrafficShaping(group, 10000);
+        AgentTrafficShaping ats = new AgentTrafficShaping(group, 5000);
         ats.setStatListener(this);
         try {
             ServerBootstrap b = new ServerBootstrap();

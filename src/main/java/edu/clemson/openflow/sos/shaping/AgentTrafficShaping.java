@@ -17,17 +17,13 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
     private final List<Long> throughputWrittenBytes = new LinkedList<Long>();
     private final List<Long> throughputReadBytes = new LinkedList<Long>();
 
-    private IStatListener statListener;
+    private ISocketStatListener statListener;
 
-   /* public AgentTrafficShaping(ScheduledExecutorService executor, long checkInterval) {
-       super(executor, checkInterval);
-    }*/
     public AgentTrafficShaping(ScheduledExecutorService executor, long checkInterval) {
         super(executor, checkInterval);
-       // this.statListener = statListener;
     }
 
-    public void setStatListener(IStatListener statListener) {
+    public void setStatListener(ISocketStatListener statListener) {
         this.statListener = statListener;
     }
 
@@ -48,7 +44,7 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
             for (TrafficCounter tc : this.channelTrafficCounters()) {
            //     log.info("Written {}", tc.lastWriteThroughput() * 8 / 1024 / 1024);
             //    log.info("Read {}", tc.lastReadThroughput() * 8 / 1024 / 1024);
-                statListener.notifyStats(tc.lastWriteThroughput(), tc.lastReadThroughput());
+                statListener.SocketStats(tc.lastWriteThroughput(), tc.lastReadThroughput());
             }
         }
 
@@ -80,7 +76,7 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
       //      long dd = throughputWrittenBytes.get(0) * 8 / 1024 ;
         //    log.info("Legacy {}", dd);
       //  }
-       // if (statListener != null) statListener.notifyStats(throughputWrittenBytes);
+       // if (statListener != null) statListener.SocketStats(throughputWrittenBytes);
      // else log.error("Stat listener is null ");
         cumulativeWrittenBytes.clear();
         cumulativeReadBytes.clear();
