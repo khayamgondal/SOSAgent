@@ -147,10 +147,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
             StatCollector.getStatCollector().connectionRemoved();
             long stopTime = System.currentTimeMillis();
-            for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
-                log.info("Ch {} rate {}", i, (perChBytes.get(i) * 8) / (stopTime - startTime) / 1000);
-
-            }
             log.info("Agentclient rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
 
         }
@@ -158,7 +154,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     @Override
     public void SocketStats(long lastWriteThroughput, long lastReadThroughput) {
-        log.info("Write {}", lastWriteThroughput);
+        log.info("Write {}", lastWriteThroughput * 8 / 1024 /1024);
     }
 
     public class AgentClientHandler extends ChannelInboundHandlerAdapter {
@@ -219,13 +215,13 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
                 channel.flush();
             wCount = 0;
         }
-        cf.addListener(new ChannelFutureListener() {
+  /*      cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
                 if (cf.isSuccess()) totalBytes += data.capacity();
                 else log.error("Failed to write packet to channel {}", cf.cause());
             }
-        });
+        });*/
     }
 
     private Bootstrap bootStrap(EventLoopGroup group, String agentServerIP) {
