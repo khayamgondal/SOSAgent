@@ -1,16 +1,14 @@
 package edu.clemson.openflow.sos.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.clemson.openflow.sos.utils.EventListenersLists;
+import edu.clemson.openflow.sos.utils.Utils;
 import org.json.JSONObject;
-import org.restlet.data.Header;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
-import org.restlet.util.Series;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +28,7 @@ public class RequestHandler extends ServerResource{
             incomingRequest.getRequest().setControllerIP(ctlIP);
             log.debug("Request Object {}", request.toString());
             // also implement the getting of controller IP
-            for (RequestListener requestListener : EventListenersLists.requestListeners) {
+            for (RequestListener requestListener : Utils.requestListeners) {
                 if (requestListener != null) {
                     requestListener.newIncomingRequest(incomingRequest); //notify the packet receiver about new incoming connection && and also assign a buffer to it.
                     log.debug("Notified the agent server handler about request ");

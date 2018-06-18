@@ -16,7 +16,7 @@ import edu.clemson.openflow.sos.shaping.AgentTrafficShaping;
 import edu.clemson.openflow.sos.shaping.ISocketStatListener;
 import edu.clemson.openflow.sos.shaping.StatsTemplate;
 import edu.clemson.openflow.sos.stats.StatCollector;
-import edu.clemson.openflow.sos.utils.EventListenersLists;
+import edu.clemson.openflow.sos.utils.Utils;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -24,6 +24,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.util.ReferenceCountUtil;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
@@ -134,7 +135,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             remoteAgentIP = socketAddress.getHostName();
             remoteAgentPort = socketAddress.getPort();
             myChannel = ctx.channel();
-            EventListenersLists.requestListeners.add(this);
+            Utils.requestListeners.add(this);
             StatCollector.getStatCollector().connectionAdded();
             startTime = System.currentTimeMillis();
 
@@ -155,11 +156,11 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
-            else myBuffer.incomingPacket((ByteBuf) msg);
+       //     else myBuffer.incomingPacket((ByteBuf) msg);
             //        write(msg);
             totalBytes += ((ByteBuf) msg).capacity();
             // do we need to release this msg also .. cause we are copying it in hashmap
-            // ReferenceCountUtil.release(msg);
+             ReferenceCountUtil.release(msg);
         }
 
    /*     private void write(Object msg) {

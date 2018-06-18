@@ -155,7 +155,6 @@ public class Buffer {
        // processPacket(data);
         //sendWithoutBuffering(data);
         dropData(data);
-        log.info("{}", data.refCnt());
       // processDontSend(data);
     }
 

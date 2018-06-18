@@ -6,9 +6,11 @@ import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
+import edu.clemson.openflow.sos.rest.TrafficHandler;
 import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
+import edu.clemson.openflow.sos.shaping.RestStatListener;
 import edu.clemson.openflow.sos.shaping.ShapingTimer;
-import edu.clemson.openflow.sos.utils.EventListenersLists;
+import edu.clemson.openflow.sos.utils.Utils;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -32,10 +34,15 @@ import java.util.concurrent.TimeUnit;
  * Listens for connections from client on port 9877
  */
 
-public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer, RequestListener {
+public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer,
+        RequestListener, RestStatListener {
+
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
 
     private static final int DATA_PORT = 9877;
+    protected static final String TRAFFIC_PATH = "/traffic";
+    protected static final String BASE_PATH = "/sos";
+    protected static final String API_VERSION = "/v1.0";
 
     private List<RequestTemplateWrapper> incomingRequests = new ArrayList<>();
     private NioEventLoopGroup group;
@@ -44,12 +51,25 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private long totalWritten;
 
     public HostServer() {
-        EventListenersLists.requestListeners.add(this); //we register for incoming requests
+
+        Utils.requestListeners.add(this); //we register for incoming requests
+        if (Utils.router != null) {
+            Utils.router.attach(PathBuilder(TRAFFIC_PATH), TrafficHandler.class);
+            Utils.router.getContext().getAttributes().put("test", "FCK KK ");
+        }
     }
 
+    private String PathBuilder(String path) {
+        return BASE_PATH + API_VERSION + path;
+    }
     private synchronized void totalWritten(long written) {
         totalWritten += written;
      //   log.info(" {}", totalWritten * 8 /1024);
+
+    }
+
+    @Override
+    public void restStats() {
 
     }
 
@@ -78,16 +98,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
             }
-            //   myChannel = ctx.channel();
             startTime = System.currentTimeMillis();
 
             if (request != null) {
                 seqGen = new SeqGen();
 
                 agentClient = new AgentClient(request);
-
-               // agentClient.setStatListener(HostServer.this);
-
                 agentClient.bootStrapSockets();
                 agentClient.setWriteBackChannel(ctx.channel());
 
