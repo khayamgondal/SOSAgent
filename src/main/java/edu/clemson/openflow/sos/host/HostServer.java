@@ -40,9 +40,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
 
     private static final int DATA_PORT = 9877;
-    protected static final String TRAFFIC_PATH = "/traffic";
-    protected static final String BASE_PATH = "/sos";
-    protected static final String API_VERSION = "/v1.0";
 
     private List<RequestTemplateWrapper> incomingRequests = new ArrayList<>();
     private NioEventLoopGroup group;
@@ -53,15 +50,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     public HostServer() {
 
         Utils.requestListeners.add(this); //we register for incoming requests
+
         if (Utils.router != null) {
-            Utils.router.attach(PathBuilder(TRAFFIC_PATH), TrafficHandler.class);
-            Utils.router.getContext().getAttributes().put("test", "FCK KK ");
+            Utils.router.getContext().getAttributes().put("callback", this); //also pass the callback listener via router context
         }
     }
 
-    private String PathBuilder(String path) {
-        return BASE_PATH + API_VERSION + path;
-    }
     private synchronized void totalWritten(long written) {
         totalWritten += written;
      //   log.info(" {}", totalWritten * 8 /1024);
@@ -69,8 +63,9 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     }
 
     @Override
-    public void restStats() {
-
+    public void RestStats(double totalReadThroughput, double totalWriteThroughput) {
+    //    if (hostTrafficShaping != null) hostTrafficShaping.setReadLimit((long) totalReadThroughput);
+        log.info("CALLLLLLLLLLLLLED {}", totalReadThroughput);
     }
 
 
@@ -156,12 +151,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
 
-        hostTrafficShaping = new HostTrafficShaping(group, 0, 100000000, 5000);
+        hostTrafficShaping = new HostTrafficShaping(group, 0, 00000000, 5000);
 
-        ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
-        ScheduledExecutorService scheduledExecutorService =
-                Executors.newScheduledThreadPool(1);
-        scheduledExecutorService.scheduleAtFixedRate(timer, 0, 10, TimeUnit.SECONDS);
+      //  ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
+      //  ScheduledExecutorService scheduledExecutorService =
+      //          Executors.newScheduledThreadPool(1);
+      //  scheduledExecutorService.scheduleAtFixedRate(timer, 0, 10, TimeUnit.SECONDS);
 
 
         try {

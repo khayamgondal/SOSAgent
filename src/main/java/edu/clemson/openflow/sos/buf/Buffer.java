@@ -154,8 +154,8 @@ public class Buffer {
        //processPacket(data);
        // processPacket(data);
         //sendWithoutBuffering(data);
-        dropData(data);
-      // processDontSend(data);
+       // dropData(data);
+       processDontSend(data);
     }
 
     public void processDontSend(ByteBuf data) {
@@ -234,49 +234,6 @@ public class Buffer {
         }
     }
 
-    /*public synchronized void incomingPacket(ByteBuf data) { // need to check performance of this method
-        //sendData(data);
-        //log.info("SIZE   {}", data.capacity());
-        if (expecting == MAX_SEQ) expecting = 0;
-        // log.info("Expecting {}", expecting);
-        int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
-        if (currentSeqNo == expecting) {
-            sendData(data);
-            log.debug("Sending to Host seq no: {} ", expecting);
-            //log.info("Sending Directly {}", currentSeqNo );
-
-            // check how much we have in buffer
-            expecting++;
-            while (true) { //also check our buffer. do we have some unsent packets there too.
-                if (status.get(expecting) != null && status.get(expecting)) {
-                    sendData(packetHolder.get(expecting));
-                    status.put(expecting, false);
-                    log.debug("Sending to Host seq no. {}", expecting);
-                    //         log.info("Sending from buffer {}", expecting );
-
-                    expecting++;
-                } else break;
-            }
-
-        } else {
-            if (status.get(currentSeqNo) == null || !status.get(currentSeqNo)) {
-                packetHolder.put(currentSeqNo, data);
-                status.put(currentSeqNo, true);
-                log.debug("Putting seq no. {} in buffer", currentSeqNo);
-                // log.info("BUffering {}", currentSeqNo );
-                while (true) { //also check our buffer. do we have some unsent packets there too.
-                    if (status.get(expecting) != null && status.get(expecting)) {
-                        sendData(packetHolder.get(expecting));
-                        status.put(expecting, false);
-                        log.debug("Sending to Host seq no. {}", expecting);
-                        //         log.info("Sending from buffer {}", expecting );
-
-                        expecting++;
-                    } else break;
-                }
-            } else log.error("Still unsent packets in buffer.. droping seq. {}", currentSeqNo); //something wrong here... need to fix
-        }
-    }*/
 
     private boolean sendData(ByteBuf data) {
         return orderedPacketInitiator.orderedPacket(data); //notify the listener

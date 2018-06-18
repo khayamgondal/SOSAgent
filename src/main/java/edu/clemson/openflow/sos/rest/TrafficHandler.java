@@ -33,7 +33,9 @@ public class TrafficHandler extends ServerResource {
 
     @Override
     protected void doInit() throws ResourceException {
-        System.out.println("FFFFFFFFFFFFFF"+ getContext().getAttributes().get("test"));
+        HostServer listener = (HostServer) getContext().getAttributes().get("callback");
+
+        if (listener!= null ) setRestListener(listener);
     }
 
     public void setRestListener(HostServer listener) {
@@ -45,10 +47,10 @@ public class TrafficHandler extends ServerResource {
         try {
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
             StatsTemplate statsTemplate = mapper.readValue(request.toString(), StatsTemplate.class);
-            double dd = statsTemplate.getTotalReadThroughput() * 8 / 1024 / 1024;
-            readRate = statsTemplate.getTotalReadThroughput();
-
-            log.info("Read size Mbps {}", dd);
+            //double dd = statsTemplate.getTotalReadThroughput() * 8 / 1024 / 1024;
+            //readRate = statsTemplate.getTotalReadThroughput();
+            if (restStatListener != null) restStatListener.RestStats(statsTemplate.getTotalReadThroughput(), statsTemplate.getTotalWriteThroughput());
+            //log.info("Read size Mbps {}", dd);
 
         } catch (IOException e) {
             e.printStackTrace();

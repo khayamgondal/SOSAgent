@@ -16,6 +16,7 @@ public class RestRoutes {
     protected static final String BASE_PATH = "/sos";
     protected static final String API_VERSION = "/v1.0";
 
+    protected static final String TRAFFIC_PATH = "/traffic";
     protected static final String HEALTH_PATH = "/health";
     protected static final String REQUEST_PATH = "/request";
     protected static final String PORTMAP_PATH = "/portmap";
@@ -30,11 +31,7 @@ public class RestRoutes {
         Utils.router = router;
 
         router.attach(PathBuilder(HEALTH_PATH), HealthStatus.class);
-       // TrafficHandler trafficHandler = new TrafficHandler();
-       // TrafficHandler.InternalClass it = trafficHandler.new InternalClass();
-       // router.attach(PathBuilder(TRAFFIC_PATH), trafficHandler) ;
-
-
+        router.attach(PathBuilder(TRAFFIC_PATH), TrafficHandler.class);
         router.attach(PathBuilder(REQUEST_PATH), RequestHandler.class);
         router.attach(PathBuilder(PORTMAP_PATH), RequestHandler.class);
 

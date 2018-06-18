@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private static final Logger log = LoggerFactory.getLogger(AgentToHost.class);
@@ -75,14 +76,33 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-      //  if (o == null || getClass() != o.getClass()) return false;
 
-        RequestTemplateWrapper host = (RequestTemplateWrapper) o;
+        try {
+            RequestTemplateWrapper hostRequest = (RequestTemplateWrapper) o;
+            if (request.getRequest().getServerPort() != hostRequest.getRequest().getServerPort() ||
+                    request.getRequest().getClientPort() != hostRequest.getRequest().getClientPort()) return false; // also doing check on client port as if same client can have multiple parallel conns opened to single server
+            return request.getRequest().getServerIP().equals(hostRequest.getRequest().getServerIP());
+        }
+        catch (ClassCastException exp) {
+            AgentToHost host = (AgentToHost) o;
+            if (request.getRequest().getServerPort() != host.request.getRequest().getServerPort() ||
+                    request.getRequest().getClientPort() != host.request.getRequest().getClientPort()) return false; // also doing check on client port as if same client can have multiple parallel conns opened to single server
+            return request.getRequest().getServerIP().equals(host.request.getRequest().getServerIP());
+        }
 
-        if (request.getRequest().getServerPort() != host.getRequest().getServerPort() ||
-                request.getRequest().getClientPort() != host.getRequest().getClientPort()) return false; // also doing check on client port as if same client can have multiple parallel conns opened to single server
-        return request.getRequest().getServerIP().equals(host.getRequest().getServerIP());
     }
+
+   /* @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AgentToHost that = (AgentToHost) o;
+        return Objects.equals(hostStatusInitiator, that.hostStatusInitiator) &&
+                Objects.equals(request, that.request) &&
+                Objects.equals(channels, that.channels) &&
+                Objects.equals(hostClient, that.hostClient) &&
+                Objects.equals(buffer, that.buffer);
+    }*/
 
     @Override
     public int hashCode() {

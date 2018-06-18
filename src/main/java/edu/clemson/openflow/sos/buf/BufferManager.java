@@ -24,7 +24,7 @@ public class BufferManager {
        Buffer buffer = getBuffer(request);
         if (buffer == null) {
             buffer = new Buffer(request, callBackHandler);
-            log.debug("Setting up new buffer for client {} : port {}",
+            log.info("Setting up new buffer for client {} : port {}",
                     request.getRequest().getClientIP(),
                     request.getRequest().getClientPort());
             buffers.add(buffer);

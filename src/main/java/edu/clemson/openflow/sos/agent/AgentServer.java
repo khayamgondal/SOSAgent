@@ -138,6 +138,8 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             Utils.requestListeners.add(this);
             StatCollector.getStatCollector().connectionAdded();
             startTime = System.currentTimeMillis();
+            //also register this class for new port request event.
+            Utils.router.getContext().getAttributes().put("portcallback", this);
 
         }
 
@@ -156,11 +158,8 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
-       //     else myBuffer.incomingPacket((ByteBuf) msg);
-            //        write(msg);
+            else myBuffer.incomingPacket((ByteBuf) msg);
             totalBytes += ((ByteBuf) msg).capacity();
-            // do we need to release this msg also .. cause we are copying it in hashmap
-             ReferenceCountUtil.release(msg);
         }
 
    /*     private void write(Object msg) {
@@ -182,7 +181,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
             endHostHandler.transferCompleted(); // notify the host server
 
-            AgentServer.this.hostManager.removeAgentToHost(endHostHandler);
+            hostManager.removeAgentToHost(endHostHandler);
             bufferManager.removeBuffer(myBuffer);
 
             ctx.close(); //close this channel
