@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  */
 
 public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer,
-        RequestListener, RestStatListener {
+         RestStatListener, RequestListener {
 
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
 
@@ -49,7 +49,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     public HostServer() {
 
-        Utils.requestListeners.add(this); //we register for incoming requests
+      //  Utils.requestListeners.add(this); //we register for incoming requests
+        Utils.router.getContext().getAttributes().put("portcallback", this);
 
         if (Utils.router != null) {
             Utils.router.getContext().getAttributes().put("callback", this); //also pass the callback listener via router context
@@ -79,6 +80,17 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         private RequestTemplateWrapper request;
         private SeqGen seqGen;
         private AgentClient agentClient;
+
+        public HostServerHandler() {
+         //   Utils.router.getContext().getAttributes().put("portcallback", this);
+     //       log.info("PUITTTTT");
+        }
+
+   //     @Override
+        public void newIncomingRequest(RequestTemplateWrapper request) {
+            log.info("Called called");
+            this.request = request;
+        }
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
@@ -137,6 +149,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 ReferenceCountUtil.release(msg);
             }
         }
+
+
     }
 
 
@@ -230,6 +244,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     @Override
     public void newIncomingRequest(RequestTemplateWrapper request) {
+        log.info("GOT REQUESTTT");
         incomingRequests.add(request);
 
     }

@@ -152,13 +152,15 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             endHostHandler.addChannel(myChannel);
             myBuffer = bufferManager.addBuffer(request, endHostHandler);
             endHostHandler.setBuffer(myBuffer);
+            if (myBuffer == null) log.error("Receiving buffer NULL for client {} port {} ", request.getRequest().getClientIP(),
+                    request.getRequest().getClientPort());
         }
 
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            if (myBuffer == null) log.error("BUFFER NULL for {} ... wont be writing packets", remoteAgentPort);
-            else myBuffer.incomingPacket((ByteBuf) msg);
+            if (myBuffer != null) myBuffer.incomingPacket((ByteBuf) msg);
+            else ReferenceCountUtil.release(msg);
             totalBytes += ((ByteBuf) msg).capacity();
         }
 

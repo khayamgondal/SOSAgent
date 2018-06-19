@@ -2,7 +2,9 @@ package edu.clemson.openflow.sos.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.agent.AgentServer;
+import edu.clemson.openflow.sos.host.HostServer;
 import edu.clemson.openflow.sos.utils.Utils;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.json.JSONObject;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -23,13 +25,17 @@ public class RequestHandler extends ServerResource{
     public void setRestListener(AgentServer.AgentServerHandler listener) {
         this.restRequestListener = listener;
     }
+    public void setRestListener(HostServer listener) {
+        this.restRequestListener = listener;
+    }
+
 
     @Override
     protected void doInit() throws ResourceException {
-        AgentServer.AgentServerHandler listener = (AgentServer.AgentServerHandler) getContext().getAttributes().get("portcallback");
-
-        if (listener!= null ) setRestListener(listener);
-    }
+        Object listener = getContext().getAttributes().get("portcallback");
+        if (listener instanceof AgentServer.AgentServerHandler) setRestListener((AgentServer.AgentServerHandler) listener);
+        else if (listener instanceof HostServer) setRestListener((HostServer) listener);
+        }
 
     @Override
     protected Representation post(Representation entity) throws ResourceException {
@@ -42,6 +48,7 @@ public class RequestHandler extends ServerResource{
             log.debug("Request Object {}", request.toString());
             // also implement the getting of controller IP
             if (restRequestListener != null)  restRequestListener.newIncomingRequest(incomingRequest);
+
          //   for (RequestListener requestListener : Utils.requestListeners) {
           //      if (requestListener != null) {
            //         requestListener.newIncomingRequest(incomingRequest); //notify the packet receiver about new incoming connection && and also assign a buffer to it.

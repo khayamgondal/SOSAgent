@@ -34,7 +34,6 @@ public class TrafficHandler extends ServerResource {
     @Override
     protected void doInit() throws ResourceException {
         HostServer listener = (HostServer) getContext().getAttributes().get("callback");
-
         if (listener!= null ) setRestListener(listener);
     }
 
