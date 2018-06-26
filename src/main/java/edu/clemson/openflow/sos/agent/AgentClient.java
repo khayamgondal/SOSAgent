@@ -207,7 +207,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     }
 
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
-        //currentChannel.writeAndFlush(data);
         ChannelFuture cf = currentChannel.write(data);
         wCount++;
         if (wCount >= request.getRequest().getBufferSize() * request.getRequest().getNumParallelSockets()) {

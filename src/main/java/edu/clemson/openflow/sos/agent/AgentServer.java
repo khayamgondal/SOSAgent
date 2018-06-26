@@ -8,6 +8,7 @@ package edu.clemson.openflow.sos.agent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.buf.Buffer;
 import edu.clemson.openflow.sos.buf.BufferManager;
+import edu.clemson.openflow.sos.manager.ChannelManager;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
@@ -45,12 +46,14 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     private static final String REST_PORT = "8002";
     private static final int AGENT_DATA_PORT = 9878;
 
+   // private List<Channel> channels;
     private BufferManager bufferManager;
     private AgentToHostManager hostManager;
 
     private List<RequestTemplateWrapper> incomingRequests;
     private NioEventLoopGroup group;
 
+    private List<AgentServerHandler> handlers;
 
     private int gotStatsFrom;
     private double totalReadThroughput, totalWriteThroughput; //also need to reset these after we send these back to other agents and before
@@ -61,6 +64,8 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         incomingRequests = new ArrayList<>();
         bufferManager = new BufferManager(); //setup buffer manager.
         hostManager = new AgentToHostManager();
+       // channels = new ArrayList<>();
+        handlers = new ArrayList<>();
     }
 
     @Override
@@ -109,7 +114,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         totalWriteThroughput += lastWriteThroughput;
     }
 
-    private synchronized AgentToHost getHostHandler(RequestTemplateWrapper request, Channel channel) {
+    private synchronized AgentToHost getHostHandler(RequestTemplateWrapper request) {
 
         addToRequestPool(request); // also remove this request once connection terminates. TODO
         return hostManager.addAgentToHost(request);
@@ -117,13 +122,16 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
     public class AgentServerHandler extends ChannelInboundHandlerAdapter implements RequestListener {
 
-        private Buffer myBuffer;
+        private Buffer buffer;
         private AgentToHost endHostHandler;
         private String remoteAgentIP;
         private int remoteAgentPort;
-        private Channel myChannel;
+
+        private ChannelHandlerContext context;
         private float totalBytes;
         private long startTime;
+
+        boolean called;
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -132,35 +140,69 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
                     socketAddress.getHostName(),
                     socketAddress.getPort());
 
+            this.context = ctx;
+
             remoteAgentIP = socketAddress.getHostName();
             remoteAgentPort = socketAddress.getPort();
-            myChannel = ctx.channel();
+
+            handlers.add(this);
+
+          //  channels.add(ctx.channel());
+
+           // myChannel = ctx.channel();
             Utils.requestListeners.add(this);
             StatCollector.getStatCollector().connectionAdded();
             startTime = System.currentTimeMillis();
             //also register this class for new port request event.
             Utils.router.getContext().getAttributes().put("portcallback", this);
-
         }
 
-        /*  Whenever AgentServer receives new port request from AgentClient. This method will be called and all the open channels
+        private boolean isMineChannel(RequestTemplateWrapper request, AgentServerHandler handler) {
+            return request.getPorts().contains(((InetSocketAddress) handler.context.channel().remoteAddress()).getPort());
+        }
+
+        /*  Whenever AgentServer receives new port request from AgentClient.
+        This method will be called and all the open channels
                     will be notified.                */
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
 
-            endHostHandler = getHostHandler(request, myChannel);
-            endHostHandler.addChannel(myChannel);
-            myBuffer = bufferManager.addBuffer(request, endHostHandler);
-            endHostHandler.setBuffer(myBuffer);
-            if (myBuffer == null) log.error("Receiving buffer NULL for client {} port {} ", request.getRequest().getClientIP(),
-                    request.getRequest().getClientPort());
+            endHostHandler = getHostHandler(request);
+            for (AgentServerHandler handler: handlers
+                 ) {
+                if (isMineChannel(request, handler)) {
+                    endHostHandler.addChannel(handler.context.channel());
+                    log.info("Channel added for Client {}:{}",
+                            request.getRequest().getClientIP(), request.getRequest().getClientPort());
+                    handler.buffer = bufferManager.addBuffer(request, endHostHandler);
+
+                }
+            }
+
+          //  buffer = bufferManager.addBuffer(request, endHostHandler);
+            endHostHandler.setBuffer(buffer);
+          /*  if (buffer == null) log.error("Receiving buffer NULL for client {} port {} Agent {} Port {} ",
+                    request.getRequest().getClientIP(),
+                    request.getRequest().getClientPort(),
+                    ((InetSocketAddress) context.channel().remoteAddress()).getHostName(),
+                    ((InetSocketAddress) context.channel().remoteAddress()).getPort());
+            log.info("Req for {}", ((InetSocketAddress) context.channel().remoteAddress()).getPort());*/
         }
 
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            if (myBuffer != null) myBuffer.incomingPacket((ByteBuf) msg);
-            else ReferenceCountUtil.release(msg);
+            //  log.info("Got {}", ((ByteBuf) msg).getInt(0));
+            if (!called) {
+                log.info("Read for {}", ((InetSocketAddress) context.channel().remoteAddress()).getPort());
+                called = true;
+
+            }
+            if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
+            else {
+                //        log.error("Receiving buffer NULL for client {} port {} ",remoteAgentIP, remoteAgentPort);
+                ReferenceCountUtil.release(msg);
+            }
             totalBytes += ((ByteBuf) msg).capacity();
         }
 
@@ -181,10 +223,10 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             long stopTime = System.currentTimeMillis();
             log.info("Agentserver rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
 
-            endHostHandler.transferCompleted(); // notify the host server
+            if (endHostHandler != null) endHostHandler.transferCompleted(); // notify the host server
 
             hostManager.removeAgentToHost(endHostHandler);
-            bufferManager.removeBuffer(myBuffer);
+            bufferManager.removeBuffer(buffer);
 
             ctx.close(); //close this channel
             log.debug("Channel is inactive... Closing it");

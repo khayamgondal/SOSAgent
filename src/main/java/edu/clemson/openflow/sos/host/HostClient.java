@@ -50,7 +50,7 @@ public class HostClient implements HostStatusListener{
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             log.debug("Reading from host");
           //  byte[] packet = seqGen.incomingPacket((byte[]) msg);
-            initiator.hostPacket(seqGen.incomingPacket1((byte[]) msg)); //notify the listener
+            initiator.hostPacket(seqGen.incomingPacket((byte[]) msg)); //notify the listener
         }
 
     }

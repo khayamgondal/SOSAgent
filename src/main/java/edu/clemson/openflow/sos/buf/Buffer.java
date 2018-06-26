@@ -18,7 +18,7 @@ public class Buffer {
 
     private int bufferSize;
     private int expecting = 0;
-    private static final int MAX_SEQ = 30000; //Integer.MAX_VALUE;
+    private static final int MAX_SEQ = 80000; //Integer.MAX_VALUE;
 
     private static final int MAX_BUF = 99000;
 
@@ -56,7 +56,8 @@ public class Buffer {
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
         // TODO: remove the below section and make two setListerners()..
-        // However this starts issues when we write to channel... may be it notifies both AgentClient & AgentToHost... need to lookup
+        // However this starts issues when we write to channel...
+        // may be it notifies both AgentClient & AgentToHost... need to lookup
         if (callBackHandler != null) {
             orderedPacketInitiator = new OrderedPacketInitiator();
             try {
@@ -124,9 +125,10 @@ public class Buffer {
     private void processPacket(ByteBuf data) {
         try {
             if (expecting == MAX_SEQ) expecting = 0;
-            log.info("Waiting for {}", expecting);
+            log.debug("Waiting for {}", expecting);
 
             int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
+          //  log.info("HeRE {}", currentSeqNo);
             //TODO: may be use data.slice(0, 4) ??
             //   log.info("buf used {}", bufCount);
             if (currentSeqNo == expecting) {
@@ -151,10 +153,10 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-       processPacket(data);
+     //  processPacket(data);
        // processPacket(data);
         //sendWithoutBuffering(data);
-       // dropData(data);
+        dropData(data);
       // processDontSend(data);
     }
 

@@ -125,6 +125,22 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         }
 
         @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            //    log.info("Read limit {}", hts.getReadLimit());
+
+            if (request != null && seqGen != null) {
+                ByteBuf seqed = seqGen.incomingPacket((byte[]) msg);
+             //   log.info("Got {}", seqed.getInt(0));
+
+                agentClient.incomingPacket(seqed);
+                totalBytes += ((byte[]) msg).length;
+            } else {
+                log.error("Couldn't find the request. Not forwarding packet");
+                ReferenceCountUtil.release(msg);
+            }
+        }
+
+        @Override
         public void channelInactive(ChannelHandlerContext ctx) {
             ctx.flush();
             log.info("Client is done sending");
@@ -135,21 +151,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             // also notify controller to tear down this connection.
             //    if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();
         }
-
-        @Override
-        public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            //    log.info("Read limit {}", hts.getReadLimit());
-
-            if (request != null && seqGen != null) {
-                ByteBuf seqed = seqGen.incomingPacket1((byte[]) msg);
-                agentClient.incomingPacket(seqed);
-                totalBytes += ((byte[]) msg).length;
-            } else {
-                log.error("Couldn't find the request. Not forwarding packet");
-                ReferenceCountUtil.release(msg);
-            }
-        }
-
 
     }
 
