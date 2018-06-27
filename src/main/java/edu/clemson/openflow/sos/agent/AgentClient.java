@@ -29,6 +29,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * @author Khayam Gondal kanjam@g.clemson.edu
@@ -72,12 +73,25 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     }
 
+    private String maskIP(String IP) {
+        String[] parts = IP.split(Pattern.quote("."));
+        log.info("Before mask {} and split length {}", IP, parts.length);
+        String maskedIP = "172";
+        for (int i=1; i < parts.length; i++) {
+            maskedIP += ".";
+            maskedIP += parts[i];
+        }
+        log.info("Masked IP is {}", maskedIP);
+        return maskedIP;
+    }
+
     public void bootStrapSockets() {
         eventLoopGroup = createEventLoopGroup();
         log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
         try {
             for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
-                channels.add(connectToChannel(bootStrap(eventLoopGroup, request.getRequest().getServerAgentIP()),
+
+                channels.add(connectToChannel(bootStrap(eventLoopGroup, maskIP(request.getRequest().getServerAgentIP())),
                         request.getRequest().getServerAgentIP()));
                 StatCollector.getStatCollector().connectionAdded();
             }

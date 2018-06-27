@@ -200,7 +200,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             }
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
-                //        log.error("Receiving buffer NULL for client {} port {} ",remoteAgentIP, remoteAgentPort);
+                log.error("Receiving buffer NULL for client {} port {} ",remoteAgentIP, remoteAgentPort);
                 ReferenceCountUtil.release(msg);
             }
             totalBytes += ((ByteBuf) msg).capacity();
