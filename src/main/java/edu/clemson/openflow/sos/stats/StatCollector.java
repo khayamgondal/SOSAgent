@@ -6,21 +6,21 @@ package edu.clemson.openflow.sos.stats;
  */
 public class StatCollector {
 
-    private int connectedHosts;
-    private int totalOpenedConnections;
+    private static int connectedHosts;
+    private static int totalOpenConnections;
     private static StatCollector statCollector = new StatCollector();
 
-    public void hostAdded() {
+    public static void hostAdded() {
         connectedHosts ++;
     }
-    public void hostRemoved() {
+    public static void hostRemoved() {
         connectedHosts --;
     }
-    public void connectionAdded() {
-        totalOpenedConnections ++;
+    public static void connectionAdded() {
+        ++ totalOpenConnections;
     }
-    public void connectionRemoved() {
-        totalOpenedConnections --;
+    public static void connectionRemoved() {
+        -- totalOpenConnections ;
     }
     public static StatCollector getStatCollector() {
         return statCollector;
@@ -30,7 +30,7 @@ public class StatCollector {
         return connectedHosts;
     }
 
-    public int getTotalOpenedConnections() {
-        return totalOpenedConnections;
+    public int getTotalOpenConnections() {
+        return totalOpenConnections;
     }
 }

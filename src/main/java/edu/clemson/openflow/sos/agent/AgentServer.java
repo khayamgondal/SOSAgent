@@ -8,7 +8,6 @@ package edu.clemson.openflow.sos.agent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.buf.Buffer;
 import edu.clemson.openflow.sos.buf.BufferManager;
-import edu.clemson.openflow.sos.manager.ChannelManager;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
@@ -46,7 +45,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     private static final String REST_PORT = "8002";
     private static final int AGENT_DATA_PORT = 9878;
 
-   // private List<Channel> channels;
+    // private List<Channel> channels;
     private BufferManager bufferManager;
     private AgentToHostManager hostManager;
 
@@ -64,7 +63,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         incomingRequests = new ArrayList<>();
         bufferManager = new BufferManager(); //setup buffer manager.
         hostManager = new AgentToHostManager();
-       // channels = new ArrayList<>();
+        // channels = new ArrayList<>();
         handlers = new ArrayList<>();
     }
 
@@ -72,8 +71,8 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     public void SocketStats(long lastWriteThroughput, long lastReadThroughput) {
         gotStatsFrom++;
         sumThroughput(lastWriteThroughput, lastReadThroughput);
-        if (gotStatsFrom == StatCollector.getStatCollector().getTotalOpenedConnections()) { //mean now we have gotten stats from all conns. time to notify other agents
-            log.info("Notifying client-agent about stats ");
+        if (gotStatsFrom == StatCollector.getStatCollector().getTotalOpenConnections()) { //mean now we have gotten stats from all conns. time to notify other agents
+            log.debug("Notifying client-agent about stats for {} opened connections", gotStatsFrom);
             try {
                 notifyAgents();
             } catch (IOException e) {
@@ -147,14 +146,15 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
             handlers.add(this);
 
-          //  channels.add(ctx.channel());
+            //  channels.add(ctx.channel());
 
-           // myChannel = ctx.channel();
+            // myChannel = ctx.channel();
             Utils.requestListeners.add(this);
             StatCollector.getStatCollector().connectionAdded();
             startTime = System.currentTimeMillis();
             //also register this class for new port request event.
             Utils.router.getContext().getAttributes().put("portcallback", this);
+
         }
 
         private boolean isMineChannel(RequestTemplateWrapper request, AgentServerHandler handler) {
@@ -168,18 +168,21 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         public void newIncomingRequest(RequestTemplateWrapper request) {
 
             endHostHandler = getHostHandler(request);
-            for (AgentServerHandler handler: handlers
-                 ) {
+            for (AgentServerHandler handler : handlers
+                    ) {
                 if (isMineChannel(request, handler)) {
                     endHostHandler.addChannel(handler.context.channel());
-                    log.info("Channel added for Client {}:{}",
-                            request.getRequest().getClientIP(), request.getRequest().getClientPort());
+                    log.debug("Channel added for Client {}:{} Agent Port {}",
+                            request.getRequest().getClientIP(),
+                            request.getRequest().getClientPort(),
+                            (((InetSocketAddress) handler.context.channel().remoteAddress())).getPort());
+
                     handler.buffer = bufferManager.addBuffer(request, endHostHandler);
 
                 }
             }
 
-          //  buffer = bufferManager.addBuffer(request, endHostHandler);
+            //  buffer = bufferManager.addBuffer(request, endHostHandler);
             endHostHandler.setBuffer(buffer);
           /*  if (buffer == null) log.error("Receiving buffer NULL for client {} port {} Agent {} Port {} ",
                     request.getRequest().getClientIP(),
@@ -193,14 +196,14 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             //  log.info("Got {}", ((ByteBuf) msg).getInt(0));
-            if (!called) {
-                log.info("Read for {}", ((InetSocketAddress) context.channel().remoteAddress()).getPort());
-                called = true;
+         //   if (!called) {
+         //       log.info("Read for {}", ((InetSocketAddress) context.channel().remoteAddress()).getPort());
+         //       called = true;
 
-            }
+          //  }
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
-                log.error("Receiving buffer NULL for client {} port {} ",remoteAgentIP, remoteAgentPort);
+                log.error("Receiving buffer NULL for Remote Agent {}:{} ", remoteAgentIP, remoteAgentPort);
                 ReferenceCountUtil.release(msg);
             }
             totalBytes += ((ByteBuf) msg).capacity();

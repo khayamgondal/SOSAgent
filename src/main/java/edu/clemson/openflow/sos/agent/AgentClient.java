@@ -61,6 +61,9 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     private EventLoopGroup eventLoopGroup;
     private AgentTrafficShaping ats;
 
+    private int gotStatsFrom;
+    private double totalReadThroughput, totalWriteThroughput;
+
     public AgentClient(RequestTemplateWrapper request) {
         this.request = request;
 
@@ -75,13 +78,11 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     private String maskIP(String IP) {
         String[] parts = IP.split(Pattern.quote("."));
-        log.info("Before mask {} and split length {}", IP, parts.length);
         String maskedIP = "172";
-        for (int i=1; i < parts.length; i++) {
+        for (int i = 1; i < parts.length; i++) {
             maskedIP += ".";
             maskedIP += parts[i];
         }
-        log.info("Masked IP is {}", maskedIP);
         return maskedIP;
     }
 
@@ -105,7 +106,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             ports.add(socketAddress.getPort());
         }
         try {
-            boolean remoteAgentRes = notifyRemoteAgent(ports);
+            notifyRemoteAgent(ports); //TODO: Based on remote agent response code.. take actions i.e if request is not valid than dont start sending packets
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -113,7 +114,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         StatCollector.getStatCollector().hostAdded();
         startTime = System.currentTimeMillis();
     }
-
 
 
     @Override
@@ -161,25 +161,39 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
             StatCollector.getStatCollector().connectionRemoved();
             long stopTime = System.currentTimeMillis();
-            log.info("Agentclient rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
+            log.info("AgentClient rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
 
         }
     }
 
     @Override
     public void SocketStats(long lastWriteThroughput, long lastReadThroughput) {
-        log.info("Write {}", lastWriteThroughput * 8 / 1024 /1024);
+        gotStatsFrom++;
+        sumThroughput(lastWriteThroughput, lastReadThroughput);
+        if (gotStatsFrom == StatCollector.getStatCollector().getTotalOpenConnections()) {
+            log.info("Total Writing Throughput {} Gbps", totalWriteThroughput * 8 / 1024 / 1024 / 1024);
+            gotStatsFrom = 0;
+            totalReadThroughput = 0;
+            totalWriteThroughput = 0;
+        }
     }
 
     public class AgentClientHandler extends ChannelInboundHandlerAdapter {
 
         @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            StatCollector.getStatCollector().connectionAdded();
+
+            super.channelActive(ctx);
+        }
+
+        @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             //    log.debug("Reading from remote agent");
-       //     int size = ((ByteBuf) msg).capacity();
+            //     int size = ((ByteBuf) msg).capacity();
             //log.info(size + "");
-        //    if (size > 0)
-                myBuffer.incomingPacket((ByteBuf) msg);
+            //    if (size > 0)
+            myBuffer.incomingPacket((ByteBuf) msg);
 
             //ReferenceCountUtil.release(msg);
         }
@@ -188,13 +202,19 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         public void channelInactive(ChannelHandlerContext ctx) {
             ctx.flush(); //flush any unsent data
             log.debug("Channel is inactive");
+            StatCollector.getStatCollector().connectionRemoved();
+
         }
 
     }
 
+    private synchronized void sumThroughput(long lastWriteThroughput, long lastReadThroughput) {
+        totalReadThroughput += lastReadThroughput;
+        totalWriteThroughput += lastWriteThroughput;
+    }
 
     //TODO: apache is deprecated webclient...use some other one
-    private boolean notifyRemoteAgent(List<Integer> ports) throws IOException {
+    private void notifyRemoteAgent(List<Integer> ports) throws IOException {
         String uri = RestRoutes.URIBuilder(request.getRequest().getServerAgentIP(), REST_PORT, PORTMAP_PATH);
         HttpClient httpClient = new DefaultHttpClient();
         HttpPost httpRequest = new HttpPost(uri);
@@ -209,8 +229,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         HttpResponse response = httpClient.execute(httpRequest);
 
         log.debug("Sending HTTP request to remote agent with port info {}", request.getRequest().getServerAgentIP());
-        log.debug("Agent returned {}", response.getStatusLine().getStatusCode());
-        return Boolean.parseBoolean(response.toString());
+        log.info("Agent returned HTTP STATUS {} Response {}", response.getStatusLine().getStatusCode(), response.toString());
+
     }
 
 

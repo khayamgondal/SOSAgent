@@ -74,7 +74,7 @@ public class HealthStatus extends ServerResource {
     }
 
     private int getOpenedConnections() {
-        return StatCollector.getStatCollector().getTotalOpenedConnections();
+        return StatCollector.getStatCollector().getTotalOpenConnections();
     }
 
     private HealthRequestTemplate getSystemStats() {

@@ -4,6 +4,7 @@ import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.agent.AgentToHost;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,7 +129,7 @@ public class Buffer {
             log.debug("Waiting for {}", expecting);
 
             int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
-          //  log.info("HeRE {}", currentSeqNo);
+            //  log.info("HeRE {}", currentSeqNo);
             //TODO: may be use data.slice(0, 4) ??
             //   log.info("buf used {}", bufCount);
             if (currentSeqNo == expecting) {
@@ -140,7 +141,10 @@ public class Buffer {
                     // check how much we have in buffer
                     expecting++;
                     sendBuffer();
-                } else log.error("Sending is blocked");
+                } else {
+                    log.error("Sending is blocked");
+                  //  ReferenceCountUtil.release(data); //shouldn't be here
+                }
 
             } else putInBuffer(currentSeqNo, data);
         } catch (IndexOutOfBoundsException exception) {
@@ -153,10 +157,10 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-//       processPacket(data);
-        //sendWithoutBuffering(data);
-     //   dropData(data);
-      processDontSend(data);
+        //processPacket(data);
+        sendWithoutBuffering(data);
+        //   dropData(data);
+        // processDontSend(data);
     }
 
     public void processDontSend(ByteBuf data) {

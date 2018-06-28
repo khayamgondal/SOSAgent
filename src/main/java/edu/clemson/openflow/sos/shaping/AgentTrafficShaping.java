@@ -66,18 +66,6 @@ public class AgentTrafficShaping extends GlobalChannelTrafficShapingHandler  {
             throughputReadBytes.add(tc.lastReadThroughput() >> 10);
         }
 
-      /*  log.info(this.toString() + " QueuesSize: " + queuesSize()
-                + "\nWrittenBytesPercentage: " + cumulativeWrittenBytes
-                + "\nWrittenThroughputBytes: " + throughputWrittenBytes
-                + "\nReadBytesPercentage:    " + cumulativeReadBytes
-                + "\nReadThroughputBytes:    " + throughputReadBytes);*/
-      //  if (throughputWrittenBytes.size() > 0) {
-      //      log.info("SIZE {}", throughputWrittenBytes.size());
-      //      long dd = throughputWrittenBytes.get(0) * 8 / 1024 ;
-        //    log.info("Legacy {}", dd);
-      //  }
-       // if (statListener != null) statListener.SocketStats(throughputWrittenBytes);
-     // else log.error("Stat listener is null ");
         cumulativeWrittenBytes.clear();
         cumulativeReadBytes.clear();
         throughputWrittenBytes.clear();

@@ -1,15 +1,13 @@
 package edu.clemson.openflow.sos.host;
 
-import edu.clemson.openflow.sos.manager.ControllerManager;
-import edu.clemson.openflow.sos.rest.RequestListener;
 import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.buf.SeqGen;
+import edu.clemson.openflow.sos.manager.ControllerManager;
 import edu.clemson.openflow.sos.manager.ISocketServer;
+import edu.clemson.openflow.sos.rest.RequestListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
-import edu.clemson.openflow.sos.rest.TrafficHandler;
 import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
 import edu.clemson.openflow.sos.shaping.RestStatListener;
-import edu.clemson.openflow.sos.shaping.ShapingTimer;
 import edu.clemson.openflow.sos.utils.Utils;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -25,8 +23,6 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -35,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  */
 
 public class HostServer extends ChannelInboundHandlerAdapter implements ISocketServer,
-         RestStatListener, RequestListener {
+        RestStatListener, RequestListener {
 
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
 
@@ -49,7 +45,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     public HostServer() {
 
-      //  Utils.requestListeners.add(this); //we register for incoming requests
+        //  Utils.requestListeners.add(this); //we register for incoming requests
         Utils.router.getContext().getAttributes().put("portcallback", this);
 
         if (Utils.router != null) {
@@ -59,14 +55,14 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private synchronized void totalWritten(long written) {
         totalWritten += written;
-     //   log.info(" {}", totalWritten * 8 /1024);
+        //   log.info(" {}", totalWritten * 8 /1024);
 
     }
 
     @Override
     public void RestStats(double totalReadThroughput, double totalWriteThroughput) {
-    //    if (hostTrafficShaping != null) hostTrafficShaping.setReadLimit((long) totalReadThroughput);
-        log.info("CALLLLLLLLLLLLLED {}", totalReadThroughput);
+        //    if (hostTrafficShaping != null) hostTrafficShaping.setReadLimit((long) totalReadThroughput);
+        log.info("Remote Agent Read {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
     }
 
 
@@ -80,17 +76,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         private RequestTemplateWrapper request;
         private SeqGen seqGen;
         private AgentClient agentClient;
-
-        public HostServerHandler() {
-         //   Utils.router.getContext().getAttributes().put("portcallback", this);
-     //       log.info("PUITTTTT");
-        }
-
-   //     @Override
-        public void newIncomingRequest(RequestTemplateWrapper request) {
-            log.info("Called called");
-            this.request = request;
-        }
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
@@ -122,6 +107,15 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             } else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                     request.toString());
 
+            //Wait for couple of seconds to give remote agent time to process incoming request,
+            //currently receiving restlet based server is async that's why it immediately return response with/o actually processing the request
+            //TODO: RequestHandler.java change @post to sync
+            try {
+                TimeUnit.SECONDS.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
         }
 
         @Override
@@ -130,7 +124,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
             if (request != null && seqGen != null) {
                 ByteBuf seqed = seqGen.incomingPacket((byte[]) msg);
-             //   log.info("Got {}", seqed.getInt(0));
+                //   log.info("Got {}", seqed.getInt(0));
 
                 agentClient.incomingPacket(seqed);
                 totalBytes += ((byte[]) msg).length;
@@ -144,7 +138,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         public void channelInactive(ChannelHandlerContext ctx) {
             ctx.flush();
             log.info("Client is done sending");
-            if (hostStatusInitiator != null) hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
+            if (hostStatusInitiator != null)
+                hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
 
             long stopTime = System.currentTimeMillis();
             log.info("HostServer rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000000);
@@ -168,10 +163,10 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
         hostTrafficShaping = new HostTrafficShaping(group, 0, 00000000, 5000);
 
-      //  ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
-      //  ScheduledExecutorService scheduledExecutorService =
-      //          Executors.newScheduledThreadPool(1);
-      //  scheduledExecutorService.scheduleAtFixedRate(timer, 0, 10, TimeUnit.SECONDS);
+        //  ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
+        //  ScheduledExecutorService scheduledExecutorService =
+        //          Executors.newScheduledThreadPool(1);
+        //  scheduledExecutorService.scheduleAtFixedRate(timer, 0, 10, TimeUnit.SECONDS);
 
 
         try {
@@ -245,7 +240,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     @Override
     public void newIncomingRequest(RequestTemplateWrapper request) {
-        log.info("GOT REQUESTTT");
         incomingRequests.add(request);
 
     }
