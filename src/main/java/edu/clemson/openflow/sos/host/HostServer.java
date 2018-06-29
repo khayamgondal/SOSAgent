@@ -107,14 +107,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             } else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                     request.toString());
 
-            //Wait for couple of seconds to give remote agent time to process incoming request,
-            //currently receiving restlet based server is async that's why it immediately return response with/o actually processing the request
-            //TODO: RequestHandler.java change @post to sync
-            try {
-                TimeUnit.SECONDS.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+
 
         }
 

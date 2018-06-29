@@ -14,6 +14,10 @@ import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -30,6 +34,33 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private long totalBytes, startTime, endTime;
     private int wCount;
 
+    int shouldSend = 0;
+
+    /////////////
+
+    SocketChannel sschannel;
+    ByteBuffer ssbuffer = ByteBuffer.allocate(65400);
+    String s = "f";
+
+////////////////////
+
+
+    private void normalSocketSend() {
+        try {
+            if (sschannel.finishConnect()) {
+                try {
+                    sschannel.write(ssbuffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            else log.error("NOT CONNECTED :YET");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     public AgentToHost(RequestTemplateWrapper request) {
         this.request = request;
         channels = new ArrayList<>();
@@ -44,6 +75,26 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
                 request.getRequest().getServerIP(),
                 request.getRequest().getServerPort());
         startTime = System.currentTimeMillis();
+
+        javaBufSetup();
+
+    }
+
+
+    private void javaBufSetup() {
+        {
+            try {
+                sschannel = SocketChannel.open();
+                sschannel.configureBlocking(false);
+                sschannel.connect(new InetSocketAddress("10.0.0.211", 5001));
+                log.info("TRYIGN TO CONNE");
+                byte[] dd = s.getBytes();
+                for (int i=0; i < ssbuffer.capacity(); i++)
+                    ssbuffer.put(i, dd[0]);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void setBuffer(Buffer buffer) {
@@ -52,16 +103,30 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     @Override
     public boolean orderedPacket(ByteBuf packet) {
-        log.debug("Got new sorted packet");
-        totalBytes += packet.capacity();
+        //normalSocketSend();
+        smartSend(packet);
+        return true;
+        /*
         //TODO: lookinto read/write index
-       /* ChannelFuture cf = */
         if (hostClient.getHostChannel().isWritable()) {
             hostClient.getHostChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4));
             wCount++; // will not work if multiple clients connected
             return true;
         }
         else return false;
+        */
+    }
+
+    private void smartSend(ByteBuf packet) {
+        if (shouldSend > 100) {
+            hostClient.getHostChannel().write(packet);
+            hostClient.getHostChannel().flush();
+            shouldSend = 0;
+        }
+        else {
+            if (hostClient.getHostChannel().isWritable()) hostClient.getHostChannel().write(packet);
+            shouldSend++;
+        }
     }
 
     public void addChannel(Channel channel) {
