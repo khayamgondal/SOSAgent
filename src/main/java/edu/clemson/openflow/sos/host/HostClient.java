@@ -60,24 +60,34 @@ public class HostClient implements HostStatusListener{
         try {
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)
+                //    .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 3200 * 1024)
+                    .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 1024 * 1024 * 5)
                     .handler(new ChannelInitializer() {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
-                                    .addLast("bytesDecoder", new ByteArrayDecoder())
+                                //    .addLast("bytesDecoder", new ByteArrayDecoder())
                                     .addLast("hostClient", new HostClientHandler())
-                                    .addLast("bytesEncoder", new ByteArrayEncoder());
+                                  //  .addLast("bytesEncoder", new ByteArrayEncoder())
+                            ;
                         }
                     });
+
             myChannel = bootstrap.connect(hostServerIP, hostServerPort).sync().channel();
             log.info("Connected to Host-Server {} on Port {}", hostServerIP, hostServerPort);
 
+          //  ChannelFuture channelFuture = bootstrap.connect().sync();
+          //  channelFuture.channel().closeFuture().sync();
 
         } catch (Exception e) {
             log.error("Error connecting to Host-Server {} on Port{}", hostServerIP, hostServerPort);
             e.printStackTrace();
         } finally {
-            //group.shutdownGracefully();
+         /*   try {
+                group.shutdownGracefully().sync();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }*/
         }
     }
 

@@ -122,7 +122,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     private void smartSend(ByteBuf packet) {
         if (hostClient.getHostChannel().isWritable()) {
-            hostClient.getHostChannel().write(packet.slice(12, packet.capacity() - 4));
+            hostClient.getHostChannel().write(packet);
             writableCount++;
         }
         else { packet.release(); unwritableCount++; }
