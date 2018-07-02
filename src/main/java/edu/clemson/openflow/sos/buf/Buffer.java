@@ -3,15 +3,11 @@ package edu.clemson.openflow.sos.buf;
 import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.agent.AgentToHost;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
+import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 
 public class Buffer {
@@ -23,7 +19,7 @@ public class Buffer {
 
     private int bufferSize;
     private int expecting = 0;
-    private static final int MAX_SEQ = 80000; //Integer.MAX_VALUE;
+    private static final int MAX_SEQ = 100; //Integer.MAX_VALUE;
 
     private static final int MAX_BUF = 99000;
 
@@ -74,8 +70,8 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-        //processPacket(data);
-        sendWithoutBuffering(data);
+        processPacket(data);
+       // sendWithoutBuffering(data);
         //   dropData(data);
         // processDontSend(data);
     }
@@ -99,10 +95,8 @@ public class Buffer {
     private void sendBuffer() {
         while (true) { //also check our buffer. do we have some unsent packets there too.
             int bufferIndex = offSet(expecting);
-
             if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
                 // log.info("Sending {}", bufferIndex);
-
                 if (sendData(packetHolder.get(bufferIndex))) {
                     bufCount--;
                     status.put(bufferIndex, false);
@@ -118,13 +112,13 @@ public class Buffer {
 
     public void flushBuffer() {
         while (true) {
-            for (int i=0; i < status.size(); i++) {
+            for (int i = 0; i < status.size(); i++) {
                 if (status.get(i) != null && status.get(i)) {
-                    if(sendData(packetHolder.get(i)))
+                    if (sendData(packetHolder.get(i)))
                         status.put(i, true);
                 }
 
-                }
+            }
         }
     }
 
@@ -152,7 +146,6 @@ public class Buffer {
         try {
             if (expecting == MAX_SEQ) expecting = 0;
             log.debug("Waiting for {}", expecting);
-
             int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
             //TODO: may be use data.slice(0, 4) ??
             if (currentSeqNo == expecting) {
@@ -160,14 +153,10 @@ public class Buffer {
                 if (sendData(data)) {
                     log.debug("Sending direclty to Host seq no: {} ", expecting);
                     //log.info("Sending Directly {}", currentSeqNo );
-
-                    // check how much we have in buffer
                     expecting++;
                     sendBuffer();
                 } else {
-                    putInBuffer(currentSeqNo, data);
-                    //log.error("Sending is blocked");
-                  //  ReferenceCountUtil.release(data); //shouldn't be here
+                    putInBuffer(currentSeqNo, data); // failed to send, put in buffer
                 }
             } else putInBuffer(currentSeqNo, data);
         } catch (IndexOutOfBoundsException exception) {
@@ -178,9 +167,6 @@ public class Buffer {
         }
 
     }
-
-
-
 
     public void processDontSend(ByteBuf data) {
         {
@@ -218,10 +204,8 @@ public class Buffer {
     }
 
     private void sendWithoutBuffering(ByteBuf data) {
-        if (!sendData(data)) {
-           // log.error("Sending is blocked.. dropping");
+        if (!sendData(data))
             dropData(data);
-        }
     }
 
     private void putInBuffer(int seqNo, ByteBuf data) {
@@ -235,9 +219,10 @@ public class Buffer {
             // log.info("BUffering {}", currentSeqNo );
             sendBuffer();
         } else {
-            log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix
+            //log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix
             //ReferenceCountUtil.release(data);
             data.release();
+            StatCollector.getStatCollector().packetDropped();
         }
     }
 

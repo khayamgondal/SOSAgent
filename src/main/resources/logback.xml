@@ -6,23 +6,33 @@
         </encoder>
     </appender>
 
-    <CustomLevels>
-        <CustomLevel name="DEBUG2" intLevel="550" />
-    </CustomLevels>
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Daily rollover -->
+            <fileNamePattern>log/sosagent.%d{yyyy-MM-dd}.log</fileNamePattern>
+
+            <!-- Keep 7 days' worth of history -->
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
 
     <root level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
-    </root>
+        <appender-ref ref="FILE" />
+      </root>
 
-    <logger name="edu.clemson.openflow.sos" level="info"/>
-    <logger name="edu.clemson.openflow.sos.buf.Buffer" level="info"/>
-    <logger name="edu.clemson.openflow.sos.agent.AgentServer" level="info" />
-    <logger name="edu.clemson.openflow.sos.rest.RequestHandler" level="info" />
-    <logger name="edu.clemson.openflow.sos.agent.AgentClient" level="info" />
-    <logger name="edu.clemson.openflow.sos.host.HostClient" level="info" />
-    <logger name="edu.clemson.openflow.sos.agent.AgentToHost" level="info" />
+      <logger name="edu.clemson.openflow.sos" level="info"/>
+      <logger name="edu.clemson.openflow.sos.buf.Buffer" level="info"/>
+      <logger name="edu.clemson.openflow.sos.agent.AgentServer" level="info"/>
+      <logger name="edu.clemson.openflow.sos.rest.RequestHandler" level="info"/>
+      <logger name="edu.clemson.openflow.sos.agent.AgentClient" level="info"/>
+      <logger name="edu.clemson.openflow.sos.host.HostClient" level="info"/>
+      <logger name="edu.clemson.openflow.sos.agent.AgentToHost" level="info"/>
 
-    <logger name="edu.clemson.openflow.sos.buf.SeqGen" level="info"/>
+      <logger name="edu.clemson.openflow.sos.buf.SeqGen" level="info"/>
 
 
-</configuration>
+  </configuration>

@@ -16,7 +16,7 @@ public class SeqGen {
 
     private int seqNo = 0;
     private byte[] seqNo2 = new byte[4];
-    private static final int MAX_SEQ = 80000; //Integer.MAX_VALUE;
+    private static final int MAX_SEQ = 100; //Integer.MAX_VALUE;
 
     public ByteBuf incomingPacket(byte[] packet) {
 

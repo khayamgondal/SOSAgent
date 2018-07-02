@@ -6,6 +6,8 @@ import edu.clemson.openflow.sos.host.HostClient;
 import edu.clemson.openflow.sos.host.HostStatusInitiator;
 import edu.clemson.openflow.sos.host.HostStatusListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
+import edu.clemson.openflow.sos.stats.StatCollector;
+import edu.clemson.openflow.sos.utils.Utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -93,7 +95,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
                 request.getRequest().getServerPort());
         startTime = System.currentTimeMillis();
 
-        javaBufSetup();
+       // javaBufSetup();
 
     }
 
@@ -111,13 +113,17 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     }
 
     private boolean sendToHost(ByteBuf packet) {
-        smartSend(packet);
-        //TODO: lookinto read/write index
-     //   if (hostClient.getHostChannel().isWritable()) {
+     //   smartSend(packet);
+        //TODO: @smartSend().. separate write and flush
+        if (hostClient.getHostChannel().isWritable()) {
            // hostClient.getHostChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4));
-           // wCount++; // will not work if multiple clients connected
+            hostClient.getHostChannel().writeAndFlush(packet);
+            writableCount++;
             return true;
-       // } else return false;
+        } else {
+            unwritableCount++;
+            return false;
+        }
     }
 
     private void smartSend(ByteBuf packet) {
@@ -125,10 +131,10 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
             hostClient.getHostChannel().write(packet);
             writableCount++;
         }
-        else { packet.release(); unwritableCount++; }
+       else { packet.release(); unwritableCount++; }
         shouldSend++;
 
-        if (shouldSend > 10) {
+        if (shouldSend > request.getRequest().getQueueCapacity()) {
             hostClient.getHostChannel().flush();
             shouldSend = 0;
           //  log.info("FLUSHHHED");
@@ -147,7 +153,6 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-
         try {
             RequestTemplateWrapper hostRequest = (RequestTemplateWrapper) o;
             if (request.getRequest().getServerPort() != hostRequest.getRequest().getServerPort() ||
@@ -163,18 +168,6 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         }
 
     }
-
-   /* @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AgentToHost that = (AgentToHost) o;
-        return Objects.equals(hostStatusInitiator, that.hostStatusInitiator) &&
-                Objects.equals(request, that.request) &&
-                Objects.equals(channels, that.channels) &&
-                Objects.equals(hostClient, that.hostClient) &&
-                Objects.equals(buffer, that.buffer);
-    }*/
 
     @Override
     public int hashCode() {
@@ -198,7 +191,8 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     public void transferCompleted() {
         hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
-        log.info("WRIte {} UNWRITE {}", writableCount, unwritableCount);
+        log.info("Total WrittenBytes {} Total Unwritten {}", writableCount, unwritableCount);
+        log.info("Total Packet dropped by buffer {}", StatCollector.getStatCollector().getPacketDropCount());
     }
 
     public HostClient getHostClient() {

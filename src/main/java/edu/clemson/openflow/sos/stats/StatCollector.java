@@ -8,6 +8,8 @@ public class StatCollector {
 
     private static int connectedHosts;
     private static int totalOpenConnections;
+    private static int packetDropCount;
+
     private static StatCollector statCollector = new StatCollector();
 
     public static void hostAdded() {
@@ -19,6 +21,18 @@ public class StatCollector {
     public static void connectionAdded() {
         ++ totalOpenConnections;
     }
+    public void packetDropped(){
+        ++packetDropCount;
+    }
+
+    public int getPacketDropCount() {
+        return packetDropCount;
+    }
+
+    public void setPacketDropCount(int packetDropCount) {
+        StatCollector.packetDropCount = packetDropCount;
+    }
+
     public static void connectionRemoved() {
         -- totalOpenConnections ;
     }

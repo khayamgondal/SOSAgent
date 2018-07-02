@@ -117,8 +117,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
             if (request != null && seqGen != null) {
                 ByteBuf seqed = seqGen.incomingPacket((byte[]) msg);
-                //   log.info("Got {}", seqed.getInt(0));
-
                 agentClient.incomingPacket(seqed);
                 totalBytes += ((byte[]) msg).length;
             } else {
