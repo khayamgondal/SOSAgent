@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class AgentServer implements ISocketServer, ISocketStatListener {
 
@@ -146,20 +147,20 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
             handlers.add(this);
 
-            //  channels.add(ctx.channel());
-
-            // myChannel = ctx.channel();
-            Utils.requestListeners.add(this);
-            StatCollector.getStatCollector().connectionAdded();
-            startTime = System.currentTimeMillis();
             //also register this class for new port request event.
             Utils.router.getContext().getAttributes().put("portcallback", this);
+            Utils.requestListeners.add(this);
+
+            StatCollector.getStatCollector().connectionAdded();
+
+            startTime = System.currentTimeMillis();
 
         }
 
         private boolean isMineChannel(RequestTemplateWrapper request, AgentServerHandler handler) {
             return request.getPorts().contains(((InetSocketAddress) handler.context.channel().remoteAddress()).getPort());
         }
+
 
         /*  Whenever AgentServer receives new port request from AgentClient.
         This method will be called and all the open channels
@@ -195,12 +196,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            //  log.info("Got {}", ((ByteBuf) msg).getInt(0));
-         //   if (!called) {
-         //       log.info("Read for {}", ((InetSocketAddress) context.channel().remoteAddress()).getPort());
-         //       called = true;
-
-          //  }
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
                 log.error("Receiving buffer NULL for Remote Agent {}:{} ", remoteAgentIP, remoteAgentPort);
@@ -221,7 +216,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            ctx.flush();
 
             long stopTime = System.currentTimeMillis();
             log.info("Agentserver rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);

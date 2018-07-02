@@ -50,10 +50,7 @@ public class Buffer {
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
 
-
     }
-
-
 
     public Buffer(RequestTemplateWrapper request, Object callBackHandler) {
         clientIP = request.getRequest().getClientIP();
@@ -74,6 +71,13 @@ public class Buffer {
                 orderedPacketInitiator.addListener((AgentToHost) callBackHandler);
             }
         }
+    }
+
+    public synchronized void incomingPacket(ByteBuf data) {
+        //processPacket(data);
+        sendWithoutBuffering(data);
+        //   dropData(data);
+        // processDontSend(data);
     }
 
     public HashMap<Integer, Boolean> getStatus() {
@@ -105,8 +109,22 @@ public class Buffer {
                     log.debug("Sending from buffer to Host seq no. {}", expecting);
                     // log.info("Sending from buffer {}", expecting );
                     expecting++;
-                } else log.error("Sending is blocked");
+                } else {
+                    //log.error("Sending is blocked");
+                }
             } else break;
+        }
+    }
+
+    public void flushBuffer() {
+        while (true) {
+            for (int i=0; i < status.size(); i++) {
+                if (status.get(i) != null && status.get(i)) {
+                    if(sendData(packetHolder.get(i)))
+                        status.put(i, true);
+                }
+
+                }
         }
     }
 
@@ -136,9 +154,7 @@ public class Buffer {
             log.debug("Waiting for {}", expecting);
 
             int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
-            //  log.info("HeRE {}", currentSeqNo);
             //TODO: may be use data.slice(0, 4) ??
-            //   log.info("buf used {}", bufCount);
             if (currentSeqNo == expecting) {
                 //    log.info("Sending {}", currentSeqNo);
                 if (sendData(data)) {
@@ -149,10 +165,10 @@ public class Buffer {
                     expecting++;
                     sendBuffer();
                 } else {
-                    log.error("Sending is blocked");
+                    putInBuffer(currentSeqNo, data);
+                    //log.error("Sending is blocked");
                   //  ReferenceCountUtil.release(data); //shouldn't be here
                 }
-
             } else putInBuffer(currentSeqNo, data);
         } catch (IndexOutOfBoundsException exception) {
             // When client is done sending, agent on the otherside will send an empty bytebuf once that bytebuf is sent, it will close the channel.
@@ -163,12 +179,7 @@ public class Buffer {
 
     }
 
-    public synchronized void incomingPacket(ByteBuf data) {
-        //processPacket(data);
-        sendWithoutBuffering(data);
-        //   dropData(data);
-        // processDontSend(data);
-    }
+
 
 
     public void processDontSend(ByteBuf data) {
@@ -208,7 +219,7 @@ public class Buffer {
 
     private void sendWithoutBuffering(ByteBuf data) {
         if (!sendData(data)) {
-            log.error("Sending is blocked.. dropping");
+           // log.error("Sending is blocked.. dropping");
             dropData(data);
         }
     }
@@ -216,7 +227,7 @@ public class Buffer {
     private void putInBuffer(int seqNo, ByteBuf data) {
         int bufferIndex = offSet(seqNo);
 
-        if (status.get(bufferIndex) == null || !status.get(bufferIndex)) { //for now just override previous buf loc
+        if (status.get(bufferIndex) == null || !status.get(bufferIndex)) {
             bufCount++;
             packetHolder.put(bufferIndex, data);
             status.put(bufferIndex, true);

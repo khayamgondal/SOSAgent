@@ -106,6 +106,10 @@ public class RequestTemplate {
         return controllerIP;
     }
 
+    public void setServerAgentIP(String serverAgentIP) {
+        this.serverAgentIP = serverAgentIP;
+    }
+
     public void setControllerIP(String controllerIP) {
         this.controllerIP = controllerIP;
     }

@@ -93,8 +93,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         try {
             for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
 
-                channels.add(connectToChannel(bootStrap(eventLoopGroup, maskIP(request.getRequest().getServerAgentIP())),
-                        request.getRequest().getServerAgentIP()));
+                channels.add(connectToChannel(bootStrap(eventLoopGroup, (request.getRequest().getServerAgentIP())),
+                        (request.getRequest().getServerAgentIP())));
                 StatCollector.getStatCollector().connectionAdded();
             }
         } catch (InterruptedException e) {
@@ -115,7 +115,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             //currently receiving restlet based server is async that's why it immediately return response with/o actually processing the request
             //TODO: RequestHandler.java change @post to sync
             try {
-                TimeUnit.SECONDS.sleep(15);
+                TimeUnit.SECONDS.sleep(5);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -230,6 +230,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     //TODO: apache is deprecated webclient...use some other one
     private void notifyRemoteAgent(List<Integer> ports) throws IOException {
+       // request.getRequest().setServerAgentIP(maskIP(request.getRequest().getServerAgentIP()));
+
         String uri = RestRoutes.URIBuilder(request.getRequest().getServerAgentIP(), REST_PORT, PORTMAP_PATH);
         HttpClient httpClient = new DefaultHttpClient();
         HttpPost httpRequest = new HttpPost(uri);
@@ -244,6 +246,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         HttpResponse response = httpClient.execute(httpRequest);
 
         log.debug("Sending HTTP request to remote agent with port info {}", request.getRequest().getServerAgentIP());
+        log.info("{}", request.toString());
         log.info("Agent returned HTTP STATUS {} Response {}", response.getStatusLine().getStatusCode(), response.toString());
 
     }
