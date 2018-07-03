@@ -9,6 +9,7 @@ public class StatCollector {
     private static int connectedHosts;
     private static int totalOpenConnections;
     private static int packetDropCount;
+    private static int usedBufferIndices;
 
     private static StatCollector statCollector = new StatCollector();
 
@@ -25,8 +26,19 @@ public class StatCollector {
         ++packetDropCount;
     }
 
+    public void bufferIndexUsed() {
+        ++usedBufferIndices;
+    }
+    public void bufferIndexRemoved() {
+        --usedBufferIndices;
+    }
+
     public int getPacketDropCount() {
         return packetDropCount;
+    }
+
+    public int getUsedBufferIndices() {
+        return usedBufferIndices;
     }
 
     public void setPacketDropCount(int packetDropCount) {

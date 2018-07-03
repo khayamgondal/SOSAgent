@@ -1,5 +1,6 @@
 package edu.clemson.openflow.sos.buf;
 
+import edu.clemson.openflow.sos.utils.Utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
@@ -15,8 +16,13 @@ public class SeqGen {
     private static final Logger log = LoggerFactory.getLogger(SeqGen.class);
 
     private int seqNo = 0;
-    private byte[] seqNo2 = new byte[4];
-    private static final int MAX_SEQ = 100; //Integer.MAX_VALUE;
+    private static int MAX_SEQ = 100; //Integer.MAX_VALUE;
+
+    public SeqGen() {
+        if (Utils.configFile != null)
+            MAX_SEQ = Integer.parseInt(Utils.configFile.getProperty("buffer_size").replaceAll("[\\D]", ""));
+        log.info("Max sequence no is {}", MAX_SEQ);
+    }
 
     public ByteBuf incomingPacket(byte[] packet) {
 

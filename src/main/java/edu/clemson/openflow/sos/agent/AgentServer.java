@@ -10,6 +10,7 @@ import edu.clemson.openflow.sos.buf.Buffer;
 import edu.clemson.openflow.sos.buf.BufferManager;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestListener;
+import edu.clemson.openflow.sos.rest.RequestListenerInitiator;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.rest.RestRoutes;
 import edu.clemson.openflow.sos.shaping.AgentTrafficShaping;
@@ -54,6 +55,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     private NioEventLoopGroup group;
 
     private List<AgentServerHandler> handlers;
+    private RequestListenerInitiator requestListenerInitiator;
 
     private int gotStatsFrom;
     private double totalReadThroughput, totalWriteThroughput; //also need to reset these after we send these back to other agents and before
@@ -66,6 +68,9 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         hostManager = new AgentToHostManager();
         // channels = new ArrayList<>();
         handlers = new ArrayList<>();
+        requestListenerInitiator = new RequestListenerInitiator();
+        Utils.router.getContext().getAttributes().put("portcallback", requestListenerInitiator);
+
     }
 
     @Override
@@ -115,7 +120,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     }
 
     private synchronized AgentToHost getHostHandler(RequestTemplateWrapper request) {
-
         addToRequestPool(request); // also remove this request once connection terminates. TODO
         return hostManager.addAgentToHost(request);
     }
@@ -145,11 +149,13 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             remoteAgentIP = socketAddress.getHostName();
             remoteAgentPort = socketAddress.getPort();
 
-            handlers.add(this);
+           // handlers.add(this);
+            requestListenerInitiator.addRequestListener(this);
 
             //also register this class for new port request event.
-            Utils.router.getContext().getAttributes().put("portcallback", this);
-            Utils.requestListeners.add(this);
+          //  Utils.router.getContext().getAttributes().put("portcallback", this);
+
+            //Utils.requestListeners.add(this);
 
             StatCollector.getStatCollector().connectionAdded();
 
@@ -158,6 +164,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         }
 
         private boolean isMineChannel(RequestTemplateWrapper request, AgentServerHandler handler) {
+            if (handler == null) log.info("nULLLL"); else log.info("not null");
             return request.getPorts().contains(((InetSocketAddress) handler.context.channel().remoteAddress()).getPort());
         }
 
@@ -167,7 +174,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
                     will be notified.                */
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
-
             endHostHandler = getHostHandler(request);
             for (AgentServerHandler handler : handlers
                     ) {

@@ -4,6 +4,7 @@ import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.agent.AgentToHost;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.stats.StatCollector;
+import edu.clemson.openflow.sos.utils.Utils;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,7 @@ public class Buffer {
 
     private int bufferSize;
     private int expecting = 0;
-    private static final int MAX_SEQ = 100; //Integer.MAX_VALUE;
+    private static final int MAX_SEQ = 1000; //Integer.MAX_VALUE;
 
     private static final int MAX_BUF = 99000;
 
@@ -41,7 +42,10 @@ public class Buffer {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
 
-        bufferSize = MAX_BUF;//request.getRequest().getBufferSize();
+        if (Utils.configFile != null)
+            bufferSize = Integer.parseInt(Utils.configFile.getProperty("buffer_size").replaceAll("[\\D]", ""));
+        else bufferSize = MAX_BUF;
+        log.info("Receiving buffer size is {}", bufferSize);
 
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
@@ -70,8 +74,8 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-        processPacket(data);
-       // sendWithoutBuffering(data);
+       // processPacket(data);
+        sendWithoutBuffering(data);
         //   dropData(data);
         // processDontSend(data);
     }
@@ -98,10 +102,10 @@ public class Buffer {
             if (status.get(bufferIndex) != null && status.get(bufferIndex)) {
                 // log.info("Sending {}", bufferIndex);
                 if (sendData(packetHolder.get(bufferIndex))) {
-                    bufCount--;
                     status.put(bufferIndex, false);
                     log.debug("Sending from buffer to Host seq no. {}", expecting);
                     // log.info("Sending from buffer {}", expecting );
+                    StatCollector.getStatCollector().bufferIndexRemoved();
                     expecting++;
                 } else {
                     //log.error("Sending is blocked");
@@ -217,6 +221,7 @@ public class Buffer {
             status.put(bufferIndex, true);
             log.debug("Putting seq no. {} in buffer on index {}", seqNo, bufferIndex);
             // log.info("BUffering {}", currentSeqNo );
+            StatCollector.getStatCollector().bufferIndexUsed();
             sendBuffer();
         } else {
             //log.error("Receiving buffer index {} have unsent data dropping seq {}", bufferIndex, seqNo); //something wrong here... need to fix

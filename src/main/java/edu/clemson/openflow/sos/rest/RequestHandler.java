@@ -14,14 +14,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 
 public class RequestHandler extends ServerResource {
     ObjectMapper mapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
     private RequestListener restRequestListener;
+   private List<RequestListener> restRequestListeners;
 
     public void setRestListener(AgentServer.AgentServerHandler listener) {
         this.restRequestListener = listener;
+        log.info("AGENG SERVER IS SET AS LISTEner");
+    }
+
+    public void setRestRequestListeners(List<RequestListener> restRequestListeners) {
+        this.restRequestListeners = restRequestListeners;
     }
 
     public void setRestListener(HostServer listener) {
@@ -32,8 +39,8 @@ public class RequestHandler extends ServerResource {
     @Override
     protected void doInit() throws ResourceException {
         Object listener = getContext().getAttributes().get("portcallback");
-        if (listener instanceof AgentServer.AgentServerHandler)
-            setRestListener((AgentServer.AgentServerHandler) listener);
+        if (listener instanceof List<AgentServer>)
+            setRestListeners(List<AgentServer> listener);
         else if (listener instanceof HostServer) setRestListener((HostServer) listener);
     }
 
@@ -42,13 +49,14 @@ public class RequestHandler extends ServerResource {
         try {
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
             RequestTemplateWrapper incomingRequest = mapper.readValue(request.toString(), RequestTemplateWrapper.class);
+            log.info("Received Request from remote agent {}", incomingRequest);
             if (incomingRequest.getPorts() != null)
                 log.debug("New ports info from client- agent {}.", incomingRequest.getRequest().getClientAgentIP());
             String ctlIP = getClientInfo().getAddress();
             incomingRequest.getRequest().setControllerIP(ctlIP);
             log.debug("Request Object {}", request.toString());
             // also implement the getting of controller IP
-            if (restRequestListener != null) restRequestListener.newIncomingRequest(incomingRequest);
+           if (restRequestListener != null) restRequestListener.newIncomingRequest(incomingRequest);
 
             Representation response = new StringRepresentation("TRUE");
             setStatus(Status.SUCCESS_OK);

@@ -192,6 +192,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     public void transferCompleted() {
         hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
         log.info("Total WrittenBytes {} Total Unwritten {}", writableCount, unwritableCount);
+        log.info("Buffer Index still in use {}", StatCollector.getStatCollector().getUsedBufferIndices());
         log.info("Total Packet dropped by buffer {}", StatCollector.getStatCollector().getPacketDropCount());
     }
 

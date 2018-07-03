@@ -106,27 +106,25 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             InetSocketAddress socketAddress = (InetSocketAddress) channel.localAddress();
             ports.add(socketAddress.getPort());
         }
+        /////////////////////////////////////////////////////////////////
+        //Wait for couple of seconds to give remote agent time to process incoming request,
+        //currently receiving restlet based server is async that's why it immediately return response with/o actually processing the request
+        //TODO: RequestHandler.java change @post to sync
+     //   try {
+     //       TimeUnit.SECONDS.sleep(5);
+     //   } catch (InterruptedException e) {
+     //       e.printStackTrace();
+      //  }        /////////////////////////////////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
         try {
-            notifyRemoteAgent(ports); //TODO: Based on remote agent response code.. take actions i.e if request is not valid than dont start sending packets
-
-            /////////////////////////////////////////////////////////////////
-
-            //Wait for couple of seconds to give remote agent time to process incoming request,
-            //currently receiving restlet based server is async that's why it immediately return response with/o actually processing the request
-            //TODO: RequestHandler.java change @post to sync
-            try {
-                TimeUnit.SECONDS.sleep(5);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            /////////////////////////////////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+            notifyRemoteAgent(ports); //TODO: Based on remote agent response code.. take actions i.e if request is not valid than dont start sending packet
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         StatCollector.getStatCollector().hostAdded();
+
         startTime = System.currentTimeMillis();
     }
 
@@ -230,7 +228,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     //TODO: apache is deprecated webclient...use some other one
     private void notifyRemoteAgent(List<Integer> ports) throws IOException {
-       // request.getRequest().setServerAgentIP(maskIP(request.getRequest().getServerAgentIP()));
+        // request.getRequest().setServerAgentIP(maskIP(request.getRequest().getServerAgentIP()));
 
         String uri = RestRoutes.URIBuilder(request.getRequest().getServerAgentIP(), REST_PORT, PORTMAP_PATH);
         HttpClient httpClient = new DefaultHttpClient();
@@ -238,16 +236,17 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
         RequestTemplateWrapper portMap = new RequestTemplateWrapper(request.getRequest(), ports); //portmap contains both controller request and all the associated portss
         ObjectMapper mapperObj = new ObjectMapper();
-        String portMapString = mapperObj.writeValueAsString(portMap);
+        String requestWithPortsString = mapperObj.writeValueAsString(portMap);
 
-        org.apache.http.entity.StringEntity stringEntry = new org.apache.http.entity.StringEntity(portMapString, "UTF-8");
+        org.apache.http.entity.StringEntity stringEntry = new org.apache.http.entity.StringEntity(requestWithPortsString, "UTF-8");
         httpRequest.setEntity(stringEntry);
-        log.debug("JSON Object to sent {}", portMapString);
+        log.debug("JSON Object to sent {}", requestWithPortsString);
         HttpResponse response = httpClient.execute(httpRequest);
 
-        log.debug("Sending HTTP request to remote agent with port info {}", request.getRequest().getServerAgentIP());
-        log.info("{}", request.toString());
+        log.info("Sending HTTP request to remote agent {} ", requestWithPortsString);
         log.info("Agent returned HTTP STATUS {} Response {}", response.getStatusLine().getStatusCode(), response.toString());
+
+      //  if (response.getStatusLine().getStatusCode() == 400) notifyRemoteAgent(ports);
 
     }
 
