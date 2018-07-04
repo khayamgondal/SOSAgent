@@ -67,9 +67,9 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         bufferManager = new BufferManager(); //setup buffer manager.
         hostManager = new AgentToHostManager();
         // channels = new ArrayList<>();
-        handlers = new ArrayList<>();
+    //    handlers = new ArrayList<>();
         requestListenerInitiator = new RequestListenerInitiator();
-        Utils.router.getContext().getAttributes().put("portcallback", requestListenerInitiator);
+        Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
 
     }
 
@@ -164,7 +164,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         }
 
         private boolean isMineChannel(RequestTemplateWrapper request, AgentServerHandler handler) {
-            if (handler == null) log.info("nULLLL"); else log.info("not null");
+         //   if (handler == null) log.info("nULLLL"); else log.info("not null");
             return request.getPorts().contains(((InetSocketAddress) handler.context.channel().remoteAddress()).getPort());
         }
 
@@ -175,18 +175,18 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
             endHostHandler = getHostHandler(request);
-            for (AgentServerHandler handler : handlers
-                    ) {
-                if (isMineChannel(request, handler)) {
-                    endHostHandler.addChannel(handler.context.channel());
-                    log.debug("Channel added for Client {}:{} Agent Port {}",
+         //   for (AgentServerHandler handler : handlers
+           //         ) {
+                if (isMineChannel(request, this)) {
+                    endHostHandler.addChannel(this.context.channel());
+                    log.info("Channel added for Client {}:{} Agent Port {}",
                             request.getRequest().getClientIP(),
                             request.getRequest().getClientPort(),
-                            (((InetSocketAddress) handler.context.channel().remoteAddress())).getPort());
+                            (((InetSocketAddress) this.context.channel().remoteAddress())).getPort());
 
-                    handler.buffer = bufferManager.addBuffer(request, endHostHandler);
+                    this.buffer = bufferManager.addBuffer(request, endHostHandler);
 
-                }
+             //   }
             }
 
             //  buffer = bufferManager.addBuffer(request, endHostHandler);

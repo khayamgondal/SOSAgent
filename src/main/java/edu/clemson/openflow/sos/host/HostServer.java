@@ -5,6 +5,7 @@ import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.manager.ControllerManager;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RequestListener;
+import edu.clemson.openflow.sos.rest.RequestListenerInitiator;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
 import edu.clemson.openflow.sos.shaping.RestStatListener;
@@ -41,12 +42,18 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private NioEventLoopGroup group;
     private HostStatusInitiator hostStatusInitiator;
     private HostTrafficShaping hostTrafficShaping;
+
+    private RequestListenerInitiator requestListenerInitiator;
+
     private long totalWritten;
 
     public HostServer() {
 
+        requestListenerInitiator = new RequestListenerInitiator();
+        requestListenerInitiator.addRequestListener(this);
+
         //  Utils.requestListeners.add(this); //we register for incoming requests
-        Utils.router.getContext().getAttributes().put("portcallback", this);
+        Utils.router.getContext().getAttributes().put("host-callback", requestListenerInitiator);
 
         if (Utils.router != null) {
             Utils.router.getContext().getAttributes().put("callback", this); //also pass the callback listener via router context
@@ -106,8 +113,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                         request.getRequest().getControllerIP());
             } else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                     request.toString());
-
-
 
         }
 

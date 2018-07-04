@@ -1,8 +1,6 @@
 package edu.clemson.openflow.sos.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.clemson.openflow.sos.agent.AgentServer;
-import edu.clemson.openflow.sos.host.HostServer;
 import org.json.JSONObject;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -14,34 +12,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RequestHandler extends ServerResource {
     ObjectMapper mapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
-    private RequestListener restRequestListener;
-   private List<RequestListener> restRequestListeners;
 
-    public void setRestListener(AgentServer.AgentServerHandler listener) {
-        this.restRequestListener = listener;
-        log.info("AGENG SERVER IS SET AS LISTEner");
+    private RequestListenerInitiator hostCallbackInitiators ;
+    private RequestListenerInitiator agentCallbackInitiators ;
+
+
+    public void addRestListener(RequestListenerInitiator listener) {
+       // initiators.add(listener);
     }
-
-    public void setRestRequestListeners(List<RequestListener> restRequestListeners) {
-        this.restRequestListeners = restRequestListeners;
-    }
-
-    public void setRestListener(HostServer listener) {
-        this.restRequestListener = listener;
-    }
-
 
     @Override
     protected void doInit() throws ResourceException {
-        Object listener = getContext().getAttributes().get("portcallback");
-        if (listener instanceof List<AgentServer>)
-            setRestListeners(List<AgentServer> listener);
-        else if (listener instanceof HostServer) setRestListener((HostServer) listener);
+        hostCallbackInitiators = (RequestListenerInitiator) getContext().getAttributes().get("host-callback");
+        agentCallbackInitiators = (RequestListenerInitiator) getContext().getAttributes().get("agent-callback");
+
+       log.info("Call back listenre is setttttt with size {}", agentCallbackInitiators.getRequestListenerList().size());
+    //    addRestListener(listener);
+    //    addRestListener(agentListener);
     }
 
     @Override
@@ -56,7 +49,15 @@ public class RequestHandler extends ServerResource {
             incomingRequest.getRequest().setControllerIP(ctlIP);
             log.debug("Request Object {}", request.toString());
             // also implement the getting of controller IP
-           if (restRequestListener != null) restRequestListener.newIncomingRequest(incomingRequest);
+
+            //   if (restRequestListener != null) restRequestListener.newIncomingRequest(incomingRequest);
+         //   if (initiators != null) for (RequestListenerInitiator initiator : initiators
+           //         ) {
+             //   initiator.newIncomingRequest(incomingRequest);
+           // }
+
+            if (incomingRequest.getPorts() == null && hostCallbackInitiators != null) hostCallbackInitiators.newIncomingRequest(incomingRequest);
+            else if (incomingRequest.getPorts() != null && agentCallbackInitiators != null) agentCallbackInitiators.newIncomingRequest(incomingRequest);
 
             Representation response = new StringRepresentation("TRUE");
             setStatus(Status.SUCCESS_OK);
