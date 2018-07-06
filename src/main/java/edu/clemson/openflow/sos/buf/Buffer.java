@@ -45,7 +45,6 @@ public class Buffer {
         if (Utils.configFile != null)
             bufferSize = Integer.parseInt(Utils.configFile.getProperty("buffer_size").replaceAll("[\\D]", ""));
         else bufferSize = MAX_BUF;
-        log.info("Receiving buffer size is {}", bufferSize);
 
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());

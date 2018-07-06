@@ -151,6 +151,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
            // handlers.add(this);
             requestListenerInitiator.addRequestListener(this);
+            Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
 
             //also register this class for new port request event.
           //  Utils.router.getContext().getAttributes().put("portcallback", this);
@@ -179,7 +180,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
            //         ) {
                 if (isMineChannel(request, this)) {
                     endHostHandler.addChannel(this.context.channel());
-                    log.info("Channel added for Client {}:{} Agent Port {}",
+                    log.debug("Channel added for Client {}:{} Agent Port {}",
                             request.getRequest().getClientIP(),
                             request.getRequest().getClientPort(),
                             (((InetSocketAddress) this.context.channel().remoteAddress())).getPort());

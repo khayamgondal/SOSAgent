@@ -22,6 +22,7 @@ public class RequestListenerInitiator {
     public void newIncomingRequest(RequestTemplateWrapper request) {
         for (RequestListener listener : requestListenerList
                 ) {
+            if (listener == null) log.info("listner neulll but size is {} ", requestListenerList.size());
             listener.newIncomingRequest(request);
         }
     }

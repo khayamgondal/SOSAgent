@@ -23,18 +23,11 @@ public class RequestHandler extends ServerResource {
     private RequestListenerInitiator agentCallbackInitiators ;
 
 
-    public void addRestListener(RequestListenerInitiator listener) {
-       // initiators.add(listener);
-    }
-
     @Override
     protected void doInit() throws ResourceException {
         hostCallbackInitiators = (RequestListenerInitiator) getContext().getAttributes().get("host-callback");
         agentCallbackInitiators = (RequestListenerInitiator) getContext().getAttributes().get("agent-callback");
 
-       log.info("Call back listenre is setttttt with size {}", agentCallbackInitiators.getRequestListenerList().size());
-    //    addRestListener(listener);
-    //    addRestListener(agentListener);
     }
 
     @Override
@@ -48,13 +41,6 @@ public class RequestHandler extends ServerResource {
             String ctlIP = getClientInfo().getAddress();
             incomingRequest.getRequest().setControllerIP(ctlIP);
             log.debug("Request Object {}", request.toString());
-            // also implement the getting of controller IP
-
-            //   if (restRequestListener != null) restRequestListener.newIncomingRequest(incomingRequest);
-         //   if (initiators != null) for (RequestListenerInitiator initiator : initiators
-           //         ) {
-             //   initiator.newIncomingRequest(incomingRequest);
-           // }
 
             if (incomingRequest.getPorts() == null && hostCallbackInitiators != null) hostCallbackInitiators.newIncomingRequest(incomingRequest);
             else if (incomingRequest.getPorts() != null && agentCallbackInitiators != null) agentCallbackInitiators.newIncomingRequest(incomingRequest);
