@@ -150,6 +150,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             remoteAgentPort = socketAddress.getPort();
 
             requestListenerInitiator.addRequestListener(this);
+            if (this == null ) log.info("EHy nULLL ");
         //    Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
 
             StatCollector.getStatCollector().connectionAdded();
@@ -170,10 +171,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
                     will be notified.                */
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
-            log.info("REWQUST");
             endHostHandler = getHostHandler(request);
-         //   for (AgentServerHandler handler : handlers
-           //         ) {
                 if (isMineChannel(request, this)) {
                     endHostHandler.addChannel(this.context.channel());
                     log.debug("Channel added for Client {}:{} Agent Port {}",
@@ -183,17 +181,9 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
                     this.buffer = bufferManager.addBuffer(request, endHostHandler);
 
-             //   }
             }
-       //     log.info("Buffer set for port {} with hash", ((InetSocketAddress) this.context.channel().localAddress()).getPort(), this.buffer.hashCode() );
-            //  buffer = bufferManager.addBuffer(request, endHostHandler);
             endHostHandler.setBuffer(buffer);
-          /*  if (buffer == null) log.error("Receiving buffer NULL for client {} port {} Agent {} Port {} ",
-                    request.getRequest().getClientIP(),
-                    request.getRequest().getClientPort(),
-                    ((InetSocketAddress) context.channel().remoteAddress()).getHostName(),
-                    ((InetSocketAddress) context.channel().remoteAddress()).getPort());
-            log.info("Req for {}", ((InetSocketAddress) context.channel().remoteAddress()).getPort());*/
+
         }
 
 

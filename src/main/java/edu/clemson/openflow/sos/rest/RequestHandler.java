@@ -44,7 +44,8 @@ public class RequestHandler extends ServerResource {
             log.debug("Request Object {}", request.toString());
 
             if (incomingRequest.getPorts() == null && hostCallbackInitiators != null) hostCallbackInitiators.newIncomingRequest(incomingRequest);
-            else if (incomingRequest.getPorts() != null && agentCallbackInitiators != null) agentCallbackInitiators.newIncomingRequest(incomingRequest);
+         //   else if (incomingRequest.getPorts() != null && agentCallbackInitiators != null) agentCallbackInitiators.newIncomingRequest(incomingRequest);
+            else if (incomingRequest.getPorts() != null && AgentServer.requestListenerInitiator != null) AgentServer.requestListenerInitiator.newIncomingRequest(incomingRequest);
 
             Representation response = new StringRepresentation("TRUE");
             setStatus(Status.SUCCESS_OK);

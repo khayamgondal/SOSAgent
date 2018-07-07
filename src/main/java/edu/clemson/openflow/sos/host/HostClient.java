@@ -93,7 +93,7 @@ public class HostClient implements HostStatusListener {
             myChannel = bootstrap.connect(hostServerIP, hostServerPort).sync().channel();
             InetSocketAddress socketAddress = (InetSocketAddress) myChannel.localAddress();
 
-            log.info("Connected :{} to Host-Server {} on Port {}",socketAddress.getPort() ,hostServerIP, hostServerPort);
+            log.info("Connected Host-Server {} on Port {}", hostServerIP, hostServerPort);
 
             //  ChannelFuture channelFuture = bootstrap.connect().sync();
             //  channelFuture.channel().closeFuture().sync();
