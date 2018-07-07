@@ -1,6 +1,7 @@
 package edu.clemson.openflow.sos.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.clemson.openflow.sos.agent.AgentServer;
 import org.json.JSONObject;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -26,8 +27,8 @@ public class RequestHandler extends ServerResource {
     @Override
     protected void doInit() throws ResourceException {
         hostCallbackInitiators = (RequestListenerInitiator) getContext().getAttributes().get("host-callback");
-        agentCallbackInitiators = (RequestListenerInitiator) getContext().getAttributes().get("agent-callback");
-
+        //agentCallbackInitiators = (RequestListenerInitiator) getContext().getAttributes().get("agent-callback");
+        agentCallbackInitiators = AgentServer.requestListenerInitiator;
     }
 
     @Override
@@ -35,7 +36,7 @@ public class RequestHandler extends ServerResource {
         try {
             JSONObject request = new JsonRepresentation(entity).getJsonObject();
             RequestTemplateWrapper incomingRequest = mapper.readValue(request.toString(), RequestTemplateWrapper.class);
-            log.info("Received Request from remote agent {}", incomingRequest);
+            log.debug("Received Request from remote agent {}", incomingRequest);
             if (incomingRequest.getPorts() != null)
                 log.debug("New ports info from client- agent {}.", incomingRequest.getRequest().getClientAgentIP());
             String ctlIP = getClientInfo().getAddress();

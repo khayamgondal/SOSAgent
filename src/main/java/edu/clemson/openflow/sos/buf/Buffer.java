@@ -25,6 +25,8 @@ public class Buffer {
     private static final int MAX_BUF = 99000;
 
     private OrderedPacketInitiator orderedPacketInitiator;
+    private RequestTemplateWrapper request;
+
 
     private int bufCount = 0;
 
@@ -41,6 +43,7 @@ public class Buffer {
     public Buffer(RequestTemplateWrapper request) {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
+        this.request = request;
 
         if (Utils.configFile != null)
             bufferSize = Integer.parseInt(Utils.configFile.getProperty("buffer_size").replaceAll("[\\D]", ""));
@@ -49,6 +52,10 @@ public class Buffer {
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
 
+    }
+
+    public int getClientPort() {
+        return clientPort;
     }
 
     public void setOrderedPacketInitiator(OrderedPacketInitiator orderedPacketInitiator) {

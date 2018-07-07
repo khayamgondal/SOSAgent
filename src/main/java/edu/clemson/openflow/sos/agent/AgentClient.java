@@ -121,11 +121,11 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         //Wait for couple of seconds to give remote agent time to process incoming request,
         //currently receiving restlet based server is async that's why it immediately return response with/o actually processing the request
         //TODO: RequestHandler.java change @post to sync
-      /*  try {
-            TimeUnit.SECONDS.sleep(5);
+        try {
+            TimeUnit.SECONDS.sleep(8);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }*/
+        }
 
         try {
             notifyRemoteAgent(ports); //TODO: Based on remote agent response code.. take actions i.e if request is not valid than dont start sending packet

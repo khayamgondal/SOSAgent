@@ -12,6 +12,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+
 public class HostClient implements HostStatusListener {
     private static final Logger log = LoggerFactory.getLogger(HostClient.class);
     private Channel myChannel;
@@ -89,7 +91,9 @@ public class HostClient implements HostStatusListener {
                     });
 
             myChannel = bootstrap.connect(hostServerIP, hostServerPort).sync().channel();
-            log.info("Connected to Host-Server {} on Port {}", hostServerIP, hostServerPort);
+            InetSocketAddress socketAddress = (InetSocketAddress) myChannel.localAddress();
+
+            log.info("Connected :{} to Host-Server {} on Port {}",socketAddress.getPort() ,hostServerIP, hostServerPort);
 
             //  ChannelFuture channelFuture = bootstrap.connect().sync();
             //  channelFuture.channel().closeFuture().sync();

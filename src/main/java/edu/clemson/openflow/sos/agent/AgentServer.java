@@ -55,7 +55,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     private NioEventLoopGroup group;
 
     private List<AgentServerHandler> handlers;
-    private RequestListenerInitiator requestListenerInitiator;
+    public static RequestListenerInitiator requestListenerInitiator; //TODO: use context to send listener
 
     private int gotStatsFrom;
     private double totalReadThroughput, totalWriteThroughput; //also need to reset these after we send these back to other agents and before
@@ -66,10 +66,9 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         incomingRequests = new ArrayList<>();
         bufferManager = new BufferManager(); //setup buffer manager.
         hostManager = new AgentToHostManager();
-        // channels = new ArrayList<>();
-    //    handlers = new ArrayList<>();
+
         requestListenerInitiator = new RequestListenerInitiator();
-        Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
+        //Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
 
     }
 
@@ -140,6 +139,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
+            log.info("IN ACTIVE");
             log.debug("New agent-side connection from agent {} at Port {}",
                     socketAddress.getHostName(),
                     socketAddress.getPort());
@@ -149,18 +149,13 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             remoteAgentIP = socketAddress.getHostName();
             remoteAgentPort = socketAddress.getPort();
 
-           // handlers.add(this);
             requestListenerInitiator.addRequestListener(this);
-            Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
-
-            //also register this class for new port request event.
-          //  Utils.router.getContext().getAttributes().put("portcallback", this);
-
-            //Utils.requestListeners.add(this);
+        //    Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
 
             StatCollector.getStatCollector().connectionAdded();
 
             startTime = System.currentTimeMillis();
+
 
         }
 
@@ -175,6 +170,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
                     will be notified.                */
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
+            log.info("REWQUST");
             endHostHandler = getHostHandler(request);
          //   for (AgentServerHandler handler : handlers
            //         ) {
@@ -189,7 +185,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
              //   }
             }
-
+       //     log.info("Buffer set for port {} with hash", ((InetSocketAddress) this.context.channel().localAddress()).getPort(), this.buffer.hashCode() );
             //  buffer = bufferManager.addBuffer(request, endHostHandler);
             endHostHandler.setBuffer(buffer);
           /*  if (buffer == null) log.error("Receiving buffer NULL for client {} port {} Agent {} Port {} ",
