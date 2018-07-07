@@ -2,6 +2,7 @@ package edu.clemson.openflow.sos.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.buf.Buffer;
+import edu.clemson.openflow.sos.buf.OrderedPacketInitiator;
 import edu.clemson.openflow.sos.buf.OrderedPacketListener;
 import edu.clemson.openflow.sos.host.HostStatusListener;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
@@ -17,6 +18,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.util.ReferenceCountUtil;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
@@ -57,20 +59,29 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     private RequestTemplateWrapper request;
     private ArrayList<Channel> channels;
-    private Buffer myBuffer;
+    private Buffer buffer;
     private Channel hostChannel;
     private EventLoopGroup eventLoopGroup;
     private AgentTrafficShaping ats;
 
+    private OrderedPacketInitiator orderedPacketInitiator;
+
     private int gotStatsFrom;
     private double totalReadThroughput, totalWriteThroughput;
+    private long writableCount, unwritableCount;
 
     public AgentClient(RequestTemplateWrapper request) {
         this.request = request;
 
+        orderedPacketInitiator = new OrderedPacketInitiator();
+        orderedPacketInitiator.addListener(this);
+
         perChBytes = new HashMap<>(request.getRequest().getNumParallelSockets());
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
-        myBuffer = new Buffer(request, this);
+
+        //buffer = new Buffer(request, this);
+        buffer = new Buffer(request);
+        buffer.setOrderedPacketInitiator(orderedPacketInitiator);
         //    this.statListener = statListener;
         //   myBuffer.setListener(this); // notify me when you have sorted packs
 
@@ -140,7 +151,9 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     @Override
     public boolean orderedPacket(ByteBuf packet) {
-        byte[] bytes = new byte[packet.capacity() - 4];
+        return sendToHost(packet);
+
+      /*  byte[] bytes = new byte[packet.capacity() - 4];
         packet.getBytes(4, bytes);
         if (hostChannel.isWritable()) {
             ChannelFuture cf = hostChannel.writeAndFlush(bytes);
@@ -154,9 +167,21 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             return true;
         }
 
-        return false;
+        return false;*/
     }
-
+    private boolean sendToHost(ByteBuf packet) {
+        //   smartSend(packet);
+        //TODO: @smartSend().. separate write and flush
+        if (hostChannel.isWritable()) {
+            // hostClient.getHostChannel().writeAndFlush(packet.slice(4, packet.capacity() - 4));
+            hostChannel.writeAndFlush(packet);
+            writableCount++;
+            return true;
+        } else {
+            unwritableCount++;
+            return false;
+        }
+    }
     public void setWriteBackChannel(Channel channel) {
         this.hostChannel = channel;
     }
@@ -211,13 +236,12 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            //    log.debug("Reading from remote agent");
-            //     int size = ((ByteBuf) msg).capacity();
-            //log.info(size + "");
-            //    if (size > 0)
-            myBuffer.incomingPacket((ByteBuf) msg);
-
-            //ReferenceCountUtil.release(msg);
+            if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
+            else {
+                log.error("Receiving buffer NULL for Remote Agent ");
+                ReferenceCountUtil.release(msg);
+            }
+            totalBytes += ((ByteBuf) msg).capacity();
         }
 
         @Override
@@ -260,9 +284,9 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     }
 
 
-    public void incomingPacket(ByteBuf data) {
+    public void incomingPacket(ByteBuf packet) {
         if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
-        writeToAgentChannel(channels.get(currentChannelNo), data);
+        writeToAgentChannel(channels.get(currentChannelNo), packet);
         currentChannelNo++;
     }
 

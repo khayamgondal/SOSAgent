@@ -5,6 +5,7 @@ import edu.clemson.openflow.sos.agent.HostPacketInitiator;
 import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -17,15 +18,19 @@ public class HostClient implements HostStatusListener {
     private SeqGen seqGen;
     private EventLoopGroup group;
 
-    private HostPacketInitiator initiator;
+    private HostPacketInitiator hostPacketInitiator;
 
     public HostClient() {
         seqGen = new SeqGen();
-        initiator = new HostPacketInitiator();
+        //initiator = new HostPacketInitiator();
     }
 
     public void setListener(Object listener) {
-        initiator.addListener((AgentToHost) listener);
+       // initiator.addListener((AgentToHost) listener);
+    }
+
+    public void setHostPacketListenerInitiator(HostPacketInitiator initiator) {
+        hostPacketInitiator = initiator;
     }
 
     @Override
@@ -47,9 +52,12 @@ public class HostClient implements HostStatusListener {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            log.debug("Reading from host");
             //  byte[] packet = seqGen.incomingPacket((byte[]) msg);
-            initiator.hostPacket(seqGen.incomingPacket((byte[]) msg)); //notify the listener
+            if (hostPacketInitiator != null) {
+                ByteBuf seqed = seqGen.incomingPacket((byte[]) msg);
+                hostPacketInitiator.hostPacket(seqed);
+            }
+           // initiator.hostPacket(seqGen.incomingPacket((byte[]) msg)); //notify the listener
         }
 
     }

@@ -7,8 +7,8 @@ import java.util.ArrayList;
 public class OrderedPacketInitiator {
     private ArrayList<OrderedPacketListener> listeners = new ArrayList<>();
 
-    public void addListener(OrderedPacketListener toAdd) {
-        listeners.add(toAdd);
+    public void addListener(OrderedPacketListener listener) {
+        listeners.add(listener);
     }
     public boolean orderedPacket(ByteBuf packet) {
         for (OrderedPacketListener listener: listeners

@@ -33,7 +33,7 @@ public class Buffer {
     private HashMap<Integer, Boolean> status;
 
     public Buffer() {
-        orderedPacketInitiator = new OrderedPacketInitiator();
+      //  orderedPacketInitiator = new OrderedPacketInitiator();
         status = new HashMap<>();
         packetHolder = new HashMap<>();
     }
@@ -51,14 +51,21 @@ public class Buffer {
 
     }
 
+    public void setOrderedPacketInitiator(OrderedPacketInitiator orderedPacketInitiator) {
+        this.orderedPacketInitiator = orderedPacketInitiator;
+    }
+
     public Buffer(RequestTemplateWrapper request, Object callBackHandler) {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
 
-        bufferSize = MAX_BUF;//request.getRequest().getBufferSize();
+        if (Utils.configFile != null)
+            bufferSize = Integer.parseInt(Utils.configFile.getProperty("buffer_size").replaceAll("[\\D]", ""));
+        else bufferSize = MAX_BUF;
 
         status = new HashMap<>(request.getRequest().getBufferSize());
         packetHolder = new HashMap<>(request.getRequest().getBufferSize());
+
         // TODO: remove the below section and make two setListerners()..
         // However this starts issues when we write to channel...
         // may be it notifies both AgentClient & AgentToHost... need to lookup
@@ -249,7 +256,9 @@ public class Buffer {
 
 
     private boolean sendData(ByteBuf data) {
+        if (orderedPacketInitiator != null)
         return orderedPacketInitiator.orderedPacket(data); //notify the listener
+        else return orderedPacketInitiator.orderedPacket(data); //TODO: change AgentServer to use this kinda logic
 
     }
 

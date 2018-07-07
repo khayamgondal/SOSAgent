@@ -169,6 +169,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             ServerBootstrap b = new ServerBootstrap();
             b.group(group)
                     .channel(NioServerSocketChannel.class)
+                    .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(2048 * 1024, 2048 * 1024))
                     .localAddress(new InetSocketAddress(port))
                     .childHandler(new ChannelInitializer() {
                                       @Override

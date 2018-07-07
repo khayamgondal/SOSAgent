@@ -28,6 +28,8 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     private RequestTemplateWrapper request;
     private ArrayList<Channel> channels;
+
+    private HostPacketInitiator hostPacketInitiator;
     private HostClient hostClient;
     private Buffer buffer;
 
@@ -37,54 +39,19 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private long writableCount, unwritableCount;
     int shouldSend = 0;
 
-    /////////////
-    boolean first = true;
-    SocketChannel sschannel;
-    ByteBuffer ssbuffer;
 
-
-    private void javaBufSetup() {
-        try {
-            sschannel = SocketChannel.open();
-            sschannel.configureBlocking(false);
-            sschannel.connect(new InetSocketAddress("10.0.0.211", 5001));
-            log.info("TRYIGN TO CONNE");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    private void normalSocketSend(ByteBuf packet) {
-        if (first) {
-            ssbuffer = ByteBuffer.allocate(packet.capacity());
-            byte[] b = new byte[packet.capacity()];
-            packet.getBytes(0, b);
-            for (int i = 0; i < ssbuffer.capacity(); i += 4)
-                ssbuffer.putInt(i, 55);
-            first = false;
-        }
-        packet.release();
-        try {
-            if (sschannel.finishConnect()) {
-                try {
-                    sschannel.write(ssbuffer);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } else log.error("NOT CONNECTED :YET");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
-    ////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
     public AgentToHost(RequestTemplateWrapper request) {
         this.request = request;
         channels = new ArrayList<>();
+
+
         hostClient = new HostClient();
-        hostClient.setListener(this);
+        hostPacketInitiator = new HostPacketInitiator();
+        hostPacketInitiator.addListener(this);
+        hostClient.setHostPacketListenerInitiator(hostPacketInitiator);
+
+        //hostClient.setListener(this); /////////////
 
         hostStatusInitiator = new HostStatusInitiator();
         hostStatusInitiator.addListener(hostClient);
@@ -95,8 +62,6 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
                 request.getRequest().getServerPort());
         startTime = System.currentTimeMillis();
 
-       // javaBufSetup();
-
     }
 
 
@@ -106,9 +71,6 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     @Override
     public boolean orderedPacket(ByteBuf packet) {
-        //normalSocketSend(packet);
-        //smartSend(packet);
-        //return true;
         return sendToHost(packet);
     }
 
@@ -176,19 +138,20 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     @Override
     public void hostPacket(ByteBuf packet) {
-        if (currentChannelNo == channels.size()) currentChannelNo = 0;
-        log.debug("Forwarding packet with size {} on channel {} to Agent-Client", packet.capacity(), currentChannelNo);
-        //   log.info(packet.length + "");
-        ChannelFuture cf = channels.get(currentChannelNo).writeAndFlush(packet);
+        if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
+        writeToAgentChannel(channels.get(currentChannelNo), packet);
         currentChannelNo++;
-        cf.addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                ReferenceCountUtil.release(packet);
-            }
-        });
     }
 
+    private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
+        ChannelFuture cf = currentChannel.write(data);
+        wCount++;
+        if (wCount >= request.getRequest().getBufferSize() * request.getRequest().getNumParallelSockets()) {
+            for (Channel channel : channels)
+                channel.flush();
+            wCount = 0;
+        }
+    }
     public void transferCompleted() {
         hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
         log.info("Total WrittenBytes {} Total Unwritten {}", writableCount, unwritableCount);
