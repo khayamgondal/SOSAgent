@@ -9,8 +9,10 @@ import edu.clemson.openflow.sos.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Properties;
 
 /**
@@ -26,8 +28,10 @@ public class Main {
 
         try {
             Properties properties = new Properties();
-            String filename = "config.properties";
-            InputStream input = Main.class.getClassLoader().getResourceAsStream(filename);
+            String filename = "src/main/resources/config.properties";
+            //InputStream input = Main.class.getClassLoader().getResourceAsStream(filename);
+            InputStreamReader input = new InputStreamReader(new FileInputStream(filename), "UTF-8");
+
             if (input == null) {
                 log.warn("Unable to find default configuration");
             } else {

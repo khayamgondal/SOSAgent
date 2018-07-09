@@ -1,5 +1,7 @@
 package edu.clemson.openflow.sos.host;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.clemson.openflow.sos.agent.AgentClient;
 import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.manager.ControllerManager;
@@ -9,6 +11,8 @@ import edu.clemson.openflow.sos.rest.RequestListenerInitiator;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
 import edu.clemson.openflow.sos.shaping.RestStatListener;
+import edu.clemson.openflow.sos.utils.MappingParser;
+import edu.clemson.openflow.sos.utils.MockRequestBuilder;
 import edu.clemson.openflow.sos.utils.Utils;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -21,10 +25,10 @@ import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Khayam Anjam kanjam@g.clemson.edu
@@ -47,17 +51,33 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private long totalWritten;
 
+    private boolean mockRequest;
+    private int mockParallelConns;
+    private List<MappingParser> mockMapping;
+    ObjectMapper mapper = new ObjectMapper();
+
     public HostServer() {
 
         requestListenerInitiator = new RequestListenerInitiator();
         requestListenerInitiator.addRequestListener(this);
 
         //  Utils.requestListeners.add(this); //we register for incoming requests
-        Utils.router.getContext().getAttributes().put("host-callback", requestListenerInitiator);
 
         if (Utils.router != null) {
+            Utils.router.getContext().getAttributes().put("host-callback", requestListenerInitiator);
             Utils.router.getContext().getAttributes().put("callback", this); //also pass the callback listener via router context
         }
+        if (Utils.configFile != null) {
+            mockRequest = Boolean.parseBoolean(Utils.configFile.getProperty("test_mode"));
+            mockParallelConns = Integer.parseInt(Utils.configFile.getProperty("test_conns").replaceAll("[\\D]", ""));
+        }
+        try {
+            mockMapping = mapper.readValue(Utils.configFile.getProperty("test_mapping"), new TypeReference<List<MappingParser>>() {
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // System.out.println(mockMapping.toArray().toString() );
     }
 
     private synchronized void totalWritten(long written) {
@@ -84,15 +104,34 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         private SeqGen seqGen;
         private AgentClient agentClient;
 
+        private int myMockIndex(String localAgentIP) {
+            for (int i = 0; i < mockMapping.size(); i++)
+                if (mockMapping.get(i).getClientAgentIP().equals(localAgentIP)) return i;
+            return -1;
+        }
+
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
             InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
+            InetSocketAddress localSocketAddress = (InetSocketAddress) ctx.channel().localAddress();
 
             log.info("New host-side connection from {} at Port {}",
                     socketAddress.getHostName(),
                     socketAddress.getPort());
+
+            if (mockRequest) {
+                int myIndex = myMockIndex(localSocketAddress.getHostName());
+                if (myIndex == -1) {
+                    log.error("Couldn't find entry for this agent in config.properties..");
+                    return;
+                }
+                request = new MockRequestBuilder().buildRequest(socketAddress.getHostName(), socketAddress.getPort(),
+                        localSocketAddress.getHostName(), mockMapping.get(myIndex).getServerAgentIP(), mockParallelConns, 1,
+                        mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());
+            }
             //TODO: If remotely connecting client is in your /etc/hosts than socketAddress.getHostName() will return that hostname instead of its IP address and following method call will return null
-            request = getClientRequest(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
+            else
+                request = getClientRequest(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
             if (request == null) {
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
