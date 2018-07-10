@@ -88,9 +88,9 @@ public class Buffer {
 
     public synchronized void incomingPacket(ByteBuf data) {
         //processPacket(data);
-        sendWithoutBuffering(data);
+        //sendWithoutBuffering(data);
         //   dropData(data);
-        // processDontSend(data);
+         processDontSend(data);
     }
 
     public HashMap<Integer, Boolean> getStatus() {
@@ -217,6 +217,7 @@ public class Buffer {
     }
 
     public void dropData(ByteBuf data) {
+        System.out.println(data.getInt(0));
         data.release();
     }
 
