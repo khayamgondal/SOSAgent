@@ -71,7 +71,10 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     @Override
     public boolean orderedPacket(ByteBuf packet) {
-        return sendToHost(packet);
+         if (!sendToHost(packet))
+             packet.release();
+         return true;
+         //return sendToHost(packet); //This is real
     }
 
     private boolean sendToHost(ByteBuf packet) {

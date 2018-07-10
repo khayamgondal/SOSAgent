@@ -87,10 +87,10 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-        //processPacket(data);
+        processPacket(data);
         //sendWithoutBuffering(data);
         //   dropData(data);
-         processDontSend(data);
+         //processDontSend(data);
     }
 
     public HashMap<Integer, Boolean> getStatus() {
@@ -264,6 +264,7 @@ public class Buffer {
 
 
     private boolean sendData(ByteBuf data) {
+        //System.out.println(data.getInt(0));
         if (orderedPacketInitiator != null)
         return orderedPacketInitiator.orderedPacket(data); //notify the listener
         else return orderedPacketInitiator.orderedPacket(data); //TODO: change AgentServer to use this kinda logic
