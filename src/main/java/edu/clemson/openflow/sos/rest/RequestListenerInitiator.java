@@ -15,7 +15,7 @@ public class RequestListenerInitiator {
         return requestListenerList;
     }
 
-    public void addRequestListener(RequestListener listener) {
+    public synchronized void addRequestListener(RequestListener listener) {
         requestListenerList.add(listener);
     }
 

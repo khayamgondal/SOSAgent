@@ -32,7 +32,7 @@ public class BufferManager {
       return buffer;
     }
 
-    public void removeBuffer(Buffer buffer) {
+    public synchronized void removeBuffer(Buffer buffer) {
         if(buffers.contains(buffer)) buffers.remove(buffer);
     }
 }

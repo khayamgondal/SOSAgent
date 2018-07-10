@@ -6,6 +6,7 @@ package edu.clemson.openflow.sos.agent;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.org.apache.regexp.internal.RE;
 import edu.clemson.openflow.sos.buf.Buffer;
 import edu.clemson.openflow.sos.buf.BufferManager;
 import edu.clemson.openflow.sos.manager.ISocketServer;
@@ -139,7 +140,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
-            log.info("IN ACTIVE");
             log.debug("New agent-side connection from agent {} at Port {}",
                     socketAddress.getHostName(),
                     socketAddress.getPort());
@@ -197,16 +197,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             totalBytes += ((ByteBuf) msg).capacity();
         }
 
-   /*     private void write(Object msg) {
-            if (hostManager.getHostClient().getHostChannel().isWritable())
-                hostManager.getHostClient().getHostChannel().writeAndFlush(msg);
-            else {
-                log.info("UNWRITTEBNLLLBSB");
-                ReferenceCountUtil.release(msg);
-            }
-
-        }*/
-
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
 
@@ -214,6 +204,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             log.info("Agentserver rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
 
             if (endHostHandler != null) endHostHandler.transferCompleted(); // notify the host server
+            requestListenerInitiator = new RequestListenerInitiator(); //also reset the listener to remove old listeners
 
             hostManager.removeAgentToHost(endHostHandler);
             bufferManager.removeBuffer(buffer);

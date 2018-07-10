@@ -266,8 +266,12 @@ public class Buffer {
     private boolean sendData(ByteBuf data) {
         //System.out.println(data.getInt(0));
         if (orderedPacketInitiator != null)
-        return orderedPacketInitiator.orderedPacket(data); //notify the listener
-        else return orderedPacketInitiator.orderedPacket(data); //TODO: change AgentServer to use this kinda logic
+        return orderedPacketInitiator.orderedPacket(data.slice(4, data.capacity()-4 )); //notify the listener
+        else {
+            log.error("packet listener is null... ");
+            return false;
+        }
+      //  else return orderedPacketInitiator.orderedPacket(data); //TODO: change AgentServer to use this kinda logic
 
     }
 
