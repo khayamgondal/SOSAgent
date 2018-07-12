@@ -1,6 +1,5 @@
 package edu.clemson.openflow.sos.shaping;
 
-import edu.clemson.openflow.sos.rest.TrafficHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,17 +15,23 @@ public class ShapingTimer implements Runnable {
     private static final long TEN_GB = 800000000;
 
 
-    private int count = 0;
+    private int count = 2;
     private HostTrafficShaping shaper;
-
+    private double totalReadThroughput;
 
     public ShapingTimer(HostTrafficShaping shaper) {
         this.shaper = shaper;
     }
 
+    public void setTotalReadThroughput(double totalReadThroughput) {
+        this.totalReadThroughput = totalReadThroughput;
+    }
+
     @Override
     public void run() {
-            int nor = count % 7;
+        log.info("Limting rate to {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
+
+        /*    int nor = count % 7;
         log.info("NOr is {}", nor);
         if (nor == 2) shaper.configure(0, TWO_GB);
         if (nor == 3) shaper.configure(0, FOUR_GB);
@@ -36,7 +41,9 @@ public class ShapingTimer implements Runnable {
         if (nor == 6) shaper.configure(0, 0);
 
         else shaper.configure(0, (long) TrafficHandler.readRate);
-        count ++;
+        count ++;*/
+
+        shaper.configure(0, (long) totalReadThroughput);
 
     }
 }

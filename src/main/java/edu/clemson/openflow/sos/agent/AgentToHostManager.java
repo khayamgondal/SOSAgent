@@ -38,7 +38,7 @@ public class AgentToHostManager {
         return host;
     }
 
-    public void removeAgentToHost(AgentToHost host) {
+    public synchronized void removeAgentToHost(AgentToHost host) {
         if (hosts.contains(host)) hosts.remove(host);
     }
 }

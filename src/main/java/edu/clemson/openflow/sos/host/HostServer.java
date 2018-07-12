@@ -11,6 +11,7 @@ import edu.clemson.openflow.sos.rest.RequestListenerInitiator;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.shaping.HostTrafficShaping;
 import edu.clemson.openflow.sos.shaping.RestStatListener;
+import edu.clemson.openflow.sos.shaping.ShapingTimer;
 import edu.clemson.openflow.sos.utils.MappingParser;
 import edu.clemson.openflow.sos.utils.MockRequestBuilder;
 import edu.clemson.openflow.sos.utils.Utils;
@@ -29,6 +30,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Khayam Anjam kanjam@g.clemson.edu
@@ -50,11 +54,13 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private RequestListenerInitiator requestListenerInitiator;
 
     private long totalWritten;
+    private double totalReadThroughput;
 
     private boolean mockRequest;
     private int mockParallelConns;
     private List<MappingParser> mockMapping;
     ObjectMapper mapper = new ObjectMapper();
+    private ShapingTimer timer;
 
     public HostServer() {
 
@@ -89,7 +95,9 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     @Override
     public void RestStats(double totalReadThroughput, double totalWriteThroughput) {
         //    if (hostTrafficShaping != null) hostTrafficShaping.setReadLimit((long) totalReadThroughput);
-        log.info("Remote Agent Read {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
+        log.debug("Remote Agent Read {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
+       // this.totalReadThroughput = totalReadThroughput;
+        this.timer.setTotalReadThroughput(totalReadThroughput);
     }
 
 
@@ -121,25 +129,25 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                     remoteSocketAddress.getPort());
 
             if (mockRequest) {
-              // int myIndex = myMockIndex(localSocketAddress.getHostName());
-               int  myIndex = myMockIndex(l);
+                int myIndex = myMockIndex(localSocketAddress.getHostName());
+                // int  myIndex = myMockIndex(l);
 
                 if (myIndex == -1) {
                     log.error("Couldn't find entry for this agent in config.properties..");
                     return;
                 }
-            /*    request = new MockRequestBuilder().buildRequest(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort(),
+                request = new MockRequestBuilder().buildRequest(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort(),
                         localSocketAddress.getHostName(), mockMapping.get(myIndex).getServerAgentIP(), mockParallelConns, 1,
-                        mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());*/
-                request = new MockRequestBuilder().buildRequest(hName, remoteSocketAddress.getPort(),
+                        mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());
+              /*  request = new MockRequestBuilder().buildRequest(hName, remoteSocketAddress.getPort(),
                        l, mockMapping.get(myIndex).getServerAgentIP(), mockParallelConns, 1,
-                      mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());
+                      mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());*/
             }
             //TODO: If remotely connecting client is in your /etc/hosts than remoteSocketAddress.getHostName() will return that hostname instead of its IP address and following method call will return null
             else
-              //  request = getClientRequest(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort()); // go through the list and find related request
-             request = getClientRequest(hName, remoteSocketAddress.getPort()); // go through the list and find related request
-
+                request = getClientRequest(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort()); // go through the list and find related request
+            //  request = getClientRequest(hName, remoteSocketAddress.getPort()); // go through the list and find related request
+           // log.info("Request is {}", request.toString());
             if (request == null) {
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
@@ -192,7 +200,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     }
 
-
     /*
         @param perChannel per channel write rate in Mbps
         @return read limit in bytes per second
@@ -204,13 +211,14 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
 
-        hostTrafficShaping = new HostTrafficShaping(group, 0, 00000000, 5000);
+       hostTrafficShaping = new HostTrafficShaping(group, 0, 0000000, 5000);
+        timer = new ShapingTimer(hostTrafficShaping);
+        ShapingTimer timer2 = new ShapingTimer(hostTrafficShaping);
+        timer2.setTotalReadThroughput(0);
 
-        //  ShapingTimer timer = new ShapingTimer(hostTrafficShaping);
-        //  ScheduledExecutorService scheduledExecutorService =
-        //          Executors.newScheduledThreadPool(1);
-        //  scheduledExecutorService.scheduleAtFixedRate(timer, 0, 10, TimeUnit.SECONDS);
-
+        ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
+        scheduledExecutorService.scheduleAtFixedRate(timer, 0, 12, TimeUnit.SECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(timer2, 0, 11, TimeUnit.SECONDS);
 
         try {
             ServerBootstrap b = new ServerBootstrap();
@@ -227,7 +235,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                                                   .addLast("bytesDecoder", new ByteArrayDecoder())
                                                   .addLast("hostHandler", new HostServerHandler())
                                                   .addLast("bytesEncoder", new ByteArrayEncoder());
-
                                       }
                                   }
                     );
