@@ -9,6 +9,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.bytes.ByteArrayDecoder;
+import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,8 +56,7 @@ public class HostClient implements HostStatusListener {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            //  byte[] packet = seqGen.incomingPacket((byte[]) msg);
-            if (hostPacketInitiator != null) {
+        if (hostPacketInitiator != null) {
                 ByteBuf seqed = seqGen.incomingPacket((byte[]) msg);
                 hostPacketInitiator.hostPacket(seqed);
             }
@@ -69,8 +70,6 @@ public class HostClient implements HostStatusListener {
         try {
             Bootstrap bootstrap = new Bootstrap().group(group)
                     .channel(NioSocketChannel.class)
-                    //  .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 256 * 1024)
-                    //  .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 255 * 1024)
 
                     //          High watermark:
                     //If the number of bytes queued in the write buffer exceeds writeBufferHighWaterMark value,
@@ -83,9 +82,9 @@ public class HostClient implements HostStatusListener {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
-                                    //    .addLast("bytesDecoder", new ByteArrayDecoder())
+                                    .addLast("bytesDecoder", new ByteArrayDecoder())
                                     .addLast("hostClient", new HostClientHandler())
-                            //  .addLast("bytesEncoder", new ByteArrayEncoder())
+                                    .addLast("bytesEncoder", new ByteArrayEncoder())
                             ;
                         }
                     });

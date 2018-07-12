@@ -21,7 +21,7 @@ public class SeqGen {
     public SeqGen() {
         if (Utils.configFile != null)
             MAX_SEQ = Integer.parseInt(Utils.configFile.getProperty("buffer_size").replaceAll("[\\D]", ""));
-        log.info("Max sequence no is {}", MAX_SEQ);
+        log.debug("Max sequence no is {}", MAX_SEQ);
     }
 
     public ByteBuf incomingPacket(byte[] packet) {

@@ -236,6 +236,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            log.info("GOT RESP FROM RMOTE  ");
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
                 log.error("Receiving buffer NULL for Remote Agent ");
@@ -276,8 +277,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         log.debug("JSON Object to sent {}", requestWithPortsString);
         HttpResponse response = httpClient.execute(httpRequest);
 
-        log.info("Sending HTTP request to remote agent {} ", requestWithPortsString);
-        log.info("Agent returned HTTP STATUS {} Response {}", response.getStatusLine().getStatusCode(), response.toString());
+        log.debug("Sending HTTP request to remote agent {} ", requestWithPortsString);
+        log.debug("Agent returned HTTP STATUS {} Response {}", response.getStatusLine().getStatusCode(), response.toString());
 
       //  if (response.getStatusLine().getStatusCode() == 400) notifyRemoteAgent(ports);
 

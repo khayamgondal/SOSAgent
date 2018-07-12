@@ -112,26 +112,34 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
-            InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
+            InetSocketAddress remoteSocketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
             InetSocketAddress localSocketAddress = (InetSocketAddress) ctx.channel().localAddress();
-
+            String hName = "172.0.0.111";
+            String l = "172.0.0.11";
             log.info("New host-side connection from {} at Port {}",
-                    socketAddress.getHostName(),
-                    socketAddress.getPort());
+                    remoteSocketAddress.getHostName(),
+                    remoteSocketAddress.getPort());
 
             if (mockRequest) {
-                int myIndex = myMockIndex(localSocketAddress.getHostName());
+              // int myIndex = myMockIndex(localSocketAddress.getHostName());
+               int  myIndex = myMockIndex(l);
+
                 if (myIndex == -1) {
                     log.error("Couldn't find entry for this agent in config.properties..");
                     return;
                 }
-                request = new MockRequestBuilder().buildRequest(socketAddress.getHostName(), socketAddress.getPort(),
+            /*    request = new MockRequestBuilder().buildRequest(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort(),
                         localSocketAddress.getHostName(), mockMapping.get(myIndex).getServerAgentIP(), mockParallelConns, 1,
-                        mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());
+                        mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());*/
+                request = new MockRequestBuilder().buildRequest(hName, remoteSocketAddress.getPort(),
+                       l, mockMapping.get(myIndex).getServerAgentIP(), mockParallelConns, 1,
+                      mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());
             }
-            //TODO: If remotely connecting client is in your /etc/hosts than socketAddress.getHostName() will return that hostname instead of its IP address and following method call will return null
+            //TODO: If remotely connecting client is in your /etc/hosts than remoteSocketAddress.getHostName() will return that hostname instead of its IP address and following method call will return null
             else
-                request = getClientRequest(socketAddress.getHostName(), socketAddress.getPort()); // go through the list and find related request
+              //  request = getClientRequest(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort()); // go through the list and find related request
+             request = getClientRequest(hName, remoteSocketAddress.getPort()); // go through the list and find related request
+
             if (request == null) {
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
