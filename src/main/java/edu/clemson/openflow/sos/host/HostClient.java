@@ -77,7 +77,7 @@ public class HostClient implements HostStatusListener {
                     //          Low watermark:
                     //Once the number of bytes queued in the write buffer exceeded the high water mark and then
                     // dropped down below this value, Channel.isWritable() will return true again.
-                    .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(2048 * 1024, 2048 * 1024))
+                    .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(8 * 2048 * 1024, 8 * 2048 * 1024))
                     .handler(new ChannelInitializer() {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
