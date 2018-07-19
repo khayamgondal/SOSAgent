@@ -55,7 +55,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     private HashMap<Integer, Float> perChBytes;
     int wCount = 0;
 
-    private int currentChannelNo = 0;
+    //private int currentChannelNo = 0;
 
     private RequestTemplateWrapper request;
     private ArrayList<Channel> channels;
@@ -65,6 +65,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     private AgentTrafficShaping ats;
 
     private OrderedPacketInitiator orderedPacketInitiator;
+    private SendingStrategy sendingStrategy;
 
     private int gotStatsFrom;
     private double totalReadThroughput, totalWriteThroughput;
@@ -75,6 +76,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
         orderedPacketInitiator = new OrderedPacketInitiator();
         orderedPacketInitiator.addListener(this);
+        sendingStrategy = new RRSendingStrategy(request.getRequest().getNumParallelSockets());
 
         perChBytes = new HashMap<>(request.getRequest().getNumParallelSockets());
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
@@ -286,9 +288,10 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
 
     public void incomingPacket(ByteBuf packet) {
-        if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
-        writeToAgentChannel(channels.get(currentChannelNo), packet);
-        currentChannelNo++;
+    ///    if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
+        writeToAgentChannel(channels.get(sendingStrategy.channelToSendOn()), packet);
+        log.info("Sending over channel {}", sendingStrategy.getCurrentChannel());
+      //  currentChannelNo++;
     }
 
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {

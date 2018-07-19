@@ -12,11 +12,10 @@ public class ShapingTimer implements Runnable {
     private static final long FOUR_GB = 400000000;
     private static final long SIX_GB = 600000000;
     private static final long EIGHT_GB = 800000000;
-    private static final long TEN_GB = 800000000;
+    private static final long TEN_GB = 1000000000;
 
-
-    private int count = 2;
     private HostTrafficShaping shaper;
+
     private double totalReadThroughput;
 
     public ShapingTimer(HostTrafficShaping shaper) {
@@ -29,7 +28,7 @@ public class ShapingTimer implements Runnable {
 
     @Override
     public void run() {
-        log.info("Limting rate to {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
+        log.info("Limiting rate to {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
         shaper.configure(0, (long) totalReadThroughput);
 
     }
