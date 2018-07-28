@@ -130,8 +130,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
             if (mockRequest) {
                 int myIndex = myMockIndex(localSocketAddress.getHostName());
-                // int  myIndex = myMockIndex(l);
-
                 if (myIndex == -1) {
                     log.error("Couldn't find entry for this agent in config.properties..");
                     return;
@@ -139,9 +137,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 request = new MockRequestBuilder().buildRequest(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort(),
                         localSocketAddress.getHostName(), mockMapping.get(myIndex).getServerAgentIP(), mockParallelConns, 1,
                         mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());
-              /*  request = new MockRequestBuilder().buildRequest(hName, remoteSocketAddress.getPort(),
-                       l, mockMapping.get(myIndex).getServerAgentIP(), mockParallelConns, 1,
-                      mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());*/
             }
             //TODO: If remotely connecting client is in your /etc/hosts than remoteSocketAddress.getHostName() will return that hostname instead of its IP address and following method call will return null
             else
@@ -173,8 +168,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            //    log.info("Read limit {}", hts.getReadLimit());
-
             if (request != null && seqGen != null) {
                 ByteBuf seqed = seqGen.incomingPacket((byte[]) msg);
                 agentClient.incomingPacket(seqed);

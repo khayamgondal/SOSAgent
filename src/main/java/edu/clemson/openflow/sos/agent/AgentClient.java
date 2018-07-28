@@ -288,10 +288,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
 
     public void incomingPacket(ByteBuf packet) {
-    ///    if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
         writeToAgentChannel(channels.get(sendingStrategy.channelToSendOn()), packet);
-        log.info("Sending over channel {}", sendingStrategy.getCurrentChannel());
-      //  currentChannelNo++;
     }
 
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
