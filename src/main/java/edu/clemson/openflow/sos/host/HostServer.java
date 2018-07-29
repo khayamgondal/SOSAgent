@@ -210,7 +210,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         timer2.setTotalReadThroughput(0);
 
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
-        scheduledExecutorService.scheduleAtFixedRate(timer, 3, 10, TimeUnit.SECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(timer, 5, 10, TimeUnit.SECONDS);
       //  scheduledExecutorService.scheduleAtFixedRate(timer2, 0, 12, TimeUnit.SECONDS);
 
         try {
