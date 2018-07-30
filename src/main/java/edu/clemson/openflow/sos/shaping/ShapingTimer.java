@@ -29,7 +29,7 @@ public class ShapingTimer implements Runnable {
     @Override
     public void run() {
         log.info("Limiting rate to {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
-        shaper.configure(0, (long) totalReadThroughput);
+        //shaper.configure(0, (long) totalReadThroughput);
 
     }
 }

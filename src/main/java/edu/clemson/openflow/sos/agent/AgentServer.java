@@ -189,12 +189,14 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+           // ((ByteBuf) msg).release();
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
                 log.error("Receiving buffer NULL for Remote Agent {}:{} ", remoteAgentIP, remoteAgentPort);
-                ReferenceCountUtil.release(msg);
+                ((ByteBuf) msg).release();
+                // ReferenceCountUtil.release(msg);
             }
-            totalBytes += ((ByteBuf) msg).capacity();
+         /*   totalBytes += ((ByteBuf) msg).capacity();*/
         }
 
         @Override
