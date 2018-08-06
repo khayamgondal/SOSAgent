@@ -65,7 +65,6 @@ public class Buffer {
     public Buffer(RequestTemplateWrapper request, Object callBackHandler) {
         clientIP = request.getRequest().getClientIP();
         clientPort = request.getRequest().getClientPort();
-
         if (Utils.configFile != null)
             bufferSize = Integer.parseInt(Utils.configFile.getProperty("buffer_size").replaceAll("[\\D]", ""));
         else bufferSize = MAX_BUF;

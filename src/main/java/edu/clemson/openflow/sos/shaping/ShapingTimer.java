@@ -17,6 +17,7 @@ public class ShapingTimer implements Runnable {
     private HostTrafficShaping shaper;
 
     private double totalReadThroughput;
+    private int count;
 
     public ShapingTimer(HostTrafficShaping shaper) {
         this.shaper = shaper;
@@ -28,8 +29,16 @@ public class ShapingTimer implements Runnable {
 
     @Override
     public void run() {
+        int nor = count % 7;
+        if (nor == 2) shaper.configure(0, TWO_GB);
+        if (nor == 3) shaper.configure(0, FOUR_GB);
+        if (nor == 4) shaper.configure(0, SIX_GB);
+        if (nor == 5) shaper.configure(0, EIGHT_GB);
+        if (nor == 5) shaper.configure(0, TEN_GB);
+        if (nor == 6) shaper.configure(0, 0);
         log.info("Limiting rate to {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
         //shaper.configure(0, (long) totalReadThroughput);
+        count++;
 
     }
 }
