@@ -17,10 +17,10 @@ def agent_conn(host):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(host, username=user, key_filename=key)
     update_nodes(host, ssh)
-    #install_java_8(host, ssh)
-    #install_ovs(host, ssh)
-    #setup_sos(host, ssh)
-    #install_infini_drivers(host, ssh)
+    install_java_8(host, ssh)
+
+    setup_sos(host, ssh)
+    install_infini_drivers(host, ssh)
     set_infini_ip(host, ssh)
     install_ovs(host, ssh)
     set_eth_ip(host, ssh)
@@ -31,9 +31,9 @@ def wan_conn(host):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(host, username=user, key_filename=key)
     update_nodes(host, ssh)
-    #install_infini_drivers(host, ssh)
+    install_infini_drivers(host, ssh)
     set_infini_ip(host, ssh)
-    #install_java_8(host, ssh)
+    install_java_8(host, ssh)
     #setup_controller(host, ssh)
 
 def update_nodes(host, ssh):
@@ -143,10 +143,9 @@ def install_maven(host, ssh):
 
 
 
-clients = ['apt128.apt.emulab.net', 'apt122.apt.emulab.net', 'apt075.apt.emulab.net', 'apt126.apt.emulab.net', 'apt079.apt.emulab.net']
+clients = ['apt175.apt.emulab.net']
 
-agents = ['apt082.apt.emulab.net', 'apt083.apt.emulab.net', 'apt125.apt.emulab.net', 'apt126.apt.emulab.net', 'apt085.apt.emulab.net',
-          'apt121.apt.emulab.net', 'apt078.apt.emulab.net', 'apt076.apt.emulab.net', 'apt086.apt.emulab.net', 'apt074.apt.emulab.net',]
+agents = ['apt174.apt.emulab.net', 'apt166.apt.emulab.net']
 
 infini_ip_map = {'agent1':'172.0.0.11', 'agent2':'172.0.0.12', 'agent3':'172.0.0.13', 'agent4':'172.0.0.14', 'agent5':'172.0.0.15', 'agent6':'172.0.0.16',
                  'agent7':'172.0.0.17', 'agent8':'172.0.0.18', 'agent9':'172.0.0.19', 'agent10':'172.0.0.10','wan':'172.0.0.100' }
@@ -156,9 +155,9 @@ eth_ip_map = {'agent1':'10.0.0.11', 'agent2':'10.0.0.12', 'agent3':'10.0.0.13', 
               'client1':'10.0.0.111', 'client2':'10.0.0.112', 'client3':'10.0.0.113', 'client4':'10.0.0.114', 'client5':'10.0.0.115',
               'server1':'10.0.0.211', 'server2':'10.0.0.212', 'server3':'10.0.0.213', 'server4':'10.0.0.214', 'server5':'10.0.0.215'}
 
-servers = ['apt127.apt.emulab.net', 'apt081.apt.emulab.net', 'apt123.apt.emulab.net', 'apt080.apt.emulab.net', 'apt084.apt.emulab.net']
+servers = ['apt159.apt.emulab.net']
 
-wan = 'apt077.apt.emulab.net'
+wan = 'apt171.apt.emulab.net'
 
 user = 'khayam'
 key = '/home/khayam/.ssh/id_rsa'
