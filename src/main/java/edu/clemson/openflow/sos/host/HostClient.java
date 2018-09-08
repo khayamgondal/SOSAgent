@@ -43,6 +43,7 @@ public class HostClient implements HostStatusListener {
             log.debug("Client is done sending ... closing socket");
             group.shutdownGracefully();
             StatCollector.getStatCollector().hostRemoved();
+
         }
     }
 

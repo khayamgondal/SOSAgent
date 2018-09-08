@@ -188,7 +188,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             long stopTime = System.currentTimeMillis();
             log.info("HostServer rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000000);
             // also notify controller to tear down this connection.
-            //    if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();
+            if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();
         }
 
     }
@@ -204,13 +204,13 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
 
-       hostTrafficShaping = new HostTrafficShaping(group, 0, 100000000, 5000);
+       hostTrafficShaping = new HostTrafficShaping(group, 0, 000000000, 5000);
         timer = new ShapingTimer(hostTrafficShaping);
         ShapingTimer timer2 = new ShapingTimer(hostTrafficShaping);
         timer2.setTotalReadThroughput(0);
 
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
-        scheduledExecutorService.scheduleAtFixedRate(timer, 30, 10, TimeUnit.SECONDS);
+       // scheduledExecutorService.scheduleAtFixedRate(timer, 30, 10, TimeUnit.SECONDS);
       //  scheduledExecutorService.scheduleAtFixedRate(timer2, 0, 12, TimeUnit.SECONDS);
 
         try {

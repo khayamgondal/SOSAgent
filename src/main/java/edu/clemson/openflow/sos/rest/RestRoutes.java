@@ -45,5 +45,7 @@ public class RestRoutes {
     public static String URIBuilder( String IP, String port, String path) {
         return HTTP_PRESTRING + IP + ":" + port + BASE_PATH + API_VERSION + path;
     }
-
+    public static String URIBuilder( String IP, int port, String path) {
+        return URIBuilder(IP, Integer.toString(port), path);
+    }
 }
