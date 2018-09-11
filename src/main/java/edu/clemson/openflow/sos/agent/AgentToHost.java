@@ -51,8 +51,6 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         hostPacketInitiator.addListener(this);
         hostClient.setHostPacketListenerInitiator(hostPacketInitiator);
 
-        //hostClient.setListener(this); /////////////
-
         hostStatusInitiator = new HostStatusInitiator();
         hostStatusInitiator.addListener(hostClient);
 
@@ -157,9 +155,6 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     }
     public void transferCompleted() {
         hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
-        log.info("Total WrittenBytes {} Total Unwritten {}.. My client port {}", writableCount, unwritableCount, request.getRequest().getClientPort());
-      //  log.info("Buffer Index still in use {}", StatCollector.getStatCollector().getUsedBufferIndices());
-       // log.info("Total Packet dropped by buffer {}", StatCollector.getStatCollector().getPacketDropCount());
     }
 
     public HostClient getHostClient() {

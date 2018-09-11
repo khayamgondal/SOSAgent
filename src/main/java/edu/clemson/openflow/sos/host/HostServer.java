@@ -53,21 +53,17 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private RequestListenerInitiator requestListenerInitiator;
 
-    private long totalWritten;
-    private double totalReadThroughput;
-
     private boolean mockRequest;
     private int mockParallelConns;
     private List<MappingParser> mockMapping;
     ObjectMapper mapper = new ObjectMapper();
-    private ShapingTimer timer;
+    private ShapingTimer rateLimitTimer;
+    private int hostCheckRate;
 
     public HostServer() {
 
         requestListenerInitiator = new RequestListenerInitiator();
         requestListenerInitiator.addRequestListener(this);
-
-        //  Utils.requestListeners.add(this); //we register for incoming requests
 
         if (Utils.router != null) {
             Utils.router.getContext().getAttributes().put("host-callback", requestListenerInitiator);
@@ -83,21 +79,13 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         } catch (IOException e) {
             e.printStackTrace();
         }
-        // System.out.println(mockMapping.toArray().toString() );
     }
 
-    private synchronized void totalWritten(long written) {
-        totalWritten += written;
-        //   log.info(" {}", totalWritten * 8 /1024);
-
-    }
 
     @Override
     public void RestStats(double totalReadThroughput, double totalWriteThroughput) {
-        //    if (hostTrafficShaping != null) hostTrafficShaping.setReadLimit((long) totalReadThroughput);
-        log.debug("Remote Agent Read {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
-       // this.totalReadThroughput = totalReadThroughput;
-        this.timer.setTotalReadThroughput(totalReadThroughput);
+        log.debug("Remote Agent Reading at {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
+        rateLimitTimer.setTotalReadThroughput(totalReadThroughput);
     }
 
 
@@ -106,7 +94,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         private ControllerManager controllerManager;
         private float totalBytes;
         private long startTime;
-
 
         private RequestTemplateWrapper request;
         private SeqGen seqGen;
@@ -122,8 +109,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         public void channelActive(ChannelHandlerContext ctx) {
             InetSocketAddress remoteSocketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
             InetSocketAddress localSocketAddress = (InetSocketAddress) ctx.channel().localAddress();
-            String hName = "172.0.0.111";
-            String l = "172.0.0.11";
+
             log.info("New host-side connection from {} at Port {}",
                     remoteSocketAddress.getHostName(),
                     remoteSocketAddress.getPort());
@@ -137,12 +123,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 request = new MockRequestBuilder().buildRequest(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort(),
                         localSocketAddress.getHostName(), mockMapping.get(myIndex).getServerAgentIP(), mockParallelConns, 1,
                         mockMapping.get(myIndex).getServerIP(), mockMapping.get(myIndex).getServerPort());
-            }
-            //TODO: If remotely connecting client is in your /etc/hosts than remoteSocketAddress.getHostName() will return that hostname instead of its IP address and following method call will return null
-            else
+            } else //TODO: If remotely connecting client is in your /etc/hosts than remoteSocketAddress.getHostName() will return that hostname instead of its IP address and following method call will return null
                 request = getClientRequest(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort()); // go through the list and find related request
-            //  request = getClientRequest(hName, remoteSocketAddress.getPort()); // go through the list and find related request
-           // log.info("Request is {}", request.toString());
             if (request == null) {
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
@@ -164,6 +146,15 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             } else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                     request.toString());
 
+            // also initialize our traffic shaping instance
+        //    if (hostTrafficShaping == null) {
+
+
+
+                ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+                scheduledExecutorService.scheduleAtFixedRate(rateLimitTimer, 10, hostCheckRate, TimeUnit.SECONDS);
+
+          //  }
         }
 
         @Override
@@ -181,7 +172,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
             ctx.flush();
-            log.info("Client is done sending");
             if (hostStatusInitiator != null)
                 hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
 
@@ -204,14 +194,16 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     private boolean startSocket(int port) {
         group = new NioEventLoopGroup();
 
-       hostTrafficShaping = new HostTrafficShaping(group, 0, 000000000, 5000);
-        timer = new ShapingTimer(hostTrafficShaping);
-        ShapingTimer timer2 = new ShapingTimer(hostTrafficShaping);
-        timer2.setTotalReadThroughput(0);
+        hostTrafficShaping = new HostTrafficShaping(group, 0, 0, 5000);
 
-        ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
-       // scheduledExecutorService.scheduleAtFixedRate(timer, 30, 10, TimeUnit.SECONDS);
-      //  scheduledExecutorService.scheduleAtFixedRate(timer2, 0, 12, TimeUnit.SECONDS);
+        ShapingTimer removeLimitTimer = new ShapingTimer(hostTrafficShaping);
+        rateLimitTimer = new ShapingTimer(hostTrafficShaping, removeLimitTimer);
+        try {
+            hostCheckRate = Integer.parseInt(Utils.configFile.getProperty("set_host_rate_interval").replaceAll("[\\D]", ""));
+        } catch (NullPointerException e) {
+            log.warn("Couldn't find set_host_rate_interval in config.properties. setting default to 10");
+            hostCheckRate = 10;
+        }
 
         try {
             ServerBootstrap b = new ServerBootstrap();
@@ -222,12 +214,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                     .childHandler(new ChannelInitializer() {
                                       @Override
                                       protected void initChannel(Channel channel) throws Exception {
-                                          //can I remove bytes decorder and get bytebuf?
+                                          // TODO: Check.... can I remove bytes decorder and get bytebuf?
                                           channel.pipeline()
-                                                  .addLast("traffic", hostTrafficShaping)
-                                                  .addLast("bytesDecoder", new ByteArrayDecoder())
-                                                  .addLast("hostHandler", new HostServerHandler())
-                                                  .addLast("bytesEncoder", new ByteArrayEncoder());
+                                                  .addLast("traffic-shaper", hostTrafficShaping)
+                                                  .addLast("bytes-decoder", new ByteArrayDecoder())
+                                                  .addLast("host-handler", new HostServerHandler())
+                                                  .addLast("bytes-encoder", new ByteArrayEncoder());
                                       }
                                   }
                     );

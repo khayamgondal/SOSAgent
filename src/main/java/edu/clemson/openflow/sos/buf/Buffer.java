@@ -9,6 +9,7 @@ import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.Charset;
 import java.util.HashMap;
 
 public class Buffer {
@@ -86,8 +87,8 @@ public class Buffer {
     }
 
     public synchronized void incomingPacket(ByteBuf data) {
-       //processPacket(data);
-        sendWithoutBuffering(data);
+       processPacket(data);
+      //  sendWithoutBuffering(data);
         //   dropData(data);
          //processDontSend(data);
     }
@@ -162,8 +163,7 @@ public class Buffer {
         try {
             if (expecting == MAX_SEQ) expecting = 0;
             log.debug("Waiting for {}", expecting);
-            int currentSeqNo = data.getInt(0); //get seq. no from incoming packet
-            //TODO: may be use data.slice(0, 4) ??
+            int currentSeqNo = data.getInt(0); //get seq. no from incoming packet  TODO: may be use data.slice(0, 4) ??
             if (currentSeqNo == expecting) {
                 //    log.info("Sending {}", currentSeqNo);
                 if (sendData(data)) {

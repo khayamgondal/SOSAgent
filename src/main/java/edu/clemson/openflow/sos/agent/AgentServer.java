@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -189,12 +190,15 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-           // ((ByteBuf) msg).release();
+
+            ByteBuf data = (ByteBuf) msg;
+            log.info("SIZE {}", data.capacity());
+            String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
+            System.out.print(s);
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
                 log.error("Receiving buffer NULL for Remote Agent {}:{} ", remoteAgentIP, remoteAgentPort);
                 ((ByteBuf) msg).release();
-                // ReferenceCountUtil.release(msg);
             }
          /*   totalBytes += ((ByteBuf) msg).capacity();*/
         }
@@ -203,7 +207,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         public void channelInactive(ChannelHandlerContext ctx) {
 
             long stopTime = System.currentTimeMillis();
-            log.info("Agentserver rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
 
             if (endHostHandler != null) endHostHandler.transferCompleted(); // notify the host server
             requestListenerInitiator = new RequestListenerInitiator(); //also reset the listener to remove old listeners
@@ -232,21 +235,20 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         AgentTrafficShaping ats = new AgentTrafficShaping(group, 5000);
         ats.setStatListener(this);
         try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(group)
+            ServerBootstrap b = new ServerBootstrap()
+                    .group(group)
+                    .option(ChannelOption.TCP_NODELAY, true)
+                    .option(ChannelOption.SO_KEEPALIVE, true)
                     .channel(NioServerSocketChannel.class)
                     .localAddress(new InetSocketAddress(port))
                     .childHandler(new ChannelInitializer() {
                                       @Override
                                       protected void initChannel(Channel channel) throws Exception {
                                           channel.pipeline()
-                                                  .addLast("agent-traffic-shapping", ats)
-                                                  .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
-                                                  // .addLast("bytesDecoder", new ByteArrayDecoder())
+                                                  .addLast("agent-traffic-shaping", ats)
+                                                  .addLast("length-decoder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                                   .addLast(new AgentServerHandler())
-                                                  .addLast("4blength", new LengthFieldPrepender(4))
-                                          //  .addLast("bytesEncoder", new ByteArrayEncoder())
-                                          ;
+                                                  .addLast("4b-length", new LengthFieldPrepender(4));
                                       }
                                   }
                     );

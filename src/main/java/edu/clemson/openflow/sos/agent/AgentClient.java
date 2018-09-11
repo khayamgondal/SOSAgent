@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -193,20 +194,20 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         if (hostStatus == HostStatus.DONE) {
             //    log.info("DDD {}", ats.channelTrafficCounters().size());
 
-            log.info("Client done sending ...shutting down all opened parallel socks. ");
-            /*
-                Send and empty buffer on all channels. and add listener for them. Once write is successful
-                we will close all channels
-             */
-            for (Channel ch : channels
+            log.info("Client done sending ...shutting down all socks. ");
+
+            //    Send and empty buffer on all channels. and add listener for them. Once write is successful
+             //   we will close all channels
+
+           for (Channel ch : channels
                     ) {
                 ch.writeAndFlush(Unpooled.EMPTY_BUFFER)
                         .addListener(ChannelFutureListener.CLOSE);
             }
             StatCollector.getStatCollector().hostRemoved();
 
-            // ats.release();
-            //  eventLoopGroup.shutdownGracefully();
+            ats.release();
+            eventLoopGroup.shutdownGracefully();
 
             StatCollector.getStatCollector().connectionRemoved();
             long stopTime = System.currentTimeMillis();
@@ -220,7 +221,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         gotStatsFrom++;
         sumThroughput(lastWriteThroughput, lastReadThroughput);
         if (gotStatsFrom == StatCollector.getStatCollector().getTotalOpenConnections()) {
-            log.info("Total Writing Throughput {} Gbps", totalWriteThroughput * 8 / 1024 / 1024 / 1024);
+            log.debug("Sending Rate {} Gbps", totalWriteThroughput * 8 / 1024 / 1024 / 1024);
             gotStatsFrom = 0;
             totalReadThroughput = 0;
             totalWriteThroughput = 0;
@@ -238,7 +239,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            log.info("GOT RESP FROM RMOTE  ");
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
                 log.error("Receiving buffer NULL for Remote Agent ");
@@ -282,30 +282,38 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         log.debug("Sending HTTP request to remote agent {} ", requestWithPortsString);
         log.debug("Agent returned HTTP STATUS {} Response {}", response.getStatusLine().getStatusCode(), response.toString());
 
-      //  if (response.getStatusLine().getStatusCode() == 400) notifyRemoteAgent(ports);
-
     }
 
 
-    public void incomingPacket(ByteBuf packet) {
-        writeToAgentChannel(channels.get(sendingStrategy.channelToSendOn()), packet);
+    public void incomingPacket(ByteBuf data) {
+
+        writeToAgentChannel(channels.get(sendingStrategy.channelToSendOn()), data);
     }
 
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
+
+        String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
+        log.info("SIZE {}", data.capacity());
+        System.out.print(s);
+
         ChannelFuture cf = currentChannel.write(data);
-        wCount++;
+        currentChannel.flush();
+
+     /*   wCount++;
         if (wCount >= request.getRequest().getBufferSize() * request.getRequest().getNumParallelSockets()) {
             for (Channel channel : channels)
                 channel.flush();
             wCount = 0;
-        }
-  /*      cf.addListener(new ChannelFutureListener() {
+        }*/
+        cf.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                if (cf.isSuccess()) totalBytes += data.capacity();
+                if (cf.isSuccess()) {
+                    totalBytes += data.capacity();
+                }
                 else log.error("Failed to write packet to channel {}", cf.cause());
             }
-        });*/
+        });
     }
 
     private Bootstrap bootStrap(EventLoopGroup group, String agentServerIP) {
@@ -313,20 +321,22 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             ats = new AgentTrafficShaping(eventLoopGroup, 5000);
             ats.setStatListener(this);
 
-            Bootstrap bootstrap = new Bootstrap().group(group)
+            Bootstrap bootstrap = new Bootstrap()
+                    .group(group)
+                    .option(ChannelOption.TCP_NODELAY, true)
+                    .option(ChannelOption.SO_KEEPALIVE, true)
                     .channel(NioSocketChannel.class)
                     .handler(new ChannelInitializer() {
                         @Override
                         protected void initChannel(Channel channel) throws Exception {
                             channel.pipeline()
                                     .addLast("agent-traffic-shaping", ats)
-                                    .addLast("lengthdecorder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
-                                    .addLast("agentClient", new AgentClientHandler())
-                                    .addLast("4blength", new LengthFieldPrepender(4))
-                            //  .addLast("bytesEncoder", new ByteArrayEncoder())
-                            ;
+                                    .addLast("length-decoder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
+                                    .addLast("agent-client", new AgentClientHandler())
+                                    .addLast("4b-length", new LengthFieldPrepender(4));
                         }
                     });
+
 
             //    Channel myChannel = bootstrap.connect(agentServerIP, AGENT_DATA_PORT).sync().channel();
             //if (myChannel == null) log.debug("in start it is nul");
