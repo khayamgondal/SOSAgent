@@ -288,6 +288,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     public void incomingPacket(ByteBuf data) {
 
         writeToAgentChannel(channels.get(sendingStrategy.channelToSendOn()), data);
+        log.info("Sending on Channel {}", sendingStrategy.getCurrentChannel());
     }
 
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
@@ -323,8 +324,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
             Bootstrap bootstrap = new Bootstrap()
                     .group(group)
-                    .option(ChannelOption.TCP_NODELAY, true)
-                    .option(ChannelOption.SO_KEEPALIVE, true)
+                 //   .option(ChannelOption.TCP_NODELAY, true)
+                //    .option(ChannelOption.SO_KEEPALIVE, true)
                     .channel(NioSocketChannel.class)
                     .handler(new ChannelInitializer() {
                         @Override
@@ -333,7 +334,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
                                     .addLast("agent-traffic-shaping", ats)
                                     .addLast("length-decoder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                                     .addLast("agent-client", new AgentClientHandler())
-                                    .addLast("4b-length", new LengthFieldPrepender(4));
+                                    .addLast("4b-length", new LengthFieldPrepender(4))
+                            ;
                         }
                     });
 

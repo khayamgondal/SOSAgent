@@ -2,8 +2,8 @@ package edu.clemson.openflow.sos.agent;
 
 public abstract class SendingStrategy {
 
-     int totalChannels;
-     int currentChannel = -1;
+     protected int totalChannels;
+     protected int currentChannel = -1;
 
     public SendingStrategy(int totalChannels){
         this.totalChannels = totalChannels;
