@@ -212,7 +212,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             hostManager.removeAgentToHost(endHostHandler);
             bufferManager.removeBuffer(buffer);
 
-            ctx.close(); //close this channel
+         //   ctx.close(); //close this channel
 
             StatCollector.getStatCollector().connectionRemoved();
 

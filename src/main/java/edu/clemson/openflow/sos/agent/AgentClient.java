@@ -12,7 +12,6 @@ import edu.clemson.openflow.sos.shaping.ISocketStatListener;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -28,12 +27,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 /**
  * @author Khayam Gondal kanjam@g.clemson.edu
@@ -63,12 +59,15 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     private Channel hostChannel;
     private EventLoopGroup eventLoopGroup;
     private AgentTrafficShaping ats;
+    private HostStatus hostStatus;
 
     private OrderedPacketInitiator orderedPacketInitiator;
     private SendingStrategy sendingStrategy;
 
     private int gotStatsFrom;
     private double totalReadThroughput, totalWriteThroughput;
+    private long writeCount = 0;
+
     private long writableCount, unwritableCount;
 
 
@@ -86,6 +85,13 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         buffer.setOrderedPacketInitiator(orderedPacketInitiator);
     }
 
+    public synchronized void increaseWriteCount() {
+        writableCount++;
+    }
+
+    public synchronized void decreaseWriteCount() {
+        --writableCount;
+    }
 
     public void bootStrapSockets() {
         eventLoopGroup = createEventLoopGroup();
@@ -138,6 +144,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
         return false;*/
     }
+
     private boolean sendToHost(ByteBuf packet) {
         //   smartSend(packet);
         //TODO: @smartSend().. separate write and flush
@@ -151,25 +158,23 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             return false;
         }
     }
+
     public void setWriteBackChannel(Channel channel) {
         this.hostChannel = channel;
     }
 
     @Override
     public void HostStatusChanged(HostStatus hostStatus) {
-        if (hostStatus == HostStatus.DONE) {
-            log.info("Client {}:{} is done sending ...shutting down all socks. ",
+        this.hostStatus = hostStatus;
+        if (hostStatus == HostStatus.DONE && writableCount == 0) {
+            log.info("Client {}:{} to server {}:{} is done",
                     request.getRequest().getClientIP(),
-                    request.getRequest().getClientPort());
+                    request.getRequest().getClientPort(),
+                    request.getRequest().getServerIP(),
+                    request.getRequest().getServerPort());
 
-            //    Send and empty buffer on all channels. and add listener for them. Once write is successful
-             //   we will close all channels
+            closeAllChannels();
 
-           for (Channel ch : channels //not always gonna be last write... need to find a way to sent it at last
-                    ) {
-                ch.writeAndFlush(Unpooled.EMPTY_BUFFER)
-                        .addListener(ChannelFutureListener.CLOSE);
-            }
             StatCollector.getStatCollector().hostRemoved();
 
             ats.release();
@@ -177,7 +182,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
             StatCollector.getStatCollector().connectionRemoved();
             long stopTime = System.currentTimeMillis();
-            log.info("AgentClient rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
+            log.debug("AgentClient rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000);
 
         }
     }
@@ -253,12 +258,13 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
 
-       // log.info("Readable {}", data.readableBytes());
-      //  String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
-     //   log.info("SIZE {}", data.capacity());
-     //   System.out.print(s);
+        // log.info("Readable {}", data.readableBytes());
+        //  String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
+        //   log.info("SIZE {}", data.capacity());
+        //   System.out.print(s);
 
         ChannelFuture cf = currentChannel.write(data);
+        increaseWriteCount();
         currentChannel.flush();
 
      /*   wCount++;
@@ -272,10 +278,26 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
                 if (cf.isSuccess()) {
                     totalBytes += data.capacity();
-                } else log.error("Failed to write packet to channel for client {}:{} cause .... ", request.getRequest().getClientIP(),
-                        request.getRequest().getClientPort(), cf.cause());
+                    decreaseWriteCount();
+                    if (writableCount == 0 && AgentClient.this.hostStatus == HostStatus.DONE) { //means host is done sending and all data have been flushed. Its time to close all channels
+                        log.info("Client {}:{} to server {}:{} is done",
+                                request.getRequest().getClientIP(),
+                                request.getRequest().getClientPort(),
+                                request.getRequest().getServerIP(),
+                                request.getRequest().getServerPort());
+
+                        closeAllChannels();
+                    }
+                } else
+                    log.error("Failed to write packet to channel for client {}:{} cause .... ", request.getRequest().getClientIP(),
+                            request.getRequest().getClientPort(), cf.cause());
             }
         });
+    }
+
+    private void closeAllChannels() {
+        for (Channel ch : channels)
+            ch.close();
     }
 
     private Bootstrap bootStrap(EventLoopGroup group, String agentServerIP) {
@@ -285,8 +307,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
             Bootstrap bootstrap = new Bootstrap()
                     .group(group)
-                 //   .option(ChannelOption.TCP_NODELAY, true)
-                //    .option(ChannelOption.SO_KEEPALIVE, true)
+                    //   .option(ChannelOption.TCP_NODELAY, true)
+                    //    .option(ChannelOption.SO_KEEPALIVE, true)
                     .channel(NioSocketChannel.class)
                     .handler(new ChannelInitializer() {
                         @Override

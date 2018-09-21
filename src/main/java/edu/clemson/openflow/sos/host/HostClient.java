@@ -3,6 +3,7 @@ package edu.clemson.openflow.sos.host;
 import edu.clemson.openflow.sos.agent.AgentToHost;
 import edu.clemson.openflow.sos.agent.HostPacketInitiator;
 import edu.clemson.openflow.sos.buf.SeqGen;
+import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
 import edu.clemson.openflow.sos.stats.StatCollector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -21,31 +22,40 @@ public class HostClient implements HostStatusListener {
     private Channel myChannel;
     private SeqGen seqGen;
     private EventLoopGroup group;
+    private boolean shutdDowned;
+    private RequestTemplateWrapper request;
 
     private HostPacketInitiator hostPacketInitiator;
 
     public HostClient() {
         seqGen = new SeqGen();
-        //initiator = new HostPacketInitiator();
     }
 
-    public void setListener(Object listener) {
-       // initiator.addListener((AgentToHost) listener);
+    public HostClient(RequestTemplateWrapper request) {
+        seqGen = new SeqGen();
+        this.request = request;
     }
+
 
     public void setHostPacketListenerInitiator(HostPacketInitiator initiator) {
         hostPacketInitiator = initiator;
     }
 
     @Override
-    public void HostStatusChanged(HostStatus hostStatus) {
-        if (!group.isShutdown() && hostStatus == HostStatus.DONE) {
-            log.debug("Client is done sending ... closing socket");
+    public synchronized void HostStatusChanged(HostStatus hostStatus) {
+        if (!shutdDowned && hostStatus == HostStatus.DONE) {
+            shutdDowned = true;
+            log.info("Client {}:{} to server {}:{} is done",
+                    request.getRequest().getClientIP(),
+                    request.getRequest().getClientPort(),
+                    request.getRequest().getServerIP(),
+                    request.getRequest().getServerPort());
             group.shutdownGracefully();
             StatCollector.getStatCollector().hostRemoved();
 
         }
     }
+
 
     class HostClientHandler extends ChannelInboundHandlerAdapter {
 
@@ -93,13 +103,21 @@ public class HostClient implements HostStatusListener {
             myChannel = bootstrap.connect(hostServerIP, hostServerPort).sync().channel();
             InetSocketAddress socketAddress = (InetSocketAddress) myChannel.localAddress();
 
-            log.info("Connected Host-Server {} on Port {}", hostServerIP, hostServerPort);
+            log.info("Client {}:{} connected to Server {}:{}",
+                    request.getRequest().getClientIP(),
+                    request.getRequest().getClientPort(),
+                    hostServerIP,
+                    hostServerPort);
 
-            //  ChannelFuture channelFuture = bootstrap.connect().sync();
+              ChannelFuture channelFuture = bootstrap.connect().sync();
             //  channelFuture.channel().closeFuture().sync();
 
         } catch (Exception e) {
-            log.error("Error connecting to Host-Server {} on Port{}", hostServerIP, hostServerPort);
+            log.error("Error connecting Client {}:{} to Server {}:{}",
+                    request.getRequest().getClientIP(),
+                    request.getRequest().getClientPort(),
+                    hostServerIP,
+                    hostServerPort);
             e.printStackTrace();
         } finally {
          /*   try {

@@ -46,7 +46,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         channels = new ArrayList<>();
 
 
-        hostClient = new HostClient();
+        hostClient = new HostClient(request);
         hostPacketInitiator = new HostPacketInitiator();
         hostPacketInitiator.addListener(this);
         hostClient.setHostPacketListenerInitiator(hostPacketInitiator);

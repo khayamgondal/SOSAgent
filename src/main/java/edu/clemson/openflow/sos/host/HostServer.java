@@ -108,10 +108,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             InetSocketAddress remoteSocketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
             InetSocketAddress localSocketAddress = (InetSocketAddress) ctx.channel().localAddress();
 
-            log.info("New host-side connection from {} at Port {}",
-                    remoteSocketAddress.getHostName(),
-                    remoteSocketAddress.getPort());
-
             if (mockRequest) {
                 int myIndex = myMockIndex(localSocketAddress.getHostName());
                 if (myIndex == -1) {
@@ -127,6 +123,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
             }
+            log.info("Client {}:{} connected to Server {}:{}",
+                    remoteSocketAddress.getHostName(),
+                    remoteSocketAddress.getPort(),
+                    request.getRequest().getServerIP(),
+                    request.getRequest().getServerPort());
+
             startTime = System.currentTimeMillis();
 
             if (request != null) {
@@ -162,11 +164,10 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            if (hostStatusInitiator != null)
-                hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
+            if (hostStatusInitiator != null) hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
 
             long stopTime = System.currentTimeMillis();
-            log.info("HostServer rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000000);
+            log.debug("HostServer rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000000);
 
             // also notify controller to tear down this connection.
          //   if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();

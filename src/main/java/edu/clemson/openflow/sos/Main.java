@@ -25,6 +25,7 @@ public class Main {
     public static void main(String[] args) {
       //  PrefsSetup prefsSetup = new PrefsSetup();
       //  prefsSetup.loadDefault(); //load default settings
+        System.setProperty("org.restlet.engine.loggerFacadeClass", "org.restlet.ext.slf4j.Slf4jLoggerFacade");
 
         try {
             Properties properties = new Properties();
