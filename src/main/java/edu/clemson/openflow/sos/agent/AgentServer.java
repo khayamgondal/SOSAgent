@@ -50,7 +50,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     private static final String REST_PORT = "8002";
     private static final int AGENT_DATA_PORT = 9878;
 
-    // private List<Channel> channels;
     private BufferManager bufferManager;
     private AgentToHostManager hostManager;
 
@@ -64,14 +63,12 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     private double totalReadThroughput, totalWriteThroughput; //also need to reset these after we send these back to other agents and before
     // we have new stats available. Also keep track of total open parallel connections to findout if we have received stats from all connections.
 
-
     public AgentServer() {
         incomingRequests = new ArrayList<>();
         bufferManager = new BufferManager(); //setup buffer manager.
         hostManager = new AgentToHostManager();
 
         requestListenerInitiator = new RequestListenerInitiator();
-        //Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
 
     }
 
@@ -192,10 +189,10 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
 
-            ByteBuf data = (ByteBuf) msg;
-            log.info("SIZE {}", data.capacity());
-            String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
-            System.out.print(s);
+       //     ByteBuf data = (ByteBuf) msg;
+       //     log.info("SIZE {}", data.capacity());
+       //     String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
+       //     System.out.print(s);
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
                 log.error("Receiving buffer NULL for Remote Agent {}:{} ", remoteAgentIP, remoteAgentPort);
@@ -216,7 +213,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             bufferManager.removeBuffer(buffer);
 
             ctx.close(); //close this channel
-            log.debug("Channel is inactive... Closing it");
+
             StatCollector.getStatCollector().connectionRemoved();
 
         }

@@ -48,7 +48,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private List<RequestTemplateWrapper> incomingRequests = new ArrayList<>();
     private NioEventLoopGroup group;
-    private HostStatusInitiator hostStatusInitiator;
     private HostTrafficShaping hostTrafficShaping;
 
     private RequestListenerInitiator requestListenerInitiator;
@@ -81,16 +80,15 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         }
     }
 
-
     @Override
     public void RestStats(double totalReadThroughput, double totalWriteThroughput) {
         log.debug("Remote Agent Reading at {} Gbps", totalReadThroughput * 8 / 1024 / 1024 / 1024);
         rateLimitTimer.setTotalReadThroughput(totalReadThroughput);
     }
 
-
     public class HostServerHandler extends ChannelInboundHandlerAdapter {
 
+        private HostStatusInitiator hostStatusInitiator;
         private ControllerManager controllerManager;
         private float totalBytes;
         private long startTime;
@@ -146,15 +144,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
             } else log.error("Couldn't find the request {} in request pool. Not notifying agent",
                     request.toString());
 
-            // also initialize our traffic shaping instance
-        //    if (hostTrafficShaping == null) {
-
-
-
-                ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-                scheduledExecutorService.scheduleAtFixedRate(rateLimitTimer, 10, hostCheckRate, TimeUnit.SECONDS);
-
-          //  }
+            ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+            scheduledExecutorService.scheduleAtFixedRate(rateLimitTimer, 10, hostCheckRate, TimeUnit.SECONDS);
         }
 
         @Override
@@ -171,16 +162,15 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            ctx.flush();
             if (hostStatusInitiator != null)
                 hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE); // notify Agent Client that host is done sending
 
             long stopTime = System.currentTimeMillis();
             log.info("HostServer rate {}", (totalBytes * 8) / (stopTime - startTime) / 1000000);
-            // also notify controller to tear down this connection.
-            if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();
-        }
 
+            // also notify controller to tear down this connection.
+         //   if (!request.getRequest().isMockRequest()) controllerManager.sendTerminationMsg();
+        }
     }
 
     /*
@@ -188,7 +178,7 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
         @return read limit in bytes per second
      */
    /* private long channelToGlobalReadLimit(int perChannel) {
-        return perChannel * request.getRequest().getNumParallelSockets() * 1024 *1024 / 8;
+        return perChannel * request.getRequest().getNumParallelSockets() * 1024 * 1024 / 8;
     }*/
 
     private boolean startSocket(int port) {

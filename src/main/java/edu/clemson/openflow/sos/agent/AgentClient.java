@@ -56,7 +56,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     private HashMap<Integer, Float> perChBytes;
     int wCount = 0;
 
-    //private int currentChannelNo = 0;
 
     private RequestTemplateWrapper request;
     private ArrayList<Channel> channels;
@@ -72,6 +71,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     private double totalReadThroughput, totalWriteThroughput;
     private long writableCount, unwritableCount;
 
+
     public AgentClient(RequestTemplateWrapper request) {
         this.request = request;
 
@@ -82,31 +82,18 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         perChBytes = new HashMap<>(request.getRequest().getNumParallelSockets());
         channels = new ArrayList<>(request.getRequest().getNumParallelSockets());
 
-        //buffer = new Buffer(request, this);
         buffer = new Buffer(request);
         buffer.setOrderedPacketInitiator(orderedPacketInitiator);
-        //    this.statListener = statListener;
-        //   myBuffer.setListener(this); // notify me when you have sorted packs
-
-
     }
 
-    private String maskIP(String IP) {
-        String[] parts = IP.split(Pattern.quote("."));
-        String maskedIP = "172";
-        for (int i = 1; i < parts.length; i++) {
-            maskedIP += ".";
-            maskedIP += parts[i];
-        }
-        return maskedIP;
-    }
 
     public void bootStrapSockets() {
         eventLoopGroup = createEventLoopGroup();
-        log.info("Bootstrapping {} connections to agent server", request.getRequest().getNumParallelSockets());
+        log.info("Bootstrapping {} connections to agent server {}",
+                request.getRequest().getNumParallelSockets(),
+                request.getRequest().getServerAgentIP());
         try {
             for (int i = 0; i < request.getRequest().getNumParallelSockets(); i++) {
-
                 channels.add(connectToChannel(bootStrap(eventLoopGroup, (request.getRequest().getServerAgentIP())),
                         (request.getRequest().getServerAgentIP())));
                 StatCollector.getStatCollector().connectionAdded();
@@ -120,34 +107,14 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             InetSocketAddress socketAddress = (InetSocketAddress) channel.localAddress();
             ports.add(socketAddress.getPort());
         }
-        /////////////////////////////////////////////////////////////////
-        //Wait for couple of seconds to give remote agent time to process incoming request,
-        //currently receiving restlet based server is async that's why it immediately return response with/o actually processing the request
-        //TODO: RequestHandler.java change @post to sync
-     /*   try {
-           TimeUnit.SECONDS.sleep(0);
-      } catch (InterruptedException e) {
-         e.printStackTrace();
-     }*/
-
         try {
             notifyRemoteAgent(ports); //TODO: Based on remote agent response code.. take actions i.e if request is not valid than dont start sending packet
 
         } catch (IOException e) {
             e.printStackTrace();
         }
-        /////////////////////////////////////////////////////////////////
-        //Wait for couple of seconds to give remote agent time to process incoming request,
-        //currently receiving restlet based server is async that's why it immediately return response with/o actually processing the request
-        //TODO: RequestHandler.java change @post to sync
-    /*       try {
-               TimeUnit.SECONDS.sleep(5);
-           } catch (InterruptedException e) {
-               e.printStackTrace();
-          }   */     /////////////////////////////////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
         StatCollector.getStatCollector().hostAdded();
-
         startTime = System.currentTimeMillis();
     }
 
@@ -155,7 +122,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     @Override
     public boolean orderedPacket(ByteBuf packet) {
         return sendToHost(packet);
-
       /*  byte[] bytes = new byte[packet.capacity() - 4];
         packet.getBytes(4, bytes);
         if (hostChannel.isWritable()) {
@@ -192,14 +158,14 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     @Override
     public void HostStatusChanged(HostStatus hostStatus) {
         if (hostStatus == HostStatus.DONE) {
-            //    log.info("DDD {}", ats.channelTrafficCounters().size());
-
-            log.info("Client done sending ...shutting down all socks. ");
+            log.info("Client {}:{} is done sending ...shutting down all socks. ",
+                    request.getRequest().getClientIP(),
+                    request.getRequest().getClientPort());
 
             //    Send and empty buffer on all channels. and add listener for them. Once write is successful
              //   we will close all channels
 
-           for (Channel ch : channels
+           for (Channel ch : channels //not always gonna be last write... need to find a way to sent it at last
                     ) {
                 ch.writeAndFlush(Unpooled.EMPTY_BUFFER)
                         .addListener(ChannelFutureListener.CLOSE);
@@ -233,7 +199,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             StatCollector.getStatCollector().connectionAdded();
-
             super.channelActive(ctx);
         }
 
@@ -247,12 +212,10 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             totalBytes += ((ByteBuf) msg).capacity();
         }
 
+
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            ctx.flush(); //flush any unsent data
-            log.debug("Channel is inactive");
             StatCollector.getStatCollector().connectionRemoved();
-
         }
 
     }
@@ -284,18 +247,16 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     }
 
-
     public void incomingPacket(ByteBuf data) {
-
         writeToAgentChannel(channels.get(sendingStrategy.channelToSendOn()), data);
-        log.info("Sending on Channel {}", sendingStrategy.getCurrentChannel());
     }
 
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
 
-        String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
-        log.info("SIZE {}", data.capacity());
-        System.out.print(s);
+       // log.info("Readable {}", data.readableBytes());
+      //  String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
+     //   log.info("SIZE {}", data.capacity());
+     //   System.out.print(s);
 
         ChannelFuture cf = currentChannel.write(data);
         currentChannel.flush();
@@ -311,8 +272,8 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
                 if (cf.isSuccess()) {
                     totalBytes += data.capacity();
-                }
-                else log.error("Failed to write packet to channel {}", cf.cause());
+                } else log.error("Failed to write packet to channel for client {}:{} cause .... ", request.getRequest().getClientIP(),
+                        request.getRequest().getClientPort(), cf.cause());
             }
         });
     }
