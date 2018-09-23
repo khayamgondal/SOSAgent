@@ -1,6 +1,5 @@
 package edu.clemson.openflow.sos.host;
 
-import edu.clemson.openflow.sos.agent.AgentToHost;
 import edu.clemson.openflow.sos.agent.HostPacketInitiator;
 import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.rest.RequestTemplateWrapper;
@@ -19,6 +18,7 @@ import java.net.InetSocketAddress;
 
 public class HostClient implements HostStatusListener {
     private static final Logger log = LoggerFactory.getLogger(HostClient.class);
+
     private Channel myChannel;
     private SeqGen seqGen;
     private EventLoopGroup group;
@@ -43,9 +43,10 @@ public class HostClient implements HostStatusListener {
 
     @Override
     public synchronized void HostStatusChanged(HostStatus hostStatus) {
+
         if (!shutdDowned && hostStatus == HostStatus.DONE) {
             shutdDowned = true;
-            log.info("Client {}:{} to server {}:{} is done",
+            log.info("Client {}:{} to Server {}:{} is done",
                     request.getRequest().getClientIP(),
                     request.getRequest().getClientPort(),
                     request.getRequest().getServerIP(),
@@ -56,25 +57,6 @@ public class HostClient implements HostStatusListener {
         }
     }
 
-
-    class HostClientHandler extends ChannelInboundHandlerAdapter {
-
-        @Override
-        public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            StatCollector.getStatCollector().hostAdded();
-
-        }
-
-        @Override
-        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (hostPacketInitiator != null) {
-                ByteBuf seqed = seqGen.incomingPacket((byte[]) msg);
-                hostPacketInitiator.hostPacket(seqed);
-            }
-           // initiator.hostPacket(seqGen.incomingPacket((byte[]) msg)); //notify the listener
-        }
-
-    }
 
     public void start(String hostServerIP, int hostServerPort) {
         group = new NioEventLoopGroup();
@@ -108,10 +90,6 @@ public class HostClient implements HostStatusListener {
                     request.getRequest().getClientPort(),
                     hostServerIP,
                     hostServerPort);
-
-              ChannelFuture channelFuture = bootstrap.connect().sync();
-            //  channelFuture.channel().closeFuture().sync();
-
         } catch (Exception e) {
             log.error("Error connecting Client {}:{} to Server {}:{}",
                     request.getRequest().getClientIP(),
@@ -130,6 +108,26 @@ public class HostClient implements HostStatusListener {
 
     public Channel getHostChannel() {
         return myChannel;
+    }
+
+
+    class HostClientHandler extends ChannelInboundHandlerAdapter {
+
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            StatCollector.getStatCollector().hostAdded();
+
+        }
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            if (hostPacketInitiator != null) {
+                ByteBuf seqed = seqGen.incomingPacket((byte[]) msg);
+                hostPacketInitiator.hostPacket(seqed);
+            }
+            // initiator.hostPacket(seqGen.incomingPacket((byte[]) msg)); //notify the listener
+        }
+
     }
 
 }

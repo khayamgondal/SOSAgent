@@ -24,12 +24,13 @@ import java.util.ArrayList;
 
 public class AgentToHost implements OrderedPacketListener, HostPacketListener {
     private static final Logger log = LoggerFactory.getLogger(AgentToHost.class);
-    private final HostStatusInitiator hostStatusInitiator;
 
     private RequestTemplateWrapper request;
     private ArrayList<Channel> channels;
 
     private HostPacketInitiator hostPacketInitiator;
+    private final HostStatusInitiator hostStatusInitiator;
+
     private HostClient hostClient;
     private Buffer buffer;
 
@@ -45,8 +46,8 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         this.request = request;
         channels = new ArrayList<>();
 
-
         hostClient = new HostClient(request);
+
         hostPacketInitiator = new HostPacketInitiator();
         hostPacketInitiator.addListener(this);
         hostClient.setHostPacketListenerInitiator(hostPacketInitiator);
@@ -93,8 +94,10 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         if (hostClient.getHostChannel().isWritable()) {
             hostClient.getHostChannel().write(packet);
             writableCount++;
+        }  else {
+            packet.release();
+            unwritableCount++;
         }
-       else { packet.release(); unwritableCount++; }
         shouldSend++;
 
         if (shouldSend > request.getRequest().getQueueCapacity()) {
@@ -111,6 +114,10 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
                 request.getRequest().getClientPort(),
                 request.getRequest().getServerIP(),
                 request.getRequest().getServerPort());
+    }
+
+    public RequestTemplateWrapper getRequest() {
+        return request;
     }
 
     @Override
@@ -154,7 +161,7 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
         }
     }
     public void transferCompleted() {
-        hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
+        if (hostPacketInitiator != null) hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
     }
 
     public HostClient getHostClient() {

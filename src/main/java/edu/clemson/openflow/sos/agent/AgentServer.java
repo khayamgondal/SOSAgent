@@ -6,7 +6,6 @@ package edu.clemson.openflow.sos.agent;
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.org.apache.regexp.internal.RE;
 import edu.clemson.openflow.sos.buf.Buffer;
 import edu.clemson.openflow.sos.buf.BufferManager;
 import edu.clemson.openflow.sos.manager.ISocketServer;
@@ -18,16 +17,13 @@ import edu.clemson.openflow.sos.shaping.AgentTrafficShaping;
 import edu.clemson.openflow.sos.shaping.ISocketStatListener;
 import edu.clemson.openflow.sos.shaping.StatsTemplate;
 import edu.clemson.openflow.sos.stats.StatCollector;
-import edu.clemson.openflow.sos.utils.Utils;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.util.ReferenceCountUtil;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
@@ -37,10 +33,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class AgentServer implements ISocketServer, ISocketStatListener {
 
@@ -49,6 +43,9 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     private static final String TRAFFIC_PATH = "/traffic";
     private static final String REST_PORT = "8002";
     private static final int AGENT_DATA_PORT = 9878;
+
+    private int chz;
+
 
     private BufferManager bufferManager;
     private AgentToHostManager hostManager;
@@ -134,7 +131,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         private float totalBytes;
         private long startTime;
 
-        boolean called;
+        boolean receivedRequest;
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -149,8 +146,8 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
             remoteAgentPort = socketAddress.getPort();
 
             requestListenerInitiator.addRequestListener(this);
-            if (this == null ) log.info("EHy nULLL ");
-        //    Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
+            if (this == null) log.info("EHy nULLL ");
+            //    Utils.router.getContext().getAttributes().put("agent-callback", requestListenerInitiator);
 
             StatCollector.getStatCollector().connectionAdded();
 
@@ -160,45 +157,42 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         }
 
         private boolean isMineChannel(RequestTemplateWrapper request, AgentServerHandler handler) {
-         //   if (handler == null) log.info("nULLLL"); else log.info("not null");
             return request.getPorts().contains(((InetSocketAddress) handler.context.channel().remoteAddress()).getPort());
         }
 
 
         /*  Whenever AgentServer receives new port request from AgentClient.
         This method will be called and all the open channels
-                    will be notified.                */
+                    will be notified.
+        */
+
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
-            endHostHandler = getHostHandler(request);
                 if (isMineChannel(request, this)) {
+                    endHostHandler = getHostHandler(request);
                     endHostHandler.addChannel(this.context.channel());
                     log.debug("Channel added for Client {}:{} Agent Port {}",
                             request.getRequest().getClientIP(),
                             request.getRequest().getClientPort(),
                             (((InetSocketAddress) this.context.channel().remoteAddress())).getPort());
-
                     this.buffer = bufferManager.addBuffer(request, endHostHandler);
-
-            }
-            endHostHandler.setBuffer(buffer);
-
+                }
+                endHostHandler.setBuffer(buffer);
         }
-
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
 
-       //     ByteBuf data = (ByteBuf) msg;
-       //     log.info("SIZE {}", data.capacity());
-       //     String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
-       //     System.out.print(s);
+            //     ByteBuf data = (ByteBuf) msg;
+            //     log.info("SIZE {}", data.capacity());
+            //     String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
+            //     System.out.print(s);
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
                 log.error("Receiving buffer NULL for Remote Agent {}:{} ", remoteAgentIP, remoteAgentPort);
                 ((ByteBuf) msg).release();
             }
-         /*   totalBytes += ((ByteBuf) msg).capacity();*/
+            /*   totalBytes += ((ByteBuf) msg).capacity();*/
         }
 
         @Override
@@ -206,13 +200,12 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
             long stopTime = System.currentTimeMillis();
 
-            if (endHostHandler != null) endHostHandler.transferCompleted(); // notify the host server
-            requestListenerInitiator = new RequestListenerInitiator(); //also reset the listener to remove old listeners
+            if (endHostHandler != null)
+                endHostHandler.transferCompleted(); // notify the host server
 
+            requestListenerInitiator = new RequestListenerInitiator(); //also reset the listener to remove old listeners
             hostManager.removeAgentToHost(endHostHandler);
             bufferManager.removeBuffer(buffer);
-
-         //   ctx.close(); //close this channel
 
             StatCollector.getStatCollector().connectionRemoved();
 
@@ -235,8 +228,8 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
         try {
             ServerBootstrap b = new ServerBootstrap()
                     .group(group)
-              //      .option(ChannelOption.TCP_NODELAY, true)
-             //       .option(ChannelOption.SO_KEEPALIVE, true)
+                    //      .option(ChannelOption.TCP_NODELAY, true)
+                    //       .option(ChannelOption.SO_KEEPALIVE, true)
                     .channel(NioServerSocketChannel.class)
                     .localAddress(new InetSocketAddress(port))
                     .childHandler(new ChannelInitializer() {

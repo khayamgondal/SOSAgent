@@ -6,6 +6,7 @@ import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RestServer;
 import edu.clemson.openflow.sos.utils.PrefsSetup;
 import edu.clemson.openflow.sos.utils.Utils;
+import org.restlet.engine.Engine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Properties;
+import java.util.logging.Level;
 
 /**
     @author Khayam Anjam    kanjam@g.clemson.edu
@@ -23,9 +25,10 @@ public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
-      //  PrefsSetup prefsSetup = new PrefsSetup();
-      //  prefsSetup.loadDefault(); //load default settings
-        System.setProperty("org.restlet.engine.loggerFacadeClass", "org.restlet.ext.slf4j.Slf4jLoggerFacade");
+
+
+        Engine.setRestletLogLevel(Level.WARNING); //restlet uses java logger by default. You can also use slf4j by using following line
+     // System.setProperty("org.restlet.engine.loggerFacadeClass", "org.restlet.ext.slf4j.Slf4jLoggerFacade");
 
         try {
             Properties properties = new Properties();

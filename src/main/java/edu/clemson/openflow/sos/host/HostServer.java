@@ -123,11 +123,12 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
                 log.error("No controller request found for this associated port ...all incoming packets will be dropped ");
                 return;
             }
-            log.info("Client {}:{} connected to Server {}:{}",
+            log.info("Client {}:{} connected to Server {}:{} with {} connections",
                     remoteSocketAddress.getHostName(),
                     remoteSocketAddress.getPort(),
                     request.getRequest().getServerIP(),
-                    request.getRequest().getServerPort());
+                    request.getRequest().getServerPort(),
+                    request.getRequest().getNumParallelSockets());
 
             startTime = System.currentTimeMillis();
 

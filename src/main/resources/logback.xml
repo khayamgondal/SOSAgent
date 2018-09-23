@@ -24,7 +24,7 @@
         <appender-ref ref="FILE"/>
     </root>
 
-    <logger name="org.restlet" level="error"/>
+    <logger name="org.restlet." level="error"/>
     <logger name="edu.clemson.openflow.sos" level="info"/>
     <logger name="edu.clemson.openflow.sos.buf.Buffer" level="info"/>
     <logger name="edu.clemson.openflow.sos.agent.AgentServer" level="info"/>

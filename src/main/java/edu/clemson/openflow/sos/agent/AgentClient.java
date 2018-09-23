@@ -95,7 +95,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
 
     public void bootStrapSockets() {
         eventLoopGroup = createEventLoopGroup();
-        log.info("Bootstrapping {} connections to agent server {}",
+        log.debug("Bootstrapping {} connections to agent server {}",
                 request.getRequest().getNumParallelSockets(),
                 request.getRequest().getServerAgentIP());
         try {
