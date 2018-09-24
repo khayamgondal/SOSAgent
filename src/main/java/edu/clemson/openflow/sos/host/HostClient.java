@@ -128,6 +128,10 @@ public class HostClient implements HostStatusListener {
             // initiator.hostPacket(seqGen.incomingPacket((byte[]) msg)); //notify the listener
         }
 
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            super.channelInactive(ctx);
+        }
     }
 
 }

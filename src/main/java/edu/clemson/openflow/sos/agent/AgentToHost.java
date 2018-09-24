@@ -20,9 +20,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 
-public class AgentToHost implements OrderedPacketListener, HostPacketListener {
+public class AgentToHost implements OrderedPacketListener, HostPacketListener, HostStatusListener {
     private static final Logger log = LoggerFactory.getLogger(AgentToHost.class);
 
     private RequestTemplateWrapper request;
@@ -30,8 +31,10 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     private HostPacketInitiator hostPacketInitiator;
     private final HostStatusInitiator hostStatusInitiator;
+    private SendingStrategy sendingStrategy;
 
     private HostClient hostClient;
+    private HostStatus hostStatus;
     private Buffer buffer;
 
     private int currentChannelNo = 0;
@@ -54,6 +57,8 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
         hostStatusInitiator = new HostStatusInitiator();
         hostStatusInitiator.addListener(hostClient);
+
+        sendingStrategy = new RRSendingStrategy(request.getRequest().getNumParallelSockets());
 
         hostClient.start(request.getRequest().getServerIP(), request.getRequest().getServerPort());
         log.debug("Created & started new host handler for server {} port {}",
@@ -146,19 +151,50 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     @Override
     public void hostPacket(ByteBuf packet) {
-        if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
-        writeToAgentChannel(channels.get(currentChannelNo), packet);
-        currentChannelNo++;
+       //      ByteBuf data = (ByteBuf) packet;
+       //      log.info("SIZE {}", data.capacity());
+       //      String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
+      //       System.out.print(s);
+      //  if (currentChannelNo == request.getRequest().getNumParallelSockets()) currentChannelNo = 0;
+      //  writeToAgentChannel(channels.get(currentChannelNo), packet);
+       // currentChannelNo++;
+        writeToAgentChannel(channels.get(sendingStrategy.channelToSendOn()), packet);
+
+    }
+    public synchronized void increaseWriteCount() { ++writableCount; }
+    public synchronized void decreaseWriteCount() {
+        --writableCount;
     }
 
     private void writeToAgentChannel(Channel currentChannel, ByteBuf data) {
         ChannelFuture cf = currentChannel.write(data);
-        wCount++;
-        if (wCount >= request.getRequest().getBufferSize() * request.getRequest().getNumParallelSockets()) {
-            for (Channel channel : channels)
-                channel.flush();
-            wCount = 0;
-        }
+        increaseWriteCount();
+        currentChannel.flush();
+      //  wCount++;
+      //  if (wCount >= request.getRequest().getBufferSize() * request.getRequest().getNumParallelSockets()) {
+      ///      for (Channel channel : channels)
+       //         channel.flush();
+       //     wCount = 0;
+       // }
+        cf.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                if (cf.isSuccess()) {
+                    totalBytes += data.capacity();
+                    decreaseWriteCount();
+                    if (writableCount == 0 && hostStatus == HostStatusListener.HostStatus.DONE) { //means host is done sending and all data have been flushed. Its time to close all channels
+                        log.info("Client {}:{} to server {}:{} is done",
+                                request.getRequest().getClientIP(),
+                                request.getRequest().getClientPort(),
+                                request.getRequest().getServerIP(),
+                                request.getRequest().getServerPort());
+                        closeAllChannels();
+                    }
+                } else
+                    log.error("Failed to write packet to channel for client {}:{} cause .... ", request.getRequest().getClientIP(),
+                            request.getRequest().getClientPort(), cf.cause());
+            }
+        });
     }
     public void transferCompleted() {
         if (hostPacketInitiator != null) hostStatusInitiator.hostStatusChanged(HostStatusListener.HostStatus.DONE);
@@ -166,5 +202,26 @@ public class AgentToHost implements OrderedPacketListener, HostPacketListener {
 
     public HostClient getHostClient() {
         return hostClient;
+    }
+
+    private void closeAllChannels(){
+        for (Channel ch : channels
+             ) {
+            ch.close();
+        }
+    }
+
+    @Override
+    public void HostStatusChanged(HostStatus hostStatus) {
+        this.hostStatus = hostStatus;
+        if (hostStatus == HostStatus.DONE && writableCount == 0) {
+            log.info("Client {}:{} to server {}:{} is done",
+                    request.getRequest().getClientIP(),
+                    request.getRequest().getClientPort(),
+                    request.getRequest().getServerIP(),
+                    request.getRequest().getServerPort());
+
+            closeAllChannels();
+        }
     }
 }

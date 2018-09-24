@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -85,10 +86,7 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
         buffer.setOrderedPacketInitiator(orderedPacketInitiator);
     }
 
-    public synchronized void increaseWriteCount() {
-        writableCount++;
-    }
-
+    public synchronized void increaseWriteCount() { ++writableCount; }
     public synchronized void decreaseWriteCount() {
         --writableCount;
     }
@@ -217,12 +215,10 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
             totalBytes += ((ByteBuf) msg).capacity();
         }
 
-
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
             StatCollector.getStatCollector().connectionRemoved();
         }
-
     }
 
     private synchronized void sumThroughput(long lastWriteThroughput, long lastReadThroughput) {
@@ -233,7 +229,6 @@ public class AgentClient implements OrderedPacketListener, HostStatusListener, I
     //TODO: apache is deprecated webclient...use some other one
     private void notifyRemoteAgent(List<Integer> ports) throws IOException {
         // request.getRequest().setServerAgentIP(maskIP(request.getRequest().getServerAgentIP()));
-
         String uri = RestRoutes.URIBuilder(request.getRequest().getServerAgentIP(), REST_PORT, PORTMAP_PATH);
         HttpClient httpClient = new DefaultHttpClient();
         HttpPost httpRequest = new HttpPost(uri);

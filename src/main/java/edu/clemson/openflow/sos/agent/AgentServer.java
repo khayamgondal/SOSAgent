@@ -171,10 +171,11 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
                 if (isMineChannel(request, this)) {
                     endHostHandler = getHostHandler(request);
                     endHostHandler.addChannel(this.context.channel());
-                    log.debug("Channel added for Client {}:{} Agent Port {}",
+                    log.debug("Channel added for Client {}:{} Server {}:{}",
                             request.getRequest().getClientIP(),
                             request.getRequest().getClientPort(),
-                            (((InetSocketAddress) this.context.channel().remoteAddress())).getPort());
+                            request.getRequest().getServerIP(),
+                            request.getRequest().getServerPort());
                     this.buffer = bufferManager.addBuffer(request, endHostHandler);
                 }
                 endHostHandler.setBuffer(buffer);
@@ -182,11 +183,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-
-            //     ByteBuf data = (ByteBuf) msg;
-            //     log.info("SIZE {}", data.capacity());
-            //     String s = data.readCharSequence(data.capacity(), Charset.forName("utf-8")).toString();
-            //     System.out.print(s);
             if (buffer != null) buffer.incomingPacket((ByteBuf) msg);
             else {
                 log.error("Receiving buffer NULL for Remote Agent {}:{} ", remoteAgentIP, remoteAgentPort);

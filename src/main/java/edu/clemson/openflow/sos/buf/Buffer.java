@@ -160,7 +160,6 @@ public class Buffer {
 
     //TODO: Recheck the logic here.
     private void processPacket(ByteBuf data) {
-        try {
             if (expecting == MAX_SEQ) expecting = 0;
             log.debug("Waiting for {}", expecting);
             int currentSeqNo = data.getInt(0); //get seq. no from incoming packet  TODO: may be use data.slice(0, 4) ??
@@ -175,12 +174,6 @@ public class Buffer {
                     putInBuffer(currentSeqNo, data); // failed to send, put in buffer
                 }
             } else putInBuffer(currentSeqNo, data);
-        } catch (IndexOutOfBoundsException exception) {
-            // When client is done sending, agent on the otherside will send an empty bytebuf once that bytebuf is sent, it will close the channel.
-            //      reason for sending this empty bytebuf is so we can findout once agent have successfully sent all the packets.
-            //     But on the receiving agent side, it is not expecting empty packets and tries to use first 4 bytes as seq no. and due to an empty packet it
-            // throws indexoutofbound exception. So i am just catching that exception here and not doing anything.
-        }
 
     }
 
