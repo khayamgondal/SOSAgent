@@ -156,7 +156,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
         }
 
-        private boolean isMineChannel(RequestTemplateWrapper request, AgentServerHandler handler) {
+        private boolean isMineRequest(RequestTemplateWrapper request, AgentServerHandler handler) {
             return request.getPorts().contains(((InetSocketAddress) handler.context.channel().remoteAddress()).getPort());
         }
 
@@ -168,7 +168,7 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
         @Override
         public void newIncomingRequest(RequestTemplateWrapper request) {
-                if (isMineChannel(request, this)) {
+                if (isMineRequest(request, this)) {
                     endHostHandler = getHostHandler(request);
                     endHostHandler.addChannel(this.context.channel());
                     log.debug("Channel added for Client {}:{} Server {}:{}",
