@@ -6,7 +6,7 @@ Setup ssh keys and clone these repos to your home folder
 
 Install maven, vagrant and virtual box
 
-Building Agents & Floodlight: _cd SOSAgent/ and mvn package_, similarly _cd floodlight/ git checkout shellaN & mvn package -Dmaven.test.skip=true_. These commands will package .jar files in target/ directory
+Building Agents & Floodlight: _cd SOSAgent/ and mvn package_, similarly _cd floodlight/ git checkout shella1.0 & mvn package -Dmaven.test.skip=true_. These commands will package .jar files in target/ directory
 
 cd _SOSAgent_/ and _vagrant up_ . This will bring up the vagrant VM. It might take some time. Once done do _vagrant ssh_
 
