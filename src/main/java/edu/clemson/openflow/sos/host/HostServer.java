@@ -44,8 +44,6 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
 
     private static final Logger log = LoggerFactory.getLogger(HostServer.class);
 
-    private static final int DATA_PORT = 9877;
-
     private List<RequestTemplateWrapper> incomingRequests = new ArrayList<>();
     private NioEventLoopGroup group;
     private HostTrafficShaping hostTrafficShaping;
@@ -242,8 +240,8 @@ public class HostServer extends ChannelInboundHandlerAdapter implements ISocketS
     }
 
     @Override
-    public boolean start() {
-        return startSocket(DATA_PORT);
+    public boolean start(int port) {
+        return startSocket(port);
     }
 
     @Override

@@ -10,6 +10,6 @@ public interface ISocketServer {
     This method returns the result to http call from floodlight.
      You can have your own strategies on how to handle the traffic i.e. types of sockets you wanna use.
      **/
-    boolean start();
+    boolean start(int port);
     boolean stop();
 }

@@ -42,10 +42,6 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
     private static final String TRAFFIC_PATH = "/traffic";
     private static final String REST_PORT = "8002";
-    private static final int AGENT_DATA_PORT = 9878;
-
-    private int chz;
-
 
     private BufferManager bufferManager;
     private AgentToHostManager hostManager;
@@ -153,13 +149,11 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
 
             startTime = System.currentTimeMillis();
 
-
         }
 
         private boolean isMineRequest(RequestTemplateWrapper request, AgentServerHandler handler) {
             return request.getPorts().contains(((InetSocketAddress) handler.context.channel().remoteAddress()).getPort());
         }
-
 
         /*  Whenever AgentServer receives new port request from AgentClient.
         This method will be called and all the open channels
@@ -177,8 +171,8 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
                             request.getRequest().getServerIP(),
                             request.getRequest().getServerPort());
                     this.buffer = bufferManager.addBuffer(request, endHostHandler);
+                    endHostHandler.setBuffer(buffer);
                 }
-                endHostHandler.setBuffer(buffer);
         }
 
         @Override
@@ -275,8 +269,8 @@ public class AgentServer implements ISocketServer, ISocketStatListener {
     }
 
     @Override
-    public boolean start() {
-        return startSocket(AGENT_DATA_PORT);
+    public boolean start(int port) {
+        return startSocket(port);
     }
 
     @Override

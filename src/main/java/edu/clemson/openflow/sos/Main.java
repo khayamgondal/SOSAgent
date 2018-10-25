@@ -2,6 +2,7 @@ package edu.clemson.openflow.sos;
 
 import edu.clemson.openflow.sos.agent.AgentServer;
 import edu.clemson.openflow.sos.host.HostServer;
+import edu.clemson.openflow.sos.host.blocking.BHostServer;
 import edu.clemson.openflow.sos.manager.ISocketServer;
 import edu.clemson.openflow.sos.rest.RestServer;
 import edu.clemson.openflow.sos.utils.PrefsSetup;
@@ -23,6 +24,8 @@ import java.util.logging.Level;
  **/
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
+    private static final int HOST_DATA_PORT = 9877;
+    private static final int AGENT_DATA_PORT = 9878;
 
     public static void main(String[] args) {
 
@@ -49,11 +52,12 @@ public class Main {
         RestServer restServer = new RestServer(); // port 8002
         restServer.startComponent();
 
-        ISocketServer hostServer = new HostServer(); // port 9877
-        hostServer.start();
+       // ISocketServer hostServer = new HostServer(); // port 9877
+        ISocketServer hostServer = new BHostServer();
+        hostServer.start(HOST_DATA_PORT);
 
         ISocketServer agentServer = new AgentServer(); // port 9878
-        agentServer.start();
+        agentServer.start(AGENT_DATA_PORT);
 
     }
 }
