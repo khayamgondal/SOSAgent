@@ -32,4 +32,12 @@ public class SeqGen {
         seqNo++;
         return Unpooled.wrappedBuffer(b.array(), packet);
     }
+    public byte incomingPacket(byte[] packet) {
+
+        if (seqNo == MAX_SEQ) seqNo = 0;
+        ByteBuffer b = ByteBuffer.allocate(4); // also release b ? why not create large buffer than mark it unmark it and sent the ref ??/
+        b.putInt(0, seqNo);
+        seqNo++;
+        return ByteBuffer.wrap(b, packet);
+    }
 }

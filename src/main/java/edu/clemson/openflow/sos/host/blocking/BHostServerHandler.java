@@ -1,5 +1,6 @@
 package edu.clemson.openflow.sos.host.blocking;
 
+import edu.clemson.openflow.sos.buf.SeqGen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,7 @@ public class BHostServerHandler extends Thread {
     private DataOutputStream dos = null;
     private Socket s = null;
     byte[] b  = new byte[65000];
+    SeqGen seqGen = new SeqGen();
     public BHostServerHandler(Socket s) {
         try {
             this.s = s;
@@ -34,10 +36,13 @@ public class BHostServerHandler extends Thread {
     public void run() {
         try {
             while (true) {
-                //dis.read(b);
                 int avail = dis.available();
-                if (avail > 0)
-                 log.info("{}", dis.available());
+                if (avail > 0) {
+                    log.info("{}", dis.available());
+                    dis.read(b, 0, dis.available());
+                    seqGen.incomingPacket(b);
+                    dos.write
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
