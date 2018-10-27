@@ -1,6 +1,7 @@
 package edu.clemson.openflow.sos;
 
 import edu.clemson.openflow.sos.agent.AgentServer;
+import edu.clemson.openflow.sos.agent.blocking.BAgentServer;
 import edu.clemson.openflow.sos.host.HostServer;
 import edu.clemson.openflow.sos.host.blocking.BHostServer;
 import edu.clemson.openflow.sos.manager.ISocketServer;
@@ -11,6 +12,7 @@ import org.restlet.engine.Engine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.print.attribute.standard.MediaSize;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,7 +58,8 @@ public class Main {
         ISocketServer hostServer = new BHostServer(); //blocking server
         hostServer.start(HOST_DATA_PORT);
 
-        ISocketServer agentServer = new AgentServer(); // port 9878
+        //ISocketServer agentServer = new AgentServer(); // port 9878
+        ISocketServer agentServer = new BAgentServer();
         agentServer.start(AGENT_DATA_PORT);
 
     }

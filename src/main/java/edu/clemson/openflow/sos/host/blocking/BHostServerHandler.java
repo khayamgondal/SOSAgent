@@ -41,7 +41,8 @@ public class BHostServerHandler extends Thread {
                     log.info("{}", dis.available());
                     dis.read(b, 0, dis.available());
                     seqGen.incomingPacket(b);
-                    dos.write
+                   // dos.write
+
                 }
             }
         } catch (IOException e) {
