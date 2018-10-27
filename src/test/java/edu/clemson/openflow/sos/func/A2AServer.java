@@ -19,6 +19,8 @@ import static junit.framework.TestCase.assertEquals;
 public class A2AServer {
 
     private static final Logger log = LoggerFactory.getLogger(A2AServer.class);
+    private static final int HOST_DATA_PORT = 9877;
+    private static final int AGENT_DATA_PORT = 9878;
 
     private ServerSocket setupServerSocket(int port) throws IOException {
         log.info("Started mock server on port {}", port);
@@ -32,7 +34,7 @@ public class A2AServer {
         assertEquals(restServer.startComponent(), true);
 
         AgentServer agentServer = new AgentServer();
-        assertEquals(agentServer.start(), true);
+        assertEquals(agentServer.start(AGENT_DATA_PORT), true);
 
 
 

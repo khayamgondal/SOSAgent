@@ -53,7 +53,7 @@ public class Main {
         restServer.startComponent();
 
        // ISocketServer hostServer = new HostServer(); // port 9877
-        ISocketServer hostServer = new BHostServer();
+        ISocketServer hostServer = new BHostServer(); //blocking server
         hostServer.start(HOST_DATA_PORT);
 
         ISocketServer agentServer = new AgentServer(); // port 9878

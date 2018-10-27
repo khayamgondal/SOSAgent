@@ -22,6 +22,8 @@ import static junit.framework.TestCase.assertEquals;
 public class A2AClient {
 
     private static final Logger log = LoggerFactory.getLogger(A2AClient.class);
+    private static final int HOST_DATA_PORT = 9877;
+    private static final int AGENT_DATA_PORT = 9878;
 
     private RequestTemplateWrapper mockRequestBuilder() {
         RequestTemplate requestTemplate = new RequestTemplate(true, "xxx",
@@ -69,7 +71,7 @@ public class A2AClient {
         assertEquals(restServer.startComponent(), true);
 
         HostServer hostServer = new HostServer();
-        assertEquals(hostServer.start(), true);
+        assertEquals(hostServer.start(HOST_DATA_PORT), true);
 
       //  AgentServer agentServer = new AgentServer();
       //  assertEquals(agentServer.start(), true);

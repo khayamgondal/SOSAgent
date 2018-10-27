@@ -35,6 +35,7 @@ public class BHostServer implements ISocketServer, RestStatListener, RequestList
     ObjectMapper mapper = new ObjectMapper();
     private ShapingTimer rateLimitTimer;
     private int hostCheckRate;
+    ServerSocket serverSocket = null; //TODO: Should be made property of innner class
 
     public BHostServer() {
 
@@ -64,13 +65,22 @@ public class BHostServer implements ISocketServer, RestStatListener, RequestList
 
     private boolean startSocket(int port) {
 
-        ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket(port);
+            Thread t = new MainThreadHandler();
+            t.start();
+            log.info("Started blocking Host Server at port {}", port);
         } catch (IOException e) {
             e.printStackTrace();
+            return false;
         }
-        while (true) {
+     return true;
+    }
+
+    class MainThreadHandler extends Thread {
+        @Override
+        public void run() {
+            while (true) {
                 Socket s = null;
                 try {
                     s = serverSocket.accept();
@@ -81,6 +91,7 @@ public class BHostServer implements ISocketServer, RestStatListener, RequestList
                 Thread t = new BHostServerHandler(s);
                 t.start();
             }
+        }
     }
 
     @Override
