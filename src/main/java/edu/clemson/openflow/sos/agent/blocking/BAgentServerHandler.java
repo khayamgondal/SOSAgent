@@ -12,43 +12,46 @@ public class BAgentServerHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(BAgentServerHandler.class);
     private Socket socket;
 
-    private BHostClient bHostClient = new BHostClient("10.0.0.211", 5001);
     private Socket hostClientSocket;
+    private byte[] arrayToReadIn = new byte[1659176 + 1000];
 
-    public BAgentServerHandler(Socket s) {
+    BufferedInputStream hdis = null;
+    BufferedOutputStream hdos = null;
+
+
+    public BAgentServerHandler(Socket s, Socket hostClientSocket) {
         socket = s;
-        hostClientSocket = bHostClient.connectSocket();
+        this.hostClientSocket = hostClientSocket;
+        try {
+            hdis = new BufferedInputStream(socket.getInputStream());
+            hdos = new BufferedOutputStream(hostClientSocket.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void run() {
         log.info("connected to {}", socket.getInetAddress().getHostAddress());
-        DataInputStream dis = null;
-        DataOutputStream dos = null;
-        BufferedReader hdis = null;
-        DataOutputStream hdos = null;
 
-        try {
-            dis = new DataInputStream(socket.getInputStream());
-            dos = new DataOutputStream(socket.getOutputStream());
 
-            hdis = new BufferedReader( new InputStreamReader(hostClientSocket.getInputStream()));
-            hdos = new DataOutputStream(hostClientSocket.getOutputStream());
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         try {
             while (true) {
-                int avail = dis.available();
+                int avail = hdis.available();
                 if (avail > 0) {
-                    log.info("{}", dis.available());
-                    dis.read(b, 0, dis.available());
+               //     log.info("{}", dis.available());
+                  hdis.read(arrayToReadIn);
+                  write(arrayToReadIn);
 
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private synchronized void write(byte[] data) throws IOException {
+        hdos.write(data);
+        hdos.flush();
     }
 }

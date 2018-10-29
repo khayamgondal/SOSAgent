@@ -7,35 +7,48 @@ import edu.clemson.openflow.sos.buf.SeqGen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 
 public class BHostServerHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(BHostServerHandler.class);
 
-    private DataInputStream dis = null;
-    private DataOutputStream dos = null;
+    private BufferedInputStream dis = null;
+    private BufferedOutputStream dos = null;
     private Socket s = null;
-    byte[] b  = new byte[269608+10];
+    private byte[] arrayToReadIn = new byte[1659176 + 1000];
+
     SeqGen seqGen = new SeqGen();
     private BAgentClient bAgentClient;
     private List<Socket> socketList;
-    private SendingStrategy sendingStrategy = new RRSendingStrategy(16);;
+    private List<RemoteWrite> remoteWrites = new ArrayList<>();
+
+    private int parllConns = 16; // also start this number of threads to write to remote agent
+
+
+    private SendingStrategy sendingStrategy = new RRSendingStrategy(parllConns);
+    ;
 
     public BHostServerHandler(Socket s) {
         try {
             this.s = s;
             InetAddress remoteSocketAddress = s.getInetAddress();
             InetAddress localSocketAddress = s.getLocalAddress();
-             dis = new DataInputStream(s.getInputStream());
-             dos = new DataOutputStream(s.getOutputStream());
-             bAgentClient = new BAgentClient("10.0.0.12", 9878, 15);
-             socketList = bAgentClient.connectSocks();
+
+            dis = new BufferedInputStream(s.getInputStream());
+            dos = new BufferedOutputStream(s.getOutputStream());
+
+            bAgentClient = new BAgentClient("10.0.0.12", 9878, parllConns);
+            socketList = bAgentClient.connectSocks();
+            for (int i = 0; i < parllConns; i++) {
+                RemoteWrite remoteWrite = new RemoteWrite(socketList.get(i));
+                remoteWrites.add(remoteWrite);
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -48,16 +61,51 @@ public class BHostServerHandler extends Thread {
             while (true) {
                 int avail = dis.available();
                 if (avail > 0) {
-                    log.info("{}", dis.available());
-                    dis.read(b, 0, dis.available());
-                    seqGen.incomingPacket(b);
-                    Socket curSock = socketList.get(sendingStrategy.channelToSendOn());
-                    DataOutputStream dos = new DataOutputStream(curSock.getOutputStream());
-                    dos.write(b);
+                   // log.info("{}", dis.available());
+                    dis.read(arrayToReadIn);
+                    //   seqGen.incomingPacket(b);
+                  //  Socket curSock = socketList.get(sendingStrategy.channelToSendOn());
+
+                    int chToSendOn = sendingStrategy.channelToSendOn();
+                    log.info("Sending on channel {}", chToSendOn);
+                    remoteWrites.get(chToSendOn).setData(arrayToReadIn);
+                    if (! remoteWrites.get(chToSendOn).isAlive()) remoteWrites.get(chToSendOn).start();
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public class RemoteWrite extends Thread {
+        private Socket socket;
+        private boolean isDataAvaiable;
+        private byte[] data;
+
+        public RemoteWrite(Socket socket) {
+            this.socket = socket;
+        }
+
+        public void setData(byte[] data) {
+            this.data = data;
+        }
+
+        @Override
+        public void run() {
+            if (data != null) {
+                try {
+                    write(data);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            else log.info("Data is null for god damn reason");
+        }
+
+        private synchronized void write(byte[] data) throws IOException {
+
+            socket.getOutputStream().write(data);
+            socket.getOutputStream().flush();
         }
     }
 }

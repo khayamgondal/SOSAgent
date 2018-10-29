@@ -1,6 +1,7 @@
 package edu.clemson.openflow.sos.agent.blocking;
 
 import edu.clemson.openflow.sos.Main;
+import edu.clemson.openflow.sos.host.blocking.BHostClient;
 import edu.clemson.openflow.sos.host.blocking.BHostServer;
 import edu.clemson.openflow.sos.host.blocking.BHostServerHandler;
 import edu.clemson.openflow.sos.manager.ISocketServer;
@@ -13,8 +14,12 @@ import java.net.Socket;
 
 public class BAgentServer implements ISocketServer {
     private static final Logger log = LoggerFactory.getLogger(BAgentServer.class);
+    private BHostClient bHostClient = new BHostClient("10.0.0.211", 5001);
+    private Socket hostClientSocket;
 
     private boolean startSocket(int port) {
+        hostClientSocket = bHostClient.connectSocket();
+        log.info("connected to {}", hostClientSocket.getInetAddress().getHostAddress());
 
         try {
             ServerSocket serverSocket = new ServerSocket(port);
@@ -27,6 +32,8 @@ public class BAgentServer implements ISocketServer {
         }
         return true;
     }
+
+
     class MainThreadHandler extends Thread {
         private ServerSocket serverSocket;
 
@@ -43,7 +50,7 @@ public class BAgentServer implements ISocketServer {
                     e.printStackTrace();
                 }
 
-                Thread t = new BAgentServerHandler(s);
+                Thread t = new BAgentServerHandler(s, hostClientSocket);
                 t.start();
             }
         }

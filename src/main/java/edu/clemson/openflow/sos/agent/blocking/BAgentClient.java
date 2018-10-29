@@ -15,6 +15,7 @@ public class BAgentClient {
         this.remoteAgentIP = remoteAgentIP;
         this.remoteAgentPort = remoteAgentPort;
         this.totalSocks = totalSocks;
+
     }
 
     public List<Socket> connectSocks() {
