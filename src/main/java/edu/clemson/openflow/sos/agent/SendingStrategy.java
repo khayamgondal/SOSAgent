@@ -9,7 +9,7 @@ public abstract class SendingStrategy {
         this.totalChannels = totalChannels;
     }
 
-    abstract int channelToSendOn();
+    abstract public int channelToSendOn();
 
     public int getCurrentChannel() {
         return currentChannel;

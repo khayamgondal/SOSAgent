@@ -1,5 +1,7 @@
 package edu.clemson.openflow.sos.host.blocking;
 
+import edu.clemson.openflow.sos.agent.RRSendingStrategy;
+import edu.clemson.openflow.sos.agent.SendingStrategy;
 import edu.clemson.openflow.sos.agent.blocking.BAgentClient;
 import edu.clemson.openflow.sos.buf.SeqGen;
 import org.slf4j.Logger;
@@ -19,10 +21,11 @@ public class BHostServerHandler extends Thread {
     private DataInputStream dis = null;
     private DataOutputStream dos = null;
     private Socket s = null;
-    byte[] b  = new byte[65000];
+    byte[] b  = new byte[269608+10];
     SeqGen seqGen = new SeqGen();
     private BAgentClient bAgentClient;
     private List<Socket> socketList;
+    private SendingStrategy sendingStrategy = new RRSendingStrategy(16);;
 
     public BHostServerHandler(Socket s) {
         try {
@@ -31,7 +34,7 @@ public class BHostServerHandler extends Thread {
             InetAddress localSocketAddress = s.getLocalAddress();
              dis = new DataInputStream(s.getInputStream());
              dos = new DataOutputStream(s.getOutputStream());
-             bAgentClient = new BAgentClient("10.0.0.21", 9878, 15);
+             bAgentClient = new BAgentClient("10.0.0.12", 9878, 15);
              socketList = bAgentClient.connectSocks();
 
         } catch (IOException e) {
@@ -48,8 +51,9 @@ public class BHostServerHandler extends Thread {
                     log.info("{}", dis.available());
                     dis.read(b, 0, dis.available());
                     seqGen.incomingPacket(b);
-                    send packates heres... 
-
+                    Socket curSock = socketList.get(sendingStrategy.channelToSendOn());
+                    DataOutputStream dos = new DataOutputStream(curSock.getOutputStream());
+                    dos.write(b);
                 }
             }
         } catch (IOException e) {
