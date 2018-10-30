@@ -32,16 +32,14 @@ public class BAgentServerHandler extends Thread {
 
     @Override
     public void run() {
-        log.info("connected to {}", socket.getInetAddress().getHostAddress());
-
-
+        log.info("connected to agent {}", socket.getInetAddress().getHostAddress());
         try {
             while (true) {
                 int avail = hdis.available();
                 if (avail > 0) {
-               //     log.info("{}", dis.available());
-                  hdis.read(arrayToReadIn);
-                  write(arrayToReadIn);
+                    log.info("received {}", hdis.available());
+                    hdis.read(arrayToReadIn);
+                    write(arrayToReadIn);
 
                 }
             }

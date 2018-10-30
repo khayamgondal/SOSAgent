@@ -19,7 +19,7 @@ public class BAgentServer implements ISocketServer {
 
     private boolean startSocket(int port) {
         hostClientSocket = bHostClient.connectSocket();
-        log.info("connected to {}", hostClientSocket.getInetAddress().getHostAddress());
+        log.info("connected to {} server", hostClientSocket.getInetAddress().getHostAddress());
 
         try {
             ServerSocket serverSocket = new ServerSocket(port);

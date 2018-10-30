@@ -58,6 +58,9 @@ public class BHostServerHandler extends Thread {
     @Override
     public void run() {
         try {
+            for (int i=0 ; i < remoteWrites.size() ; i ++) {
+                startThread(i);
+            }
             while (true) {
                 int avail = dis.available();
                 if (avail > 0) {
@@ -67,14 +70,19 @@ public class BHostServerHandler extends Thread {
                   //  Socket curSock = socketList.get(sendingStrategy.channelToSendOn());
 
                     int chToSendOn = sendingStrategy.channelToSendOn();
-                    log.info("Sending on channel {}", chToSendOn);
+                  //  log.info("Sending on channel {}", chToSendOn);
                     remoteWrites.get(chToSendOn).setData(arrayToReadIn);
-                    if (! remoteWrites.get(chToSendOn).isAlive()) remoteWrites.get(chToSendOn).start();
+                  //  startThread(chToSendOn);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private synchronized void startThread(int chToSendOn) {
+        if (! remoteWrites.get(chToSendOn).isAlive()) remoteWrites.get(chToSendOn).start();
+
     }
 
     public class RemoteWrite extends Thread {
@@ -92,18 +100,18 @@ public class BHostServerHandler extends Thread {
 
         @Override
         public void run() {
-            if (data != null) {
                 try {
-                    write(data);
+                    while (true) {
+                        if (data != null) write(data);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-            else log.info("Data is null for god damn reason");
-        }
 
-        private synchronized void write(byte[] data) throws IOException {
 
+        private void write(byte[] data) throws IOException {
+            log.info("Sending {}", data.length);
             socket.getOutputStream().write(data);
             socket.getOutputStream().flush();
         }
