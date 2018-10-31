@@ -36,7 +36,7 @@ public class BAgentServer implements ISocketServer {
 
     class MainThreadHandler extends Thread {
         private ServerSocket serverSocket;
-
+        private int chNo = 0;
         public MainThreadHandler(ServerSocket serverSocket) {
             this.serverSocket = serverSocket;
         }
@@ -50,8 +50,9 @@ public class BAgentServer implements ISocketServer {
                     e.printStackTrace();
                 }
 
-                Thread t = new BAgentServerHandler(s, hostClientSocket);
+                Thread t = new BAgentServerHandler(s, hostClientSocket, chNo);
                 t.start();
+                chNo++;
             }
         }
     }

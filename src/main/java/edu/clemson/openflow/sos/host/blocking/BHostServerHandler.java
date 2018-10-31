@@ -4,6 +4,7 @@ import edu.clemson.openflow.sos.agent.RRSendingStrategy;
 import edu.clemson.openflow.sos.agent.SendingStrategy;
 import edu.clemson.openflow.sos.agent.blocking.BAgentClient;
 import edu.clemson.openflow.sos.buf.SeqGen;
+import edu.clemson.openflow.sos.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,14 +22,14 @@ public class BHostServerHandler extends Thread {
     private BufferedInputStream dis = null;
     private BufferedOutputStream dos = null;
     private Socket s = null;
-    private byte[] arrayToReadIn = new byte[1659176 + 1000];
+    private byte[] arrayToReadIn = new byte[80 * 1000 * 1000];
 
     SeqGen seqGen = new SeqGen();
     private BAgentClient bAgentClient;
     private List<Socket> socketList;
     private List<RemoteWrite> remoteWrites = new ArrayList<>();
 
-    private int parllConns = 16; // also start this number of threads to write to remote agent
+    private int parllConns = Integer.parseInt(Utils.configFile.getProperty("test_conns").replaceAll("[\\D]", ""));; // also start this number of threads to write to remote agent
 
 
     private SendingStrategy sendingStrategy = new RRSendingStrategy(parllConns);
@@ -71,7 +72,7 @@ public class BHostServerHandler extends Thread {
 
                     int chToSendOn = sendingStrategy.channelToSendOn();
                   //  log.info("Sending on channel {}", chToSendOn);
-                    remoteWrites.get(chToSendOn).setData(arrayToReadIn);
+                    remoteWrites.get(chToSendOn).setData(arrayToReadIn, dis.available());
                   //  startThread(chToSendOn);
                 }
             }
@@ -89,20 +90,26 @@ public class BHostServerHandler extends Thread {
         private Socket socket;
         private boolean isDataAvaiable;
         private byte[] data;
+        private int available;
 
         public RemoteWrite(Socket socket) {
             this.socket = socket;
         }
 
-        public void setData(byte[] data) {
+        public synchronized void setData(byte[] data, int available) {
             this.data = data;
+            this.available = available;
         }
 
         @Override
         public void run() {
                 try {
                     while (true) {
-                        if (data != null) write(data);
+                        if (data != null && available !=0 )  write(data);
+                        if (s.isClosed()) {
+                            log.info("client done sending closing agent socket");
+                            socket.close();
+                        }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -111,8 +118,9 @@ public class BHostServerHandler extends Thread {
 
 
         private void write(byte[] data) throws IOException {
-            log.info("Sending {}", data.length);
-            socket.getOutputStream().write(data);
+            //log.info("Sending {}", available);
+            System.out.println(available);
+            socket.getOutputStream().write(data, 0, available);
             socket.getOutputStream().flush();
         }
     }

@@ -11,17 +11,19 @@ import java.net.Socket;
 public class BAgentServerHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(BAgentServerHandler.class);
     private Socket socket;
+    private int chNo;
 
     private Socket hostClientSocket;
-    private byte[] arrayToReadIn = new byte[1659176 + 1000];
+    private byte[] arrayToReadIn = new byte[80 * 1000 * 1000];
 
     BufferedInputStream hdis = null;
     BufferedOutputStream hdos = null;
 
 
-    public BAgentServerHandler(Socket s, Socket hostClientSocket) {
+    public BAgentServerHandler(Socket s, Socket hostClientSocket, int chNo) {
         socket = s;
         this.hostClientSocket = hostClientSocket;
+        this.chNo = chNo;
         try {
             hdis = new BufferedInputStream(socket.getInputStream());
             hdos = new BufferedOutputStream(hostClientSocket.getOutputStream());
@@ -37,10 +39,14 @@ public class BAgentServerHandler extends Thread {
             while (true) {
                 int avail = hdis.available();
                 if (avail > 0) {
-                    log.info("received {}", hdis.available());
+                   // log.info("received {} on Ch {}", hdis.available(), chNo);
                     hdis.read(arrayToReadIn);
-                    write(arrayToReadIn);
+                    write(arrayToReadIn, hdis.available());
 
+                }
+                if (socket.isClosed() && !hostClientSocket.isClosed()) {
+                    hostClientSocket.close();
+                    log.info("Client agent disconnected");
                 }
             }
         } catch (IOException e) {
@@ -48,8 +54,10 @@ public class BAgentServerHandler extends Thread {
         }
     }
 
-    private synchronized void write(byte[] data) throws IOException {
-        hdos.write(data);
+    private synchronized void write(byte[] data, int available) throws IOException {
+        hdos.write(data, 0, available);
+        System.out.println(available);
+
         hdos.flush();
     }
 }
