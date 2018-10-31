@@ -16,8 +16,8 @@ public class BAgentServerHandler extends Thread {
     private Socket hostClientSocket;
     private byte[] arrayToReadIn = new byte[80 * 1000 * 1000];
 
-    BufferedInputStream hdis = null;
-    BufferedOutputStream hdos = null;
+    DataInputStream hdis = null;
+    DataOutputStream hdos = null;
 
 
     public BAgentServerHandler(Socket s, Socket hostClientSocket, int chNo) {
@@ -25,8 +25,8 @@ public class BAgentServerHandler extends Thread {
         this.hostClientSocket = hostClientSocket;
         this.chNo = chNo;
         try {
-            hdis = new BufferedInputStream(socket.getInputStream());
-            hdos = new BufferedOutputStream(hostClientSocket.getOutputStream());
+            hdis = new DataInputStream(socket.getInputStream());
+            hdos = new DataOutputStream(hostClientSocket.getOutputStream());
             WriteUtils.hdos = hdos;
         } catch (IOException e) {
             e.printStackTrace();
@@ -39,7 +39,10 @@ public class BAgentServerHandler extends Thread {
         try {
             while (true) {
                 if (hdis.available() > 0) {
-                   log.info("received {} on Ch {}", hdis.available(), chNo);
+                //   log.info("received {} on Ch {}", hdis.available(), chNo);
+
+                    System.out.println(arrayToReadIn[0] + arrayToReadIn[1] + arrayToReadIn[2] + arrayToReadIn[3]);
+                   WriteUtils.addBytes(hdis.available());
                    hdis.read(arrayToReadIn);
                    WriteUtils.write(arrayToReadIn, hdis.available());
 

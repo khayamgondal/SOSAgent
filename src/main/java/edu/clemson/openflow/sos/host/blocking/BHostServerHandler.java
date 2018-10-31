@@ -3,14 +3,13 @@ package edu.clemson.openflow.sos.host.blocking;
 import edu.clemson.openflow.sos.agent.RRSendingStrategy;
 import edu.clemson.openflow.sos.agent.SendingStrategy;
 import edu.clemson.openflow.sos.agent.blocking.BAgentClient;
+import edu.clemson.openflow.sos.agent.blocking.WriteUtils;
 import edu.clemson.openflow.sos.buf.SeqGen;
 import edu.clemson.openflow.sos.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -18,9 +17,10 @@ import java.util.List;
 
 public class BHostServerHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(BHostServerHandler.class);
+    private  DataInputStream din;
 
-    private BufferedInputStream dis = null;
-    private BufferedOutputStream dos = null;
+   // private BufferedInputStream dis = null;
+    private DataOutputStream dos = null;
     private Socket s = null;
     private byte[] arrayToReadIn = new byte[80 * 1000 * 1000];
 
@@ -41,8 +41,12 @@ public class BHostServerHandler extends Thread {
             InetAddress remoteSocketAddress = s.getInetAddress();
             InetAddress localSocketAddress = s.getLocalAddress();
 
-            dis = new BufferedInputStream(s.getInputStream());
-            dos = new BufferedOutputStream(s.getOutputStream());
+
+        //    dis = new BufferedInputStream(s.getInputStream());
+
+            din = new DataInputStream(s.getInputStream());
+
+            dos = new DataOutputStream(s.getOutputStream());
 
             bAgentClient = new BAgentClient("10.0.0.12", 9878, parllConns);
             socketList = bAgentClient.connectSocks();
@@ -64,16 +68,21 @@ public class BHostServerHandler extends Thread {
                 startThread(i);
             }
             while (true) {
-                int avail = dis.available();
+                int avail = din.available();
                 if (avail > 0) {
                    // log.info("{}", dis.available());
-                    dis.read(arrayToReadIn);
+                    WriteUtils.putSeq(arrayToReadIn);
+                    din.read(arrayToReadIn, 3, din.available() + 4);
+
+                    System.out.println(arrayToReadIn[0] + arrayToReadIn[1] + arrayToReadIn[2] + arrayToReadIn[3]);
+
                     //   seqGen.incomingPacket(b);
                   //  Socket curSock = socketList.get(sendingStrategy.channelToSendOn());
 
                     int chToSendOn = sendingStrategy.channelToSendOn();
                   //  log.info("Sending on channel {}", chToSendOn);
-                    remoteWrites.get(chToSendOn).setData(arrayToReadIn, dis.available());
+                    remoteWrites.get(chToSendOn).setData(arrayToReadIn, din.available());
+                    WriteUtils.addSentBytes(din.available());
                   //  startThread(chToSendOn);
                 }
             }
