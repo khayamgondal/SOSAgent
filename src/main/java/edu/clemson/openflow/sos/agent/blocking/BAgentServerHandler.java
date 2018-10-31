@@ -27,6 +27,7 @@ public class BAgentServerHandler extends Thread {
         try {
             hdis = new BufferedInputStream(socket.getInputStream());
             hdos = new BufferedOutputStream(hostClientSocket.getOutputStream());
+            WriteUtils.hdos = hdos;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -40,7 +41,7 @@ public class BAgentServerHandler extends Thread {
                 if (hdis.available() > 0) {
                    log.info("received {} on Ch {}", hdis.available(), chNo);
                    hdis.read(arrayToReadIn);
-                   write(arrayToReadIn, hdis.available());
+                   WriteUtils.write(arrayToReadIn, hdis.available());
 
                 }
                 if (socket.isClosed() && !hostClientSocket.isClosed()) {
@@ -53,8 +54,5 @@ public class BAgentServerHandler extends Thread {
         }
     }
 
-    private synchronized void write(byte[] data, int available) throws IOException {
-        hdos.write(data, 0, available);
-        hdos.flush();
-    }
+
 }
