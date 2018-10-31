@@ -54,6 +54,7 @@ public class BHostServerHandler extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        log.info("WIll start {} conns", parllConns);
     }
 
     @Override
@@ -118,8 +119,8 @@ public class BHostServerHandler extends Thread {
 
 
         private void write(byte[] data) throws IOException {
-            //log.info("Sending {}", available);
-            System.out.println(available);
+            // log.info("Sending {}", available);
+            // System.out.println(available);
             socket.getOutputStream().write(data, 0, available);
             socket.getOutputStream().flush();
         }

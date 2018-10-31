@@ -37,11 +37,10 @@ public class BAgentServerHandler extends Thread {
         log.info("connected to agent {}", socket.getInetAddress().getHostAddress());
         try {
             while (true) {
-                int avail = hdis.available();
-                if (avail > 0) {
-                   // log.info("received {} on Ch {}", hdis.available(), chNo);
-                    hdis.read(arrayToReadIn);
-                    write(arrayToReadIn, hdis.available());
+                if (hdis.available() > 0) {
+                   log.info("received {} on Ch {}", hdis.available(), chNo);
+                   hdis.read(arrayToReadIn);
+                   write(arrayToReadIn, hdis.available());
 
                 }
                 if (socket.isClosed() && !hostClientSocket.isClosed()) {
@@ -56,8 +55,6 @@ public class BAgentServerHandler extends Thread {
 
     private synchronized void write(byte[] data, int available) throws IOException {
         hdos.write(data, 0, available);
-        System.out.println(available);
-
         hdos.flush();
     }
 }
