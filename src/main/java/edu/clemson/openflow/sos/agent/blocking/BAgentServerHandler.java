@@ -40,15 +40,16 @@ public class BAgentServerHandler extends Thread {
         try {
             while (true) {
                 if (hdis.available() > 0) {
-                  log.info("received {} on Ch {}", hdis.available(), chNo);
+               //   log.info("received {} on Ch {}", hdis.available(), chNo);
                    WriteUtils.addBytes(hdis.available());
                    hdis.read(arrayToReadIn);
                //     System.out.println(WriteUtils.fromByteArray(arrayToReadIn));
-                    //                    System.out.println(WriteUtils.fromByteArray(Arrays.copyOfRange(arrayToReadIn, 0, 3)));
+               // System.out.println(WriteUtils.fromByteArray(Arrays.copyOfRange(arrayToReadIn, 0, 3)));
 
-                    WriteUtils.write(arrayToReadIn, hdis.available());
+                   // WriteUtils.write(arrayToReadIn, hdis.available());
 
                 }
+              //  else {log.info("in else");}
                 if (socket.isClosed() && !hostClientSocket.isClosed()) {
                     hostClientSocket.close();
                     log.info("Client agent disconnected");

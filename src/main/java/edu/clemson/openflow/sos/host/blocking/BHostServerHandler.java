@@ -80,7 +80,7 @@ public class BHostServerHandler extends Thread {
                   //  Socket curSock = socketList.get(sendingStrategy.channelToSendOn());
 
                     int chToSendOn = sendingStrategy.channelToSendOn();
-                   log.info("Sending {} on channel {}", din.available() ,chToSendOn);
+                //   log.info("Sending {} on channel {}", din.available() ,chToSendOn);
                     remoteWrites.get(chToSendOn).setData(arrayToReadIn, din.available());
                     WriteUtils.addSentBytes(din.available());
                   //  startThread(chToSendOn);
