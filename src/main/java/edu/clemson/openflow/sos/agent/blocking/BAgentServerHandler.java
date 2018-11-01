@@ -26,6 +26,7 @@ public class BAgentServerHandler extends Thread {
         this.chNo = chNo;
         try {
             hdis = new DataInputStream(socket.getInputStream());
+
             hdos = new DataOutputStream(hostClientSocket.getOutputStream());
             WriteUtils.hdos = hdos;
         } catch (IOException e) {
@@ -39,12 +40,13 @@ public class BAgentServerHandler extends Thread {
         try {
             while (true) {
                 if (hdis.available() > 0) {
-                //   log.info("received {} on Ch {}", hdis.available(), chNo);
-
-                    System.out.println(arrayToReadIn[0] + arrayToReadIn[1] + arrayToReadIn[2] + arrayToReadIn[3]);
+                  log.info("received {} on Ch {}", hdis.available(), chNo);
                    WriteUtils.addBytes(hdis.available());
                    hdis.read(arrayToReadIn);
-                   WriteUtils.write(arrayToReadIn, hdis.available());
+               //     System.out.println(WriteUtils.fromByteArray(arrayToReadIn));
+                    //                    System.out.println(WriteUtils.fromByteArray(Arrays.copyOfRange(arrayToReadIn, 0, 3)));
+
+                    WriteUtils.write(arrayToReadIn, hdis.available());
 
                 }
                 if (socket.isClosed() && !hostClientSocket.isClosed()) {

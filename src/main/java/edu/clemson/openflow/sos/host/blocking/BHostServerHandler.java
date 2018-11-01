@@ -74,13 +74,13 @@ public class BHostServerHandler extends Thread {
                     WriteUtils.putSeq(arrayToReadIn);
                     din.read(arrayToReadIn, 3, din.available() + 4);
 
-                    System.out.println(arrayToReadIn[0] + arrayToReadIn[1] + arrayToReadIn[2] + arrayToReadIn[3]);
+                  //  System.out.println(WriteUtils.fromByteArray(arrayToReadIn));
 
                     //   seqGen.incomingPacket(b);
                   //  Socket curSock = socketList.get(sendingStrategy.channelToSendOn());
 
                     int chToSendOn = sendingStrategy.channelToSendOn();
-                  //  log.info("Sending on channel {}", chToSendOn);
+                   log.info("Sending {} on channel {}", din.available() ,chToSendOn);
                     remoteWrites.get(chToSendOn).setData(arrayToReadIn, din.available());
                     WriteUtils.addSentBytes(din.available());
                   //  startThread(chToSendOn);

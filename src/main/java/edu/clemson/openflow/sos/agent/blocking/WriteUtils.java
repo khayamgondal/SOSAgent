@@ -3,6 +3,7 @@ package edu.clemson.openflow.sos.agent.blocking;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class WriteUtils {
 
@@ -13,6 +14,7 @@ public class WriteUtils {
     private static int seq;
 
     public synchronized static void write(byte[] data, int available) throws IOException {
+
         hdos.write(data, 0, available);
         hdos.flush();
        // System.out.println(available);
@@ -41,7 +43,9 @@ public class WriteUtils {
         WriteUtils.totalSentBytes += totalBytes;
     }
 
-
+    public synchronized static int fromByteArray(byte[] bytes) {
+        return ByteBuffer.wrap(bytes).getInt();
+    }
 
     public synchronized static byte[] putSeq(byte[] result) {
 
@@ -51,6 +55,9 @@ public class WriteUtils {
         result[1] = (byte) (seq >> 16);
         result[2] = (byte) (seq >> 8);
         result[3] = (byte) (seq /*>> 0*/);
+
+
+
         seq++;
 
         return result;
